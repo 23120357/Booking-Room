@@ -1,0 +1,19 @@
+{
+  "name": "booking-room-backend",
+  "version": "1.0.0",
+  "description": "Backend for the Accommodation Management & Booking System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "migrate": "knex migrate:latest",
+    "migrate:rollback": "knex migrate:rollback",
+    "migrate:status": "knex migrate:status",
+    "seed": "knex seed:run"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "knex": "^3.2.10",
+    "pg": "^8.21.0"
+  }
+}
