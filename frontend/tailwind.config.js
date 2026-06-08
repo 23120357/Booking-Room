@@ -10,7 +10,22 @@ module.exports = {
     './utils/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        booking: {
+          surface: '#faf8ff',
+          text: '#191b23',
+          muted: '#434655',
+          border: '#c3c6d7',
+          primary: '#004ac6',
+          primaryDark: '#003f9e',
+          teal: '#006a61',
+        },
+      },
+      fontFamily: {
+        sans: ['var(--font-booking)', 'Be Vietnam Pro', 'Inter', 'sans-serif'],
+      },
+    },
   },
   plugins: [],
 };
