@@ -18,6 +18,10 @@ exports.seed = async function (knex) {
       room_id: 'd0000000-0000-0000-0000-000000000002',
       tenant_id: 'c0000000-0000-0000-0000-000000000005',
       landlord_id: 'c0000000-0000-0000-0000-000000000003',
+      deposit_amount: 6500000,
+      status: 'CONFIRMED',
+      expired_at: knex.raw("CURRENT_TIMESTAMP + INTERVAL '15 minutes'"),
+      confirmed_at: knex.fn.now(),
     },
   ]);
 

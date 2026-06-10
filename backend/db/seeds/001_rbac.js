@@ -10,7 +10,8 @@ exports.seed = async function (knex) {
       users, landlords, tenants,
       rooms, room_images, favorites, room_approvals,
       deposits, transactions, violation_reports, support_tickets,
-      conversations, messages, sessions, notifications, system_logs
+      conversations, messages, sessions, notifications, system_logs,
+      reviews, otp_verifications, account_security, login_audit_logs
     RESTART IDENTITY CASCADE
   `);
 

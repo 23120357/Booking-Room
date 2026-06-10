@@ -1,8 +1,8 @@
 /**
  * Seed: users + their 1:1 specializations (landlords, tenants).
- * Passwords here are placeholder bcrypt-style hashes, not real credentials.
+ * Seed password for all users: Password@123
  */
-const PWD = '$2b$10$abcdefghijklmnopqrstuv0123456789ABCDEFGHIJKLMNOPQRSTUV';
+const PWD = '$2b$10$eBd2QbbMg9MHou9H/3YQJeX41vYPgoEeo9WdIAd.dqsGSu8FwIjFG';
 
 exports.seed = async function (knex) {
   await knex('users').insert([
