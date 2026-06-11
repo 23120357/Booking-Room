@@ -29,6 +29,38 @@ async function authenticate(req, res, next) {
   }
 }
 
+async function optionalAuthenticate(req, res, next) {
+  try {
+    const header = req.headers.authorization || '';
+    const [scheme, token] = header.split(' ');
+
+    if (!token) {
+      next();
+      return;
+    }
+
+    if (scheme !== 'Bearer') {
+      throw new AppError('Authentication required', 401);
+    }
+
+    const payload = verifyAccessToken(token);
+    const user = await authService.getCurrentUser(payload.sub);
+
+    if (user && user.status === 'ACTIVE') {
+      req.user = user;
+    }
+
+    next();
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      next(new AppError('Authentication required', 401));
+      return;
+    }
+    next(err);
+  }
+}
+
 module.exports = {
   authenticate,
+  optionalAuthenticate,
 };

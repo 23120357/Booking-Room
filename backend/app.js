@@ -1,6 +1,9 @@
 const express = require('express');
 const db = require('./config/db');
 const authRoutes = require('./routes/auth/authRoutes');
+const guestRoomRoutes = require('./routes/guest/roomRoutes');
+const hostRoomRoutes = require('./routes/host/roomRoutes');
+const adminRoomRoutes = require('./routes/admin/roomRoutes');
 const { success } = require('./utils/responseHelper');
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 
@@ -32,6 +35,12 @@ app.get('/health/db', async (req, res, next) => {
 
 app.use('/auth', authRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/rooms', hostRoomRoutes);
+app.use('/rooms', guestRoomRoutes);
+app.use('/api/rooms', hostRoomRoutes);
+app.use('/api/rooms', guestRoomRoutes);
+app.use('/admin/rooms', adminRoomRoutes);
+app.use('/api/admin/rooms', adminRoomRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
