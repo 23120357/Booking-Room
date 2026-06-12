@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import AuthInput from '@/components/auth/AuthInput';
 import { EyeIcon, EyeOffIcon, LockIcon, MailIcon } from '@/components/auth/AuthIcons';
@@ -8,28 +9,41 @@ import AuthShell from '@/components/auth/AuthShell';
 import AuthTabs from '@/components/auth/AuthTabs';
 import SocialButtons from '@/components/auth/SocialButtons';
 import { ArrowRightIcon } from '@/components/booking/Icons';
+import { useAuth } from '@/hooks/useAuth';
+import { ApiError } from '@/types/api';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const router = useRouter();
+  const { login } = useAuth();
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [serverError, setServerError] = useState('');
 
   const errors = {
-    email: submitted && !email.trim() ? 'Vui lòng nhập email hoặc số điện thoại.' : '',
+    identifier: submitted && !identifier.trim() ? 'Vui lòng nhập email, SĐT hoặc username.' : '',
     password: submitted && !password ? 'Vui lòng nhập mật khẩu.' : '',
   };
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitted(true);
-    if (!email.trim() || !password) return;
+    setServerError('');
+    if (!identifier.trim() || !password) return;
 
     setSubmitting(true);
-    window.setTimeout(() => {
+    try {
+      const user = await login({ identifier: identifier.trim(), password });
+      if (user.role === 'ADMIN') router.push('/admin');
+      else if (user.role === 'HOST') router.push('/host');
+      else router.push('/rooms');
+    } catch (error) {
+      setServerError(error instanceof ApiError ? error.message : 'Không thể đăng nhập. Vui lòng thử lại.');
+    } finally {
       setSubmitting(false);
-    }, 700);
+    }
   }
 
   return (
@@ -41,10 +55,10 @@ export default function LoginPage() {
       <form className="mt-5 space-y-4" onSubmit={handleSubmit} noValidate>
         <AuthInput
           label="Email hoặc Số điện thoại"
-          value={email}
-          onChange={setEmail}
-          placeholder="Nhập email hoặc SĐT"
-          error={errors.email}
+          value={identifier}
+          onChange={setIdentifier}
+          placeholder="Email, SĐT hoặc username"
+          error={errors.identifier}
           icon={<MailIcon className="h-5 w-5 shrink-0" />}
         />
         <AuthInput
@@ -73,6 +87,7 @@ export default function LoginPage() {
           {submitting ? 'Đang xử lý...' : 'Đăng nhập'}
           <ArrowRightIcon />
         </button>
+        {serverError ? <p className="text-sm font-semibold text-red-600">{serverError}</p> : null}
       </form>
 
       <div className="my-8 flex items-center gap-4 text-sm text-booking-muted">

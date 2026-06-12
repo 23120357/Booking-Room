@@ -14,9 +14,12 @@ export default function SearchBento({ compact = false }: { compact?: boolean }) 
 
   function handleSearch() {
     const params = new URLSearchParams();
-    if (location.trim()) params.set('q', location.trim());
-    if (budget.trim()) params.set('budget', budget.trim());
-    if (type) params.set('type', type);
+    if (location.trim()) {
+      params.set('keyword', location.trim());
+      params.set('location', location.trim());
+    }
+    if (budget.trim()) params.set('maxPrice', budget.replace(/[^\d]/g, ''));
+    if (type) params.set('roomType', type);
     router.push(`/rooms${params.toString() ? `?${params.toString()}` : ''}`);
   }
 

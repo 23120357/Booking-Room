@@ -1,10 +1,9 @@
-import Image from 'next/image';
 import Link from 'next/link';
-import type { BookingRoom } from '@/data/bookingRooms';
+import type { DisplayRoom } from '@/types/room';
 import { CheckIcon, HeartIcon, MapPinIcon } from './Icons';
 
 type RoomCardProps = {
-  room: BookingRoom;
+  room: DisplayRoom;
   featured?: boolean;
 };
 
@@ -16,12 +15,10 @@ export default function RoomCard({ room, featured = false }: RoomCardProps) {
         featured ? 'min-h-[260px] md:min-h-[300px]' : 'min-h-[260px]'
       }`}
     >
-      <Image
+      <img
         src={room.image}
         alt={room.title}
-        fill
-        sizes={featured ? '(min-width: 768px) 50vw, 100vw' : '(min-width: 1024px) 33vw, 100vw'}
-        className="object-cover transition duration-500 group-hover:scale-105"
+        className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-booking-text/85 via-booking-text/15 to-transparent" />
 

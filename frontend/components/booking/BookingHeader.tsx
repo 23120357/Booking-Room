@@ -1,7 +1,22 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import { SearchIcon } from './Icons';
 
 export default function BookingHeader() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { user, loading, logout } = useAuth();
+  const isRoomsActive = pathname === '/rooms' || pathname.startsWith('/rooms/');
+  const isHostActive = pathname === '/host' || pathname.startsWith('/host/');
+
+  async function handleLogout() {
+    await logout();
+    router.push('/');
+  }
+
   return (
     <header className="sticky top-0 z-40 border-b border-booking-border bg-booking-surface/90 shadow-[0_1px_2px_rgba(0,0,0,0.05)] backdrop-blur-md">
       <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
@@ -19,18 +34,39 @@ export default function BookingHeader() {
         </div>
 
         <nav className="flex shrink-0 items-center gap-3 text-sm font-semibold text-booking-muted sm:gap-5">
-          <Link href="/host" className="hidden border-b-2 border-booking-primary pb-2 text-booking-primary sm:inline-flex">
+          <Link
+            href="/host"
+            className={`hidden pb-2 transition hover:text-booking-primary sm:inline-flex ${
+              isHostActive ? 'border-b-2 border-booking-primary text-booking-primary' : 'border-b-2 border-transparent'
+            }`}
+          >
             Chủ nhà
           </Link>
-          <Link href="/rooms" className="hidden transition hover:text-booking-text sm:inline-flex">
-            Trợ giúp
+          <Link
+            href="/rooms"
+            className={`hidden pb-2 transition hover:text-booking-primary sm:inline-flex ${
+              isRoomsActive ? 'border-b-2 border-booking-primary text-booking-primary' : 'border-b-2 border-transparent'
+            }`}
+          >
+            Tìm phòng
           </Link>
-          <Link href="/auth/login" className="transition hover:text-booking-primary">
-            Đăng nhập
-          </Link>
-          <Link href="/auth/register" className="rounded-full bg-booking-primary px-4 py-2 text-white shadow-sm transition hover:bg-booking-primaryDark">
-            Đăng ký
-          </Link>
+          {!loading && user ? (
+            <>
+              <span className="hidden max-w-[180px] truncate text-booking-text md:inline">{user.full_name}</span>
+              <button type="button" onClick={handleLogout} className="transition hover:text-booking-primary">
+                Đăng xuất
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/auth/login" className="transition hover:text-booking-primary">
+                Đăng nhập
+              </Link>
+              <Link href="/auth/register" className="rounded-full bg-booking-primary px-4 py-2 text-white shadow-sm transition hover:bg-booking-primaryDark">
+                Đăng ký
+              </Link>
+            </>
+          )}
         </nav>
       </div>
     </header>
