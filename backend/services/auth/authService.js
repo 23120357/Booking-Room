@@ -15,6 +15,7 @@ const {
   FAILURE_REASON,
   GENERIC_AUTH_ERROR_MESSAGE,
 } = require('../../config/authConstants');
+
 const { writeSystemLog } = require('../admin/systemLogService');
 
 /**
@@ -127,13 +128,14 @@ async function login({ identifier, password, ipAddress, userAgent }) {
   // 4. Success.
   await authRepository.registerSuccessfulLogin(user.user_id);
   await audit(true, null, user.user_id);
+
   await writeSystemLog({
     userId: user.user_id,
     action: 'AUTH_LOGIN_SUCCESS',
     ipAddress,
     userAgent,
   });
-
+  
   return {
     user: toPublicUser(user),
     tokens: issueTokens(user),
