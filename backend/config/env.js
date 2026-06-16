@@ -38,6 +38,21 @@ const env = {
     pass: process.env.SMTP_PASS,
     from: process.env.SMTP_FROM || 'BookingRoom <no-reply@booking.local>',
   },
+  oauth: {
+    // Client id/secret của từng provider. Thiếu cấu hình → gọi provider đó sẽ lỗi 502.
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    },
+    facebook: {
+      clientId: process.env.FACEBOOK_CLIENT_ID,
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
+    },
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    },
+  },
 };
 
 if (!Number.isInteger(env.port) || env.port <= 0) {

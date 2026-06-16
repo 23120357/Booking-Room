@@ -1,5 +1,7 @@
 const authService = require('../../services/auth/auth.service');
+const { isSupportedProvider } = require('../../services/auth/oauthProviders');
 const { sendSuccess } = require('../../utils/responseHelper');
+const AppError = require('../../utils/AppError');
 
 /**
  * Read the client IP, honouring X-Forwarded-For when behind a trusted proxy.
@@ -120,6 +122,38 @@ async function resetPassword(req, res, next) {
 }
 
 /**
+ * POST /api/auth/oauth/:provider
+ * Đăng nhập/đăng ký bằng Google/Facebook/GitHub (Authorization Code từ frontend).
+ */
+async function oauthLogin(req, res, next) {
+  try {
+    const provider = String(req.params.provider || '').toLowerCase();
+    if (!isSupportedProvider(provider)) {
+      throw new AppError('OAUTH_PROVIDER_INVALID', 'Nhà cung cấp đăng nhập không được hỗ trợ.', 400);
+    }
+
+    // req.body đã được validate + trim bởi validate({ body: oauthLoginSchema }).
+    const { code, redirectUri } = req.body;
+
+    const { user, tokens, isNewUser } = await authService.loginWithOAuth({
+      provider,
+      code,
+      redirectUri,
+      ipAddress: getClientIp(req),
+      userAgent: req.headers['user-agent'],
+    });
+
+    return sendSuccess(res, {
+      status: 200,
+      message: 'Đăng nhập thành công.',
+      data: { ...tokens, user, isNewUser },
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+/**
  * POST /api/auth/login
  * Validates input, delegates to the service, and returns the token pair.
  */
@@ -211,6 +245,7 @@ module.exports = {
   resendOtp,
   forgotPassword,
   resetPassword,
+  oauthLogin,
   login,
   refresh,
   logout,

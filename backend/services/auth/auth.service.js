@@ -4,6 +4,7 @@ const authRepository = require('../../repositories/auth/auth.repository');
 const AppError = require('../../utils/AppError');
 const { comparePassword, hashPassword } = require('../../utils/hashPassword');
 const otpStore = require('../../redis/otpStore');
+const oauthProviders = require('./oauthProviders');
 const { sendOtpEmail } = require('../../utils/mailer');
 const { toRegisterResponse } = require('../../models/User');
 const {
@@ -455,12 +456,142 @@ async function getCurrentUser(userId) {
   };
 }
 
+/**
+ * Sinh `username` base từ email, đảm bảo khớp usernameRegex
+ * (`^[a-z][a-z0-9_.]{2,49}$`): bắt đầu bằng chữ thường, dài 3–50.
+ *
+ * @param {string} email
+ * @returns {string} base (chưa kiểm tra unique)
+ */
+function buildUsernameBase(email) {
+  let base = String(email || '').split('@')[0].toLowerCase();
+  base = base.replace(/[^a-z0-9_.]/g, ''); // chỉ giữ ký tự hợp lệ
+  base = base.replace(/^[^a-z]+/, ''); // phải bắt đầu bằng chữ thường
+  if (base.length < 3) {
+    base = `user_${base}`;
+  }
+  return base.slice(0, 45); // chừa chỗ cho hậu tố ngẫu nhiên
+}
+
+/**
+ * Sinh username unique cho user OAuth: thử base, nếu trùng thì thêm hậu tố ngẫu nhiên.
+ *
+ * @param {string} email
+ * @returns {Promise<string>}
+ */
+async function generateUniqueUsername(email) {
+  const base = buildUsernameBase(email);
+  if (!(await authRepository.isUsernameTaken(base))) {
+    return base;
+  }
+  for (let i = 0; i < 10; i += 1) {
+    const candidate = `${base}_${crypto.randomBytes(2).toString('hex')}`.slice(0, 50);
+    if (!(await authRepository.isUsernameTaken(candidate))) {
+      return candidate;
+    }
+  }
+  // Fallback gần như chắc chắn unique.
+  return `user_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
+}
+
+/** Hash một mật khẩu ngẫu nhiên không dùng được (user OAuth chưa có mật khẩu). */
+function randomPasswordHash() {
+  return hashPassword(crypto.randomBytes(32).toString('hex'));
+}
+
+/**
+ * Đăng nhập / đăng ký bằng OAuth (Google / Facebook / GitHub).
+ * Đổi authorization code → hồ sơ provider → tìm liên kết / liên kết theo email /
+ * tạo mới (status ACTIVE), rồi phát token như login thường. Implements 1.9.
+ *
+ * @param {{ provider: string, code: string, redirectUri: string, ipAddress?: string, userAgent?: string }} params
+ *   provider = lowercase (google|facebook|github)
+ * @returns {Promise<{ user: object, tokens: object, isNewUser: boolean }>}
+ */
+async function loginWithOAuth({ provider, code, redirectUri, ipAddress, userAgent }) {
+  const profile = await oauthProviders.getProfile({ provider, code, redirectUri });
+
+  // Chỉ chấp nhận khi có email đã xác thực (chống chiếm tài khoản theo email).
+  if (!profile.email || !profile.emailVerified) {
+    throw new AppError(
+      'OAUTH_EMAIL_REQUIRED',
+      'Tài khoản mạng xã hội không cung cấp email đã xác thực.',
+      422,
+    );
+  }
+  const email = profile.email.trim().toLowerCase();
+
+  let isNewUser = false;
+
+  // 1. Đã có liên kết (provider, providerUserId)?
+  const link = await authRepository.findOAuthAccount(profile.provider, profile.providerUserId);
+  let userId = link ? link.user_id : null;
+
+  if (!userId) {
+    // 2. Có user cùng email → liên kết vào user đó.
+    const existing = await authRepository.findUserByEmail(email);
+    if (existing) {
+      if (existing.status === USER_STATUS.BANNED) {
+        throw new AppError('ACCOUNT_BANNED', 'Tài khoản đã bị cấm.', 403);
+      }
+      await authRepository.linkOAuthAccount({
+        userId: existing.user_id,
+        provider: profile.provider,
+        providerUserId: profile.providerUserId,
+        email,
+      });
+      userId = existing.user_id;
+    } else {
+      // 3. Tạo user mới (ACTIVE, TENANT, mật khẩu ngẫu nhiên, username tự sinh).
+      const role = await authRepository.getRoleIdByName(ROLES.TENANT);
+      if (!role) {
+        throw new AppError('ROLE_NOT_FOUND', 'Vai trò TENANT chưa được cấu hình.', 500);
+      }
+      const username = await generateUniqueUsername(email);
+      const passwordHash = await randomPasswordHash();
+      userId = await authRepository.createOAuthUser({
+        fullName: profile.fullName || username,
+        email,
+        username,
+        avatarUrl: profile.avatarUrl,
+        passwordHash,
+        roleId: role.role_id,
+        provider: profile.provider,
+        providerUserId: profile.providerUserId,
+      });
+      isNewUser = true;
+    }
+  }
+
+  // Lấy user đầy đủ (joined role) để issueTokens + toPublicUser nhất quán với login.
+  const user = await authRepository.findUserById(userId);
+  if (!user) {
+    throw new AppError('USER_NOT_FOUND', 'Tài khoản không tồn tại.', 404);
+  }
+  if (user.status === USER_STATUS.BANNED) {
+    throw new AppError('ACCOUNT_BANNED', 'Tài khoản đã bị cấm.', 403);
+  }
+
+  const tokens = await issueTokens(user, { ipAddress, userAgent });
+  await authRepository.writeLoginAudit({
+    userId: user.user_id,
+    identifier: email,
+    success: true,
+    failureReason: null,
+    ipAddress,
+    userAgent,
+  });
+
+  return { user: toPublicUser(user), tokens, isNewUser };
+}
+
 module.exports = {
   register,
   verifyOtp,
   resendOtp,
   forgotPassword,
   resetPassword,
+  loginWithOAuth,
   login,
   refreshAccessToken,
   logout,

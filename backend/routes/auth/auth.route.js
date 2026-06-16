@@ -8,6 +8,7 @@ const {
   resendOtpSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  oauthLoginSchema,
   loginSchema,
   refreshSchema,
   logoutSchema,
@@ -29,6 +30,9 @@ router.post('/forgot-password', validate({ body: forgotPasswordSchema }), authCo
 
 // POST /api/auth/reset-password — verify OTP and set a new password (revokes all sessions).
 router.post('/reset-password', validate({ body: resetPasswordSchema }), authController.resetPassword);
+
+// POST /api/auth/oauth/:provider — login/register via Google/Facebook/GitHub.
+router.post('/oauth/:provider', validate({ body: oauthLoginSchema }), authController.oauthLogin);
 
 // POST /api/auth/login — authenticate and issue an access + refresh token pair.
 router.post('/login', validate({ body: loginSchema }), authController.login);

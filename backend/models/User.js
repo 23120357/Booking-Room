@@ -89,6 +89,12 @@ const resetPasswordSchema = z
     path: ['confirmPassword'],
   });
 
+// POST /api/auth/oauth/:provider  (provider lấy từ params, validate ở controller)
+const oauthLoginSchema = z.object({
+  code: z.string({ error: 'Thiếu mã uỷ quyền.' }).trim().min(1, 'Thiếu mã uỷ quyền.'),
+  redirectUri: z.string({ error: 'Thiếu redirectUri.' }).trim().url('redirectUri không hợp lệ.'),
+});
+
 // POST /api/auth/login
 // Đặt `error` ở cấp string để khi field thiếu/sai kiểu vẫn ra message tiếng Việt
 // (nếu chỉ để ở .min thì Zod báo lỗi kiểu mặc định trước khi tới .min).
@@ -131,6 +137,7 @@ module.exports = {
   resendOtpSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  oauthLoginSchema,
   loginSchema,
   refreshSchema,
   logoutSchema,

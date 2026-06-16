@@ -171,6 +171,89 @@ async function resetAccountSecurity(userId) {
 }
 
 /**
+ * Tìm liên kết OAuth theo (provider, provider_user_id).
+ *
+ * @param {string} provider GOOGLE | FACEBOOK | GITHUB
+ * @param {string} providerUserId
+ * @returns {Promise<{ oauth_account_id: string, user_id: string }|undefined>}
+ */
+function findOAuthAccount(provider, providerUserId) {
+  return db('oauth_accounts')
+    .where({ provider, provider_user_id: providerUserId })
+    .select('oauth_account_id', 'user_id')
+    .first();
+}
+
+/**
+ * Liên kết một danh tính OAuth vào user đã tồn tại.
+ *
+ * @param {{ userId: string, provider: string, providerUserId: string, email?: string }} params
+ * @returns {Promise<void>}
+ */
+async function linkOAuthAccount({ userId, provider, providerUserId, email }) {
+  await db('oauth_accounts').insert({
+    user_id: userId,
+    provider,
+    provider_user_id: providerUserId,
+    email: email || null,
+  });
+}
+
+/**
+ * Username đã được dùng chưa (hỗ trợ sinh username unique cho user OAuth).
+ *
+ * @param {string} username
+ * @returns {Promise<boolean>}
+ */
+async function isUsernameTaken(username) {
+  const row = await db('users').where({ username }).select('user_id').first();
+  return Boolean(row);
+}
+
+/**
+ * Tạo user OAuth (status ACTIVE) + tenants + account_security + oauth_accounts,
+ * trong một transaction. Trả về user_id vừa tạo.
+ *
+ * @param {object} params
+ * @returns {Promise<string>} user_id
+ */
+async function createOAuthUser({
+  fullName,
+  email,
+  username,
+  avatarUrl,
+  passwordHash,
+  roleId,
+  provider,
+  providerUserId,
+}) {
+  return db.transaction(async (trx) => {
+    const [user] = await trx('users')
+      .insert({
+        full_name: fullName,
+        username,
+        email,
+        avatar_url: avatarUrl || null,
+        password: passwordHash,
+        role_id: roleId,
+        status: 'ACTIVE',
+      })
+      .returning(['user_id']);
+
+    await trx('tenants').insert({ tenant_id: user.user_id });
+    await trx('account_security').insert({ user_id: user.user_id });
+    await trx('oauth_accounts').insert({
+      user_id: user.user_id,
+      provider,
+      provider_user_id: providerUserId,
+      email: email || null,
+    });
+
+    return user.user_id;
+  });
+}
+
+/**
  * Find a user by primary key, joined with their role name.
  * Used when re-issuing an access token from a refresh token.
  *
@@ -328,6 +411,10 @@ module.exports = {
   updateUserPassword,
   deleteRefreshTokensByUser,
   resetAccountSecurity,
+  findOAuthAccount,
+  linkOAuthAccount,
+  isUsernameTaken,
+  createOAuthUser,
   findUserByIdentifier,
   findUserById,
   getAccountSecurity,
