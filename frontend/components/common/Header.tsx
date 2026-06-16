@@ -8,20 +8,18 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
+import UserProfileModal from './UserProfileModal';
+import ChangePasswordModal from './ChangePasswordModal';
 
 export default function Header() {
-  // Trạng thái đăng nhập giả lập (sau này sẽ kết nối với AuthContext / Redux / Cookie)
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { user, logout } = useAuth();
+  const isLoggedIn = !!user;
   // Trạng thái mở/đóng dropdown của Avatar
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Mock dữ liệu user
-  const mockUser = {
-    name: 'Nguyễn Văn A',
-    email: 'vana@student.hcmus.edu.vn',
-    avatarUrl: '', // Để rỗng để tự hiển thị chữ cái đầu "N"
-  };
 
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
@@ -35,7 +33,7 @@ export default function Header() {
   }, []);
 
   const handleLogout = () => {
-    setIsLoggedIn(false);
+    logout();
     setIsDropdownOpen(false);
   };
 
@@ -62,8 +60,8 @@ export default function Header() {
 
       {/* 2. Menu Navigation & Auth Options */}
       <div className="flex items-center gap-4 lg:gap-6 text-sm font-medium">
-        <Link href="#" className="text-[#0052CC] border-b-2 border-[#0052CC] pb-1 px-1 hidden sm:block">
-          Cho nhà
+        <Link href="/rooms" className="text-[#0052CC] border-b-2 border-[#0052CC] pb-1 px-1 hidden sm:block">
+          Thuê phòng
         </Link>
         <Link href="#" className="text-[#6B778C] hover:text-[#172B4D] transition-colors hidden sm:block">
           Trợ giúp
@@ -74,33 +72,22 @@ export default function Header() {
           </svg>
         </button>
 
-        {/* Nút giả lập Đăng nhập (Chỉ để Test UI, sẽ bỏ đi sau này) */}
-        {!isLoggedIn && (
-          <button 
-            onClick={() => setIsLoggedIn(true)} 
-            className="text-xs text-gray-400 hover:text-gray-600 border border-dashed border-gray-300 rounded px-2 py-1 transition-colors"
-            title="Bấm để test thử trạng thái đã Đăng nhập"
-          >
-            [Test Login]
-          </button>
-        )}
-
-        {isLoggedIn ? (
+        {isLoggedIn && user ? (
           /* TRẠNG THÁI: ĐÃ ĐĂNG NHẬP (Hiển thị Avatar Dropdown) */
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsDropdownOpen((prev) => !prev)}
               className="flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 rounded-full p-0.5 transition-all"
             >
-              {mockUser.avatarUrl ? (
+              {user.avatarUrl ? (
                 <img
-                  src={mockUser.avatarUrl}
-                  alt={mockUser.name}
+                  src={user.avatarUrl}
+                  alt={user.fullName}
                   className="w-8 h-8 rounded-full object-cover border border-gray-200"
                 />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-[#0052CC] text-white flex items-center justify-center font-bold text-sm shadow-sm select-none">
-                  {mockUser.name.charAt(0)}
+                  {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
                 </div>
               )}
               <svg className={`w-4 h-4 text-gray-500 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -113,33 +100,37 @@ export default function Header() {
               <div className="absolute right-0 mt-2.5 w-60 bg-white border border-gray-150 rounded-xl shadow-xl z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-150">
                 {/* Thông tin User tóm tắt */}
                 <div className="px-4 py-2.5 border-b border-gray-100">
-                  <p className="text-[#172B4D] font-bold text-sm truncate">{mockUser.name}</p>
-                  <p className="text-[#6B778C] text-xs truncate mt-0.5">{mockUser.email}</p>
+                  <p className="text-[#172B4D] font-bold text-sm truncate">{user.fullName}</p>
+                  <p className="text-[#6B778C] text-xs truncate mt-0.5">{user.email}</p>
                 </div>
 
                 {/* Các nút chức năng */}
                 <div className="py-1">
-                  <Link
-                    href="/guest/profile"
-                    onClick={() => setIsDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-[#172B4D] hover:bg-[#F4F5F7] transition-colors"
+                  <button
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      setIsProfileOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#172B4D] hover:bg-[#F4F5F7] transition-colors text-left font-medium"
                   >
                     <svg className="w-4 h-4 text-[#6B778C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                     <span>Xem hồ sơ cá nhân</span>
-                  </Link>
+                  </button>
 
-                  <Link
-                    href="/guest/change-password"
-                    onClick={() => setIsDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-[#172B4D] hover:bg-[#F4F5F7] transition-colors"
+                  <button
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      setIsChangePasswordOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#172B4D] hover:bg-[#F4F5F7] transition-colors text-left font-medium"
                   >
                     <svg className="w-4 h-4 text-[#6B778C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                     <span>Đổi mật khẩu</span>
-                  </Link>
+                  </button>
 
                   <Link
                     href="/guest/settings"
@@ -189,6 +180,9 @@ export default function Header() {
           </>
         )}
       </div>
+
+      <UserProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+      <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} />
     </header>
   );
 }

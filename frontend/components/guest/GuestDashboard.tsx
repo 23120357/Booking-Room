@@ -1,3 +1,5 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import BookingChatFab from '@/components/booking/BookingChatFab';
@@ -8,6 +10,8 @@ import SearchBento from '@/components/booking/SearchBento';
 import { bookingRooms } from '@/data/bookingRooms';
 
 export default function GuestDashboard() {
+  const displayRooms = bookingRooms.slice(0, 4);
+
   return (
     <div className="min-h-screen bg-booking-surface text-booking-text">
       <BookingHeader />
@@ -49,7 +53,7 @@ export default function GuestDashboard() {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            {bookingRooms.map((room, index) => (
+            {displayRooms.map((room, index) => (
               <RoomCard key={room.id} room={room} featured={index === 0 || index === 3} />
             ))}
           </div>

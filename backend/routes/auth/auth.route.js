@@ -12,6 +12,8 @@ const {
   loginSchema,
   refreshSchema,
   logoutSchema,
+  updateProfileSchema,
+  changePasswordSchema,
 } = require('../../models/User');
 
 const router = express.Router();
@@ -45,5 +47,11 @@ router.post('/logout', requireAuth, validate({ body: logoutSchema }), authContro
 
 // GET /api/auth/me — return the authenticated user's profile (requires access token).
 router.get('/me', requireAuth, authController.getMe);
+
+// PUT /api/auth/me — update the authenticated user's profile
+router.put('/me', requireAuth, validate({ body: updateProfileSchema }), authController.updateProfile);
+
+// POST /api/auth/change-password — change the user's password
+router.post('/change-password', requireAuth, validate({ body: changePasswordSchema }), authController.changePassword);
 
 module.exports = router;

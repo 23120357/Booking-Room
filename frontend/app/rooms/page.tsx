@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import BookingChatFab from '@/components/booking/BookingChatFab';
 import BookingFooter from '@/components/booking/BookingFooter';
 import BookingHeader from '@/components/booking/BookingHeader';
@@ -15,13 +15,12 @@ export default function RoomsPage() {
   const [district, setDistrict] = useState('Tất cả');
   const [type, setType] = useState('Tất cả');
 
-  const rooms = useMemo(() => {
-    return bookingRooms.filter((room) => {
-      const districtMatch = district === 'Tất cả' || room.district === district;
-      const typeMatch = type === 'Tất cả' || room.type === type;
-      return districtMatch && typeMatch;
-    });
-  }, [district, type]);
+  // Filter local bookingRooms
+  const displayRooms = bookingRooms.filter((room) => {
+    const matchDistrict = district === 'Tất cả' || room.district === district;
+    const matchType = type === 'Tất cả' || room.type === type;
+    return matchDistrict && matchType;
+  });
 
   return (
     <div className="min-h-screen bg-booking-surface text-booking-text">
@@ -35,7 +34,7 @@ export default function RoomsPage() {
               <h1 className="mt-2 text-2xl font-bold sm:text-3xl">Không gian phù hợp với nhịp sống của bạn</h1>
             </div>
             <p className="max-w-xl text-sm leading-6 text-booking-muted">
-              Lọc nhanh theo khu vực và loại phòng. Dữ liệu hiện là mẫu giao diện, sẵn sàng nối API ở giai đoạn sau.
+              Lọc nhanh theo khu vực và loại phòng.
             </p>
           </div>
           <SearchBento compact />
@@ -72,13 +71,14 @@ export default function RoomsPage() {
 
           <div>
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold">{rooms.length} phòng phù hợp</h2>
+              <h2 className="text-xl font-bold">{displayRooms.length} phòng phù hợp</h2>
               <span className="rounded-full border border-booking-border bg-white px-3 py-1 text-sm text-booking-muted">
                 Sắp xếp: Đề xuất
               </span>
             </div>
+
             <div className="grid gap-5 md:grid-cols-2">
-              {rooms.map((room) => (
+              {displayRooms.map((room) => (
                 <RoomCard key={room.id} room={room} />
               ))}
             </div>

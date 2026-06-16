@@ -10,6 +10,7 @@ const nextConfig = {
   },
   // Cho phép Hot Module Replacement (HMR) kết nối qua IP mạng nội bộ
   allowedDevOrigins: ['192.168.56.1'],
+  devIndicators: false,
 };
 
 module.exports = nextConfig;

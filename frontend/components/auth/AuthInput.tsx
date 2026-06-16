@@ -9,9 +9,10 @@ type AuthInputProps = {
   error?: string;
   right?: React.ReactNode;
   icon: React.ReactNode;
+  suffix?: React.ReactNode;
 };
 
-export default function AuthInput({ label, value, onChange, placeholder, type = 'text', error, right, icon }: AuthInputProps) {
+export default function AuthInput({ label, value, onChange, placeholder, type = 'text', error, right, icon, suffix }: AuthInputProps) {
   return (
     <label className="block">
       <span className="mb-2 flex items-center justify-between text-xs font-bold uppercase tracking-[0.05em] text-booking-text">
@@ -27,6 +28,7 @@ export default function AuthInput({ label, value, onChange, placeholder, type = 
           type={type}
           className="w-full bg-transparent text-base text-booking-text outline-none placeholder:text-[#6b7280]"
         />
+        {suffix}
       </span>
       {error ? <span className="mt-1 block text-xs font-semibold text-red-600">{error}</span> : null}
     </label>

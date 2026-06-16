@@ -28,6 +28,16 @@ const {
 /**
  * Shape the public, password-free view of a user for API responses.
  */
+function formatDate(date) {
+  if (!date) return null;
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return null;
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function toPublicUser(user) {
   return {
     userId: user.user_id,
@@ -37,6 +47,9 @@ function toPublicUser(user) {
     username: user.username,
     role: user.role_name,
     status: user.status,
+    gender: user.gender,
+    dateOfBirth: formatDate(user.date_of_birth),
+    address: user.address || null,
   };
 }
 
@@ -86,7 +99,7 @@ async function issueTokens(user, { ipAddress, userAgent } = {}) {
  * @param {{ fullName: string, username: string, email: string, phoneNumber: string, password: string }} input
  * @returns {Promise<{ user: object, otpExpiresInSeconds: number }>}
  */
-async function register({ fullName, username, email, phoneNumber, password }) {
+async function register({ fullName, username, email, phoneNumber, password, gender, dateOfBirth }) {
   // 1. Chặn trùng email / phone / username.
   const existing = await authRepository.findUserByEmailPhoneUsername({ email, phoneNumber, username });
   if (existing) {
@@ -112,6 +125,8 @@ async function register({ fullName, username, email, phoneNumber, password }) {
     phoneNumber,
     passwordHash,
     roleId: role.role_id,
+    gender,
+    dateOfBirth,
   });
 
   // 4. Sau commit: sinh OTP, lưu Redis, gửi email.
@@ -585,6 +600,81 @@ async function loginWithOAuth({ provider, code, redirectUri, ipAddress, userAgen
   return { user: toPublicUser(user), tokens, isNewUser };
 }
 
+/**
+ * Cập nhật thông tin hồ sơ người dùng.
+ *
+ * @param {string} userId
+ * @param {{ fullName: string, phoneNumber?: string|null, gender: string, dateOfBirth?: string|null, address?: string|null }} updates
+ * @returns {Promise<object>} updated public user profile
+ */
+async function updateUserProfile(userId, { fullName, phoneNumber, gender, dateOfBirth, address }) {
+  // 1. Kiểm tra xem user có tồn tại không.
+  const user = await authRepository.findUserById(userId);
+  if (!user) {
+    throw new AppError('USER_NOT_FOUND', 'Tài khoản không tồn tại.', 404);
+  }
+
+  // 2. Nếu có cập nhật số điện thoại, kiểm tra tính duy nhất.
+  if (phoneNumber && phoneNumber !== user.phone_number) {
+    const existing = await authRepository.findUserByEmailPhoneUsername({
+      phoneNumber,
+    });
+    if (existing && existing.user_id !== userId) {
+      throw new AppError(
+        'PHONE_NUMBER_TAKEN',
+        'Số điện thoại đã được sử dụng bởi tài khoản khác.',
+        409
+      );
+    }
+  }
+
+  // 3. Tiến hành cập nhật.
+  const updatedUser = await authRepository.updateUserProfile(userId, {
+    fullName,
+    phoneNumber,
+    gender,
+    dateOfBirth,
+    address,
+  });
+
+  // 4. Trả về thông tin public sau cập nhật.
+  // Đảm bảo user có role_name để toPublicUser hoạt động đúng.
+  updatedUser.role_name = user.role_name;
+  return toPublicUser(updatedUser);
+}
+
+/**
+ * Đổi mật khẩu của người dùng.
+ *
+ * @param {string} userId
+ * @param {object} params
+ * @param {string} params.currentPassword
+ * @param {string} params.newPassword
+ * @returns {Promise<void>}
+ */
+async function changePassword(userId, { currentPassword, newPassword }) {
+  const user = await authRepository.findUserById(userId);
+  if (!user) {
+    throw new AppError('USER_NOT_FOUND', 'Tài khoản không tồn tại.', 404);
+  }
+
+  // Lấy password hash từ database
+  const userPasswordRow = await authRepository.findUserPasswordById(userId);
+  if (!userPasswordRow || !userPasswordRow.password) {
+    throw new AppError('INVALID_CREDENTIALS', 'Tài khoản chưa cấu hình mật khẩu hoặc lỗi hệ thống.', 401);
+  }
+
+  // So sánh mật khẩu cũ
+  const matches = await comparePassword(currentPassword, userPasswordRow.password);
+  if (!matches) {
+    throw new AppError('INVALID_CREDENTIALS', 'Mật khẩu hiện tại không chính xác.', 401);
+  }
+
+  // Hash mật khẩu mới và cập nhật
+  const newPasswordHash = await hashPassword(newPassword);
+  await authRepository.updateUserPassword(userId, newPasswordHash);
+}
+
 module.exports = {
   register,
   verifyOtp,
@@ -596,4 +686,6 @@ module.exports = {
   refreshAccessToken,
   logout,
   getCurrentUser,
+  updateUserProfile,
+  changePassword,
 };

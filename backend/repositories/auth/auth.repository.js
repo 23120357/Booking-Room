@@ -25,6 +25,9 @@ function findUserByIdentifier(identifier) {
       'users.phone_number',
       'users.username',
       'users.password',
+      'users.gender',
+      'users.date_of_birth',
+      'users.address',
       'users.status',
       'users.role_id',
       'roles.role_name',
@@ -63,7 +66,7 @@ function findUserByEmailPhoneUsername({ email, phoneNumber, username }) {
  * @param {object} params
  * @returns {Promise<object>} user row vừa tạo (user_id, username, email, phone_number, status)
  */
-async function createTenantUser({ fullName, username, email, phoneNumber, passwordHash, roleId }) {
+async function createTenantUser({ fullName, username, email, phoneNumber, passwordHash, roleId, gender, dateOfBirth }) {
   return db.transaction(async (trx) => {
     const [user] = await trx('users')
       .insert({
@@ -73,9 +76,11 @@ async function createTenantUser({ fullName, username, email, phoneNumber, passwo
         phone_number: phoneNumber,
         password: passwordHash,
         role_id: roleId,
+        gender: gender || 'OTHER',
+        date_of_birth: dateOfBirth || null,
         status: 'INACTIVE',
       })
-      .returning(['user_id', 'username', 'email', 'phone_number', 'status']);
+      .returning(['user_id', 'username', 'email', 'phone_number', 'status', 'gender', 'date_of_birth']);
 
     await trx('tenants').insert({ tenant_id: user.user_id });
     await trx('account_security').insert({ user_id: user.user_id });
@@ -271,6 +276,9 @@ function findUserById(userId) {
       'users.phone_number',
       'users.username',
       'users.avatar_url',
+      'users.gender',
+      'users.date_of_birth',
+      'users.address',
       'users.status',
       'users.role_id',
       'roles.role_name',
@@ -400,6 +408,37 @@ function deleteRefreshToken(tokenId, userId) {
   return db('refresh_tokens').where({ token_id: tokenId, user_id: userId }).del();
 }
 
+/**
+ * Cập nhật thông tin hồ sơ của người dùng.
+ *
+ * @param {string} userId
+ * @param {object} updates
+ * @returns {Promise<object>}
+ */
+async function updateUserProfile(userId, { fullName, phoneNumber, gender, dateOfBirth, address }) {
+  const [updatedUser] = await db('users')
+    .where({ user_id: userId })
+    .update({
+      full_name: fullName,
+      phone_number: phoneNumber || null,
+      gender: gender || 'OTHER',
+      date_of_birth: dateOfBirth || null,
+      address: address || null,
+    })
+    .returning('*');
+  return updatedUser;
+}
+
+/**
+ * Lấy mật khẩu hash của người dùng theo ID.
+ *
+ * @param {string} userId
+ * @returns {Promise<{ password: string }|undefined>}
+ */
+function findUserPasswordById(userId) {
+  return db('users').where({ user_id: userId }).select('password').first();
+}
+
 module.exports = {
   getRoleIdByName,
   findUserByEmailPhoneUsername,
@@ -425,4 +464,6 @@ module.exports = {
   insertRefreshToken,
   findRefreshTokenById,
   deleteRefreshToken,
+  updateUserProfile,
+  findUserPasswordById,
 };

@@ -21,7 +21,7 @@ function getClientIp(req) {
 async function register(req, res, next) {
   try {
     // req.body đã validate + normalize (lowercase email/username) bởi registerSchema.
-    const { fullName, username, email, phoneNumber, password } = req.body;
+    const { fullName, username, email, phoneNumber, password, gender, dateOfBirth } = req.body;
 
     const { user, otpExpiresInSeconds } = await authService.register({
       fullName,
@@ -29,6 +29,8 @@ async function register(req, res, next) {
       email,
       phoneNumber,
       password,
+      gender,
+      dateOfBirth,
     });
 
     return sendSuccess(res, {
@@ -239,6 +241,55 @@ async function getMe(req, res, next) {
   }
 }
 
+/**
+ * PUT /api/auth/me
+ * Cập nhật thông tin hồ sơ của người dùng đang đăng nhập.
+ */
+async function updateProfile(req, res, next) {
+  try {
+    // req.body đã được validate bởi updateProfileSchema.
+    const { fullName, phoneNumber, gender, dateOfBirth, address } = req.body;
+    const userId = req.user.userId;
+
+    const updatedUser = await authService.updateUserProfile(userId, {
+      fullName,
+      phoneNumber,
+      gender,
+      dateOfBirth,
+      address,
+    });
+
+    return sendSuccess(res, {
+      status: 200,
+      message: 'Cập nhật thông tin hồ sơ thành công.',
+      data: { user: updatedUser },
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+/**
+ * POST /api/auth/change-password
+ * Đổi mật khẩu của người dùng hiện tại đang đăng nhập.
+ */
+async function changePassword(req, res, next) {
+  try {
+    // req.body đã được validate bởi changePasswordSchema.
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.userId;
+
+    await authService.changePassword(userId, { currentPassword, newPassword });
+
+    return sendSuccess(res, {
+      status: 200,
+      message: 'Đổi mật khẩu thành công.',
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
 module.exports = {
   register,
   verifyOtp,
@@ -250,4 +301,6 @@ module.exports = {
   refresh,
   logout,
   getMe,
+  updateProfile,
+  changePassword,
 };

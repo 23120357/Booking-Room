@@ -5,15 +5,11 @@ import BookingChatFab from '@/components/booking/BookingChatFab';
 import BookingFooter from '@/components/booking/BookingFooter';
 import BookingHeader from '@/components/booking/BookingHeader';
 import { CheckIcon, MapPinIcon } from '@/components/booking/Icons';
-import { bookingRooms, findRoomById } from '@/data/bookingRooms';
+import { findRoomById } from '@/data/bookingRooms';
 
 type RoomDetailPageProps = {
   params: Promise<{ id: string }>;
 };
-
-export function generateStaticParams() {
-  return bookingRooms.map((room) => ({ id: room.id }));
-}
 
 export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
   const { id } = await params;
