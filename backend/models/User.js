@@ -61,8 +61,33 @@ const verifyOtpSchema = z.object({
 // POST /api/auth/resend-otp
 const resendOtpSchema = z.object({
   email: z.string({ error: 'Vui lòng nhập email.' }).trim().toLowerCase().email('Email không hợp lệ.'),
-  purpose: z.literal('REGISTRATION', { error: 'purpose chỉ hỗ trợ REGISTRATION.' }).default('REGISTRATION'),
+  purpose: z
+    .enum(['REGISTRATION', 'PASSWORD_RESET'], { error: 'purpose chỉ hỗ trợ REGISTRATION hoặc PASSWORD_RESET.' })
+    .default('REGISTRATION'),
 });
+
+// POST /api/auth/forgot-password
+const forgotPasswordSchema = z.object({
+  email: z.string({ error: 'Vui lòng nhập email.' }).trim().toLowerCase().email('Email không hợp lệ.'),
+});
+
+// POST /api/auth/reset-password
+const resetPasswordSchema = z
+  .object({
+    email: z.string({ error: 'Vui lòng nhập email.' }).trim().toLowerCase().email('Email không hợp lệ.'),
+    otp: z
+      .string({ error: 'Vui lòng nhập mã OTP.' })
+      .trim()
+      .regex(/^\d{6}$/, 'Mã OTP gồm 6 chữ số.'),
+    newPassword: z
+      .string({ error: 'Vui lòng nhập mật khẩu mới.' })
+      .regex(passwordRegex, 'Mật khẩu tối thiểu 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.'),
+    confirmPassword: z.string({ error: 'Vui lòng xác nhận mật khẩu.' }),
+  })
+  .refine((d) => d.newPassword === d.confirmPassword, {
+    message: 'Xác nhận mật khẩu không khớp.',
+    path: ['confirmPassword'],
+  });
 
 // POST /api/auth/login
 // Đặt `error` ở cấp string để khi field thiếu/sai kiểu vẫn ra message tiếng Việt
@@ -104,6 +129,8 @@ module.exports = {
   registerSchema,
   verifyOtpSchema,
   resendOtpSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
   loginSchema,
   refreshSchema,
   logoutSchema,

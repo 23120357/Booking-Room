@@ -6,6 +6,8 @@ const {
   registerSchema,
   verifyOtpSchema,
   resendOtpSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
   loginSchema,
   refreshSchema,
   logoutSchema,
@@ -19,8 +21,14 @@ router.post('/register', validate({ body: registerSchema }), authController.regi
 // POST /api/auth/verify-otp — verify the registration OTP and activate the account.
 router.post('/verify-otp', validate({ body: verifyOtpSchema }), authController.verifyOtp);
 
-// POST /api/auth/resend-otp — resend a new registration OTP (with cooldown).
+// POST /api/auth/resend-otp — resend a new OTP (REGISTRATION or PASSWORD_RESET, with cooldown).
 router.post('/resend-otp', validate({ body: resendOtpSchema }), authController.resendOtp);
+
+// POST /api/auth/forgot-password — request a password-reset OTP (always 200, anti-enumeration).
+router.post('/forgot-password', validate({ body: forgotPasswordSchema }), authController.forgotPassword);
+
+// POST /api/auth/reset-password — verify OTP and set a new password (revokes all sessions).
+router.post('/reset-password', validate({ body: resetPasswordSchema }), authController.resetPassword);
 
 // POST /api/auth/login — authenticate and issue an access + refresh token pair.
 router.post('/login', validate({ body: loginSchema }), authController.login);

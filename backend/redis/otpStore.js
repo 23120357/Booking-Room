@@ -11,6 +11,7 @@ const env = require('../config/env');
 
 const OTP_PURPOSE = {
   REGISTRATION: 'REGISTRATION',
+  PASSWORD_RESET: 'PASSWORD_RESET',
 };
 
 function normalizeIdentifier(identifier) {

@@ -65,14 +65,54 @@ async function verifyOtp(req, res, next) {
  */
 async function resendOtp(req, res, next) {
   try {
-    const { email } = req.body;
+    // purpose đã được resendOtpSchema validate + default 'REGISTRATION'.
+    const { email, purpose } = req.body;
 
-    const data = await authService.resendOtp({ email });
+    const data = await authService.resendOtp({ email, purpose });
 
     return sendSuccess(res, {
       status: 200,
       message: 'Mã OTP mới đã được gửi.',
       data,
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+/**
+ * POST /api/auth/forgot-password
+ * Gửi OTP đặt lại mật khẩu. Luôn trả 200 (chống dò tài khoản).
+ */
+async function forgotPassword(req, res, next) {
+  try {
+    const { email } = req.body;
+
+    const data = await authService.forgotPassword({ email });
+
+    return sendSuccess(res, {
+      status: 200,
+      message: 'Nếu email tồn tại và đã kích hoạt, mã OTP đặt lại mật khẩu đã được gửi.',
+      data,
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+/**
+ * POST /api/auth/reset-password
+ * Xác thực OTP và đặt lại mật khẩu mới; thu hồi mọi phiên cũ.
+ */
+async function resetPassword(req, res, next) {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    await authService.resetPassword({ email, otp, newPassword });
+
+    return sendSuccess(res, {
+      status: 200,
+      message: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.',
     });
   } catch (err) {
     return next(err);
@@ -169,6 +209,8 @@ module.exports = {
   register,
   verifyOtp,
   resendOtp,
+  forgotPassword,
+  resetPassword,
   login,
   refresh,
   logout,

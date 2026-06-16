@@ -125,19 +125,14 @@ async function register({ fullName, username, email, phoneNumber, password }) {
 }
 
 /**
- * Xác thực OTP đăng ký. OTP đúng → kích hoạt tài khoản (INACTIVE → ACTIVE).
- * Implements 1.2-verify-otp.md.
+ * Kiểm tra OTP và ánh xạ kết quả sang AppError theo quy ước chung (410/429/400).
+ * Dùng cho cả verify-otp đăng ký và reset-password. Không tự DEL key — caller tự
+ * consume (`deleteOtp`) sau khi xử lý nghiệp vụ thành công.
  *
- * @param {{ email: string, otp: string }} input
- * @returns {Promise<{ userId: string, status: string }>}
+ * @param {{ purpose: string, email: string, otp: string }} params
+ * @returns {Promise<void>} resolve nếu OTP đúng; throw AppError nếu không.
  */
-async function verifyOtp({ email, otp }) {
-  const user = await authRepository.findInactiveUserByEmail(email);
-  if (!user) {
-    throw new AppError('ACCOUNT_NOT_FOUND', 'Không tìm thấy tài khoản cần xác thực.', 404);
-  }
-
-  const purpose = otpStore.OTP_PURPOSE.REGISTRATION;
+async function assertOtpValid({ purpose, email, otp }) {
   const result = await otpStore.verifyOtp({ purpose, identifier: email, code: otp });
 
   if (result.status === 'EXPIRED') {
@@ -162,6 +157,23 @@ async function verifyOtp({ email, otp }) {
     }
     throw new AppError('OTP_INVALID', 'Mã OTP không chính xác.', 400, { remainingAttempts: remaining });
   }
+}
+
+/**
+ * Xác thực OTP đăng ký. OTP đúng → kích hoạt tài khoản (INACTIVE → ACTIVE).
+ * Implements 1.2-verify-otp.md.
+ *
+ * @param {{ email: string, otp: string }} input
+ * @returns {Promise<{ userId: string, status: string }>}
+ */
+async function verifyOtp({ email, otp }) {
+  const user = await authRepository.findInactiveUserByEmail(email);
+  if (!user) {
+    throw new AppError('ACCOUNT_NOT_FOUND', 'Không tìm thấy tài khoản cần xác thực.', 404);
+  }
+
+  const purpose = otpStore.OTP_PURPOSE.REGISTRATION;
+  await assertOtpValid({ purpose, email, otp });
 
   // OK: consume key TRƯỚC rồi activate (chống double-submit kích hoạt nhiều lần).
   await otpStore.deleteOtp({ purpose, identifier: email });
@@ -171,13 +183,74 @@ async function verifyOtp({ email, otp }) {
 }
 
 /**
- * Gửi lại OTP đăng ký cho tài khoản đang INACTIVE. Ghi đè OTP cũ trong Redis và
- * áp cooldown chống gửi dồn dập. Implements 1.3-resend-otp.md.
+ * Bước 1 quên mật khẩu: sinh + gửi OTP PASSWORD_RESET cho user ACTIVE.
+ * Chống dò tài khoản (enumeration): luôn trả thành công, chỉ thực sự gửi mã khi
+ * email tồn tại + đang ACTIVE + không trong cooldown. Implements 1.8-forgot-password.md.
  *
  * @param {{ email: string }} input
  * @returns {Promise<{ otpExpiresInSeconds: number }>}
  */
-async function resendOtp({ email }) {
+async function forgotPassword({ email }) {
+  const purpose = otpStore.OTP_PURPOSE.PASSWORD_RESET;
+  const user = await authRepository.findActiveUserByEmail(email);
+
+  // Chỉ gửi khi đủ điều kiện; mọi nhánh còn lại vẫn trả 200 với message chung.
+  if (user && !(await otpStore.isOnCooldown({ purpose, identifier: email }))) {
+    const code = otpStore.generateOtp();
+    await otpStore.setOtp({ purpose, identifier: email, code });
+    await otpStore.setResendCooldown({ purpose, identifier: email });
+    await sendOtpEmail({ to: email, code, purpose });
+  }
+
+  return { otpExpiresInSeconds: env.otp.ttlSeconds };
+}
+
+/**
+ * Bước 2 quên mật khẩu: verify OTP PASSWORD_RESET → đổi mật khẩu, thu hồi mọi
+ * refresh token và mở khóa account_security. Implements 1.8-forgot-password.md.
+ *
+ * @param {{ email: string, otp: string, newPassword: string }} input
+ * @returns {Promise<void>}
+ */
+async function resetPassword({ email, otp, newPassword }) {
+  const user = await authRepository.findActiveUserByEmail(email);
+  if (!user) {
+    throw new AppError('ACCOUNT_NOT_FOUND', 'Không tìm thấy tài khoản phù hợp.', 404);
+  }
+
+  const purpose = otpStore.OTP_PURPOSE.PASSWORD_RESET;
+  await assertOtpValid({ purpose, email, otp });
+
+  // OK: consume key TRƯỚC (chống double-submit) rồi mới đổi mật khẩu.
+  await otpStore.deleteOtp({ purpose, identifier: email });
+
+  const passwordHash = await hashPassword(newPassword);
+  await authRepository.updateUserPassword(user.user_id, passwordHash);
+  // Đổi mật khẩu => thu hồi mọi phiên cũ + mở khóa để đăng nhập lại bằng mật khẩu mới.
+  await authRepository.deleteRefreshTokensByUser(user.user_id);
+  await authRepository.resetAccountSecurity(user.user_id);
+}
+
+/**
+ * Gửi lại OTP cho cả đăng ký (REGISTRATION) lẫn quên mật khẩu (PASSWORD_RESET).
+ * Ghi đè OTP cũ trong Redis và áp cooldown chống gửi dồn dập, tách theo purpose.
+ * Implements 1.3-resend-otp.md + 1.8-forgot-password.md §5.
+ *
+ * - REGISTRATION: user phải INACTIVE (404 nếu không tồn tại, 409 nếu đã active),
+ *   cooldown vượt → 429.
+ * - PASSWORD_RESET: user phải ACTIVE; chống enumeration (luôn coi như thành công,
+ *   chỉ thực sự gửi khi đủ điều kiện), giống forgot-password.
+ *
+ * @param {{ email: string, purpose?: string }} input
+ * @returns {Promise<{ otpExpiresInSeconds: number }>}
+ */
+async function resendOtp({ email, purpose = otpStore.OTP_PURPOSE.REGISTRATION }) {
+  // PASSWORD_RESET: cùng ngữ nghĩa với forgot-password (đa thiết bị, chống dò email).
+  if (purpose === otpStore.OTP_PURPOSE.PASSWORD_RESET) {
+    return forgotPassword({ email });
+  }
+
+  // REGISTRATION
   const user = await authRepository.findUserByEmail(email);
   if (!user) {
     throw new AppError('ACCOUNT_NOT_FOUND', 'Không tìm thấy tài khoản.', 404);
@@ -186,7 +259,6 @@ async function resendOtp({ email }) {
     throw new AppError('ALREADY_ACTIVE', 'Tài khoản đã được kích hoạt.', 409);
   }
 
-  const purpose = otpStore.OTP_PURPOSE.REGISTRATION;
   if (await otpStore.isOnCooldown({ purpose, identifier: email })) {
     throw new AppError('OTP_COOLDOWN', 'Bạn yêu cầu gửi lại mã quá thường xuyên. Vui lòng thử lại sau.', 429);
   }
@@ -387,6 +459,8 @@ module.exports = {
   register,
   verifyOtp,
   resendOtp,
+  forgotPassword,
+  resetPassword,
   login,
   refreshAccessToken,
   logout,

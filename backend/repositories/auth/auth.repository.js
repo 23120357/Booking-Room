@@ -119,6 +119,58 @@ function activateUser(userId) {
 }
 
 /**
+ * Tìm user đang ACTIVE theo email — dùng cho flow quên mật khẩu.
+ *
+ * @param {string} email
+ * @returns {Promise<{ user_id: string, status: string }|undefined>}
+ */
+function findActiveUserByEmail(email) {
+  return db('users')
+    .where({ email, status: 'ACTIVE' })
+    .select('user_id', 'status')
+    .first();
+}
+
+/**
+ * Cập nhật mật khẩu (hash) của user.
+ *
+ * @param {string} userId
+ * @param {string} passwordHash
+ * @returns {Promise<number>} số bản ghi cập nhật
+ */
+function updateUserPassword(userId, passwordHash) {
+  return db('users').where({ user_id: userId }).update({ password: passwordHash });
+}
+
+/**
+ * Xóa toàn bộ phiên refresh token của một user (logout mọi thiết bị) —
+ * dùng sau khi đổi mật khẩu. Trả về số phiên đã xóa.
+ *
+ * @param {string} userId
+ * @returns {Promise<number>}
+ */
+function deleteRefreshTokensByUser(userId) {
+  return db('refresh_tokens').where({ user_id: userId }).del();
+}
+
+/**
+ * Reset bộ đếm đăng nhập sai và mở khóa cho user (sau khi đổi mật khẩu),
+ * để user đăng nhập lại ngay bằng mật khẩu mới.
+ *
+ * @param {string} userId
+ * @returns {Promise<void>}
+ */
+async function resetAccountSecurity(userId) {
+  await db('account_security')
+    .where({ user_id: userId })
+    .update({
+      failed_login_attempts: 0,
+      locked_until: null,
+      updated_at: db.fn.now(),
+    });
+}
+
+/**
  * Find a user by primary key, joined with their role name.
  * Used when re-issuing an access token from a refresh token.
  *
@@ -272,6 +324,10 @@ module.exports = {
   findInactiveUserByEmail,
   findUserByEmail,
   activateUser,
+  findActiveUserByEmail,
+  updateUserPassword,
+  deleteRefreshTokensByUser,
+  resetAccountSecurity,
   findUserByIdentifier,
   findUserById,
   getAccountSecurity,
