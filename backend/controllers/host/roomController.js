@@ -1,60 +1,59 @@
-const roomService = require('../../services/host/roomService');
+const AppError = require('../../utils/AppError');
 const { sendSuccess } = require('../../utils/responseHelper');
-
-async function createRoom(req, res, next) {
-  try {
-    const room = await roomService.createRoom(req.user, req.body);
-    return sendSuccess(res, {
-      status: 201,
-      message: 'Room submitted for approval',
-      data: { room },
-    });
-  } catch (err) {
-    next(err);
-  }
-}
+const roomService = require('../../services/host/roomService');
 
 async function listMyRooms(req, res, next) {
   try {
-    const rooms = await roomService.listMyRooms(req.user);
-    return sendSuccess(res, {
-      status: 200,
-      message: 'Host rooms fetched successfully',
-      data: { rooms },
-    });
+    const result = await roomService.listMyRooms(req.user.userId, req.query || {});
+    return sendSuccess(res, { status: 200, message: 'Danh sách phòng của tôi', data: result });
   } catch (err) {
-    next(err);
+    if (!(err instanceof AppError)) console.error('[host.roomController.updateRoom ERROR]', err);
+    return next(err instanceof AppError ? err : new AppError('UNEXPECTED', 'Đã xảy ra lỗi.', 500));
+  }
+}
+
+async function createRoom(req, res, next) {
+  try {
+    const files = req.files || [];
+    const result = await roomService.createRoom(req.user.userId, req.body, files);
+    return sendSuccess(res, { status: 201, message: 'Host tạo phòng thành công', data: result });
+  } catch (err) {
+    return next(err instanceof AppError ? err : new AppError('UNEXPECTED', 'Đã xảy ra lỗi.', 500));
   }
 }
 
 async function updateRoom(req, res, next) {
   try {
-    const room = await roomService.updateRoom(req.user, req.params.id, req.body);
-    return sendSuccess(res, {
-      status: 200,
-      message: 'Room updated and submitted for approval',
-      data: { room },
-    });
+    const files = req.files || [];
+    const result = await roomService.updateRoom(req.user.userId, req.params.roomId, req.body || {}, files);
+    return sendSuccess(res, { status: 200, message: `Host cập nhật phòng thành công`, data: result });
   } catch (err) {
-    next(err);
+    return next(err instanceof AppError ? err : new AppError('UNEXPECTED', 'Đã xảy ra lỗi.', 500));
   }
 }
 
 async function deleteRoom(req, res, next) {
   try {
-    await roomService.deleteRoom(req.user, req.params.id);
-    return sendSuccess(res, {
-      status: 200,
-      message: 'Room deleted successfully',
-    });
+    await roomService.deleteRoom(req.user.userId, req.params.roomId);
+    return sendSuccess(res, { status: 200, message: `Xóa phòng thành công.` });
   } catch (err) {
-    next(err);
+    return next(err instanceof AppError ? err : new AppError('UNEXPECTED', 'Đã xảy ra lỗi.', 500));
+  }
+}
+
+async function updateRoomStatus(req, res, next) {
+  try {
+    // await roomService.updateRoomStatus(req.user.userId, req.params.roomId, req.body);
+    return sendSuccess(res, { status: 200, message: `Stub: Host cập nhật trạng thái phòng ID ${req.params.roomId}` });
+  } catch (err) {
+    return next(err instanceof AppError ? err : new AppError('UNEXPECTED', 'Đã xảy ra lỗi.', 500));
   }
 }
 
 module.exports = {
-  createRoom,
   listMyRooms,
+  createRoom,
   updateRoom,
   deleteRoom,
+  updateRoomStatus,
 };

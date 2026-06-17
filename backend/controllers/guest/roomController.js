@@ -1,29 +1,27 @@
-const roomService = require('../../services/guest/roomService');
+const AppError = require('../../utils/AppError');
 const { sendSuccess } = require('../../utils/responseHelper');
+const roomService = require('../../services/roomService');
 
 async function listRooms(req, res, next) {
   try {
     const result = await roomService.listRooms(req.query);
-    return sendSuccess(res, {
-      status: 200,
-      message: 'Rooms fetched successfully',
-      data: result,
-    });
+    return sendSuccess(res, { status: 200, message: 'Danh sách phòng công khai', data: result });
   } catch (err) {
-    next(err);
+    return next(err instanceof AppError ? err : new AppError('UNEXPECTED', 'Đã xảy ra lỗi.', 500));
   }
 }
 
 async function getRoomById(req, res, next) {
   try {
-    const room = await roomService.getRoomById(req.params.id, req.user || null);
+    const { roomId } = req.params;
+    const result = await roomService.getRoomById(roomId, req.user || null);
     return sendSuccess(res, {
       status: 200,
-      message: 'Room fetched successfully',
-      data: { room },
+      message: 'Chi tiết phòng',
+      data: result,
     });
   } catch (err) {
-    next(err);
+    return next(err instanceof AppError ? err : new AppError('UNEXPECTED', 'Đã xảy ra lỗi.', 500));
   }
 }
 

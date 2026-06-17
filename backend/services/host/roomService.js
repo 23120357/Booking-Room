@@ -1,161 +1,233 @@
-const Room = require('../../models/Room');
+const db = require('../../config/db');
 const AppError = require('../../utils/AppError');
+const roomRepository = require('../../repositories/roomRepository');
+const depositRepository = require('../../repositories/depositRepository');
 
-function normalizeImages(payload) {
-  if (Array.isArray(payload.images)) return payload.images.filter(Boolean);
-  if (payload.image_url) return [payload.image_url];
-  return [];
-}
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
 
-function numberField(value, field, errors, { required = true, min = 0 } = {}) {
-  if (value === undefined || value === null || value === '') {
-    if (required) errors[field] = `${field} is required`;
-    return undefined;
-  }
+async function assertVerifiedHost(userId, trx) {
+  const landlord = await (trx || db)('landlords')
+    .select('landlord_id')
+    .where('landlord_id', userId)
+    .whereNotNull('id_card_front_url')
+    .whereNotNull('id_card_back_url')
+    .first();
 
-  const number = Number(value);
-  if (!Number.isFinite(number) || number < min) {
-    errors[field] = `${field} must be a number >= ${min}`;
-    return undefined;
-  }
-
-  return number;
-}
-
-function validateCreatePayload(payload) {
-  const errors = {};
-
-  const room = {
-    title: String(payload.title || '').trim(),
-    room_type: String(payload.room_type || payload.roomType || '').trim(),
-    detailed_address: String(payload.detailed_address || payload.detailedAddress || '').trim(),
-    max_capacity: numberField(payload.max_capacity ?? payload.maxCapacity, 'max_capacity', errors, { min: 1 }),
-    monthly_rent: numberField(payload.monthly_rent ?? payload.monthlyRent, 'monthly_rent', errors),
-    deposit_amount: numberField(payload.deposit_amount ?? payload.depositAmount, 'deposit_amount', errors),
-    electricity_cost: numberField(payload.electricity_cost ?? payload.electricityCost, 'electricity_cost', errors),
-    water_cost: numberField(payload.water_cost ?? payload.waterCost, 'water_cost', errors),
-    internet_cost: numberField(payload.internet_cost ?? payload.internetCost ?? 0, 'internet_cost', errors, { required: false }),
-    service_fee: numberField(payload.service_fee ?? payload.serviceFee ?? 0, 'service_fee', errors, { required: false }),
-    room_description: payload.room_description ?? payload.roomDescription ?? null,
-    longitude: numberField(payload.longitude, 'longitude', errors, { required: false, min: -180 }),
-    latitude: numberField(payload.latitude, 'latitude', errors, { required: false, min: -90 }),
-    images: normalizeImages(payload),
-  };
-
-  if (room.longitude !== undefined && room.longitude > 180) errors.longitude = 'longitude must be between -180 and 180';
-  if (room.latitude !== undefined && room.latitude > 90) errors.latitude = 'latitude must be between -90 and 90';
-
-  if (!room.title) errors.title = 'title is required';
-  if (!room.room_type) errors.room_type = 'room_type is required';
-  if (!room.detailed_address) errors.detailed_address = 'detailed_address is required';
-
-  if (Object.keys(errors).length > 0) {
-    throw new AppError('Validation failed', 400, errors);
-  }
-
-  return room;
-}
-
-function validateUpdatePayload(payload) {
-  const errors = {};
-  const room = {};
-
-  const stringMap = {
-    title: 'title',
-    room_type: 'room_type',
-    roomType: 'room_type',
-    detailed_address: 'detailed_address',
-    detailedAddress: 'detailed_address',
-    room_description: 'room_description',
-    roomDescription: 'room_description',
-  };
-
-  for (const [input, column] of Object.entries(stringMap)) {
-    if (payload[input] !== undefined) {
-      room[column] = payload[input] === null ? null : String(payload[input]).trim();
-    }
-  }
-
-  const numericFields = [
-    ['max_capacity', 'maxCapacity', 1],
-    ['monthly_rent', 'monthlyRent', 0],
-    ['deposit_amount', 'depositAmount', 0],
-    ['electricity_cost', 'electricityCost', 0],
-    ['water_cost', 'waterCost', 0],
-    ['internet_cost', 'internetCost', 0],
-    ['service_fee', 'serviceFee', 0],
-    ['longitude', 'longitude', -180],
-    ['latitude', 'latitude', -90],
-  ];
-
-  for (const [snake, camel, min] of numericFields) {
-    const value = payload[snake] ?? payload[camel];
-    if (value !== undefined) {
-      room[snake] = numberField(value, snake, errors, { required: false, min });
-    }
-  }
-
-  if (room.longitude !== undefined && room.longitude > 180) errors.longitude = 'longitude must be between -180 and 180';
-  if (room.latitude !== undefined && room.latitude > 90) errors.latitude = 'latitude must be between -90 and 90';
-
-  const hasImages = payload.images !== undefined || payload.image_url !== undefined;
-  const images = hasImages ? normalizeImages(payload) : undefined;
-
-  if (Object.keys(errors).length > 0) {
-    throw new AppError('Validation failed', 400, errors);
-  }
-
-  if (Object.keys(room).length === 0 && !hasImages) {
-    throw new AppError('No room fields to update', 400);
-  }
-
-  return { room, images };
-}
-
-async function assertVerifiedHost(userId) {
-  const verified = await Room.isVerifiedHost(userId);
-  if (!verified) {
-    throw new AppError('Host account must be verified before creating room posts', 403);
+  if (!landlord) {
+    throw new AppError('FORBIDDEN', 'Tài khoản chủ nhà phải được xác minh trước khi đăng phòng.', 403);
   }
 }
 
-async function assertOwnRoom(roomId, userId) {
-  const room = await Room.findRoomById(roomId);
-  if (!room) throw new AppError('Room not found', 404);
-  if (room.landlord_id !== userId) throw new AppError('Forbidden', 403);
-  return room;
+function validatePayload(payload) {
+	const required = ['title', 'room_type', 'detailed_address', 'max_capacity', 'monthly_rent', 'deposit_amount'];
+	for (const f of required) {
+		if (payload[f] === undefined || payload[f] === null || payload[f] === '') {
+			throw new AppError('VALIDATION_ERROR', `${f} is required`, 400);
+		}
+	}
+
+	if (Number(payload.monthly_rent) <= 0) throw new AppError('VALIDATION_ERROR', 'monthly_rent must be > 0', 400);
+	if (Number(payload.deposit_amount) < 0) throw new AppError('VALIDATION_ERROR', 'deposit_amount must be >= 0', 400);
+	if (Number(payload.max_capacity) <= 0) throw new AppError('VALIDATION_ERROR', 'max_capacity must be > 0', 400);
 }
 
-async function createRoom(user, payload) {
-  await assertVerifiedHost(user.userId);
-  const roomPayload = validateCreatePayload(payload);
-  const roomId = await Room.createRoom({
-    ...roomPayload,
-    landlord_id: user.userId,
-  });
-  return Room.findRoomById(roomId);
+async function createRoom(landlordId, payload, files = []) {
+	await assertVerifiedHost(landlordId);
+	validatePayload(payload);
+
+	if (!files || files.length < 3) {
+		throw new AppError('VALIDATION_ERROR', 'At least 3 images are required', 400);
+	}
+
+	for (const f of files) {
+		if (!f.size || f.size > MAX_IMAGE_BYTES) {
+			throw new AppError('VALIDATION_ERROR', 'Each image must be <= 5MB', 400);
+		}
+	}
+
+	// Build room object according to schema
+	const room = {
+		landlord_id: landlordId,
+		title: payload.title,
+		room_type: payload.room_type,
+		detailed_address: payload.detailed_address,
+		max_capacity: Number(payload.max_capacity),
+		monthly_rent: Number(payload.monthly_rent),
+		deposit_amount: Number(payload.deposit_amount),
+		electricity_cost: Number(payload.electricity_cost || 0),
+		water_cost: Number(payload.water_cost || 0),
+		internet_cost: Number(payload.internet_cost || 0),
+		service_fee: Number(payload.service_fee || 0),
+		room_description: payload.room_description || null,
+		longitude: payload.longitude || null,
+		latitude: payload.latitude || null,
+	};
+
+	// Save files to disk (uploads/rooms) and collect urls
+	const savedUrls = [];
+	const path = require('path');
+	const fs = require('fs');
+	const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'rooms');
+	if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+	// Use transaction: insert room, images, approval
+	return await db.transaction(async (trx) => {
+		const created = await roomRepository.create(room, [], trx);
+
+		const roomFolder = path.join(uploadDir, created.room_id);
+		if (!fs.existsSync(roomFolder)) fs.mkdirSync(roomFolder, { recursive: true });
+
+		files.forEach((file, idx) => {
+			const ext = path.extname(file.originalname) || '.jpg';
+			const filename = `${Date.now()}-${idx + 1}${ext}`;
+			const outPath = path.join(roomFolder, filename);
+			fs.writeFileSync(outPath, file.buffer);
+			const publicPath = `/uploads/rooms/${created.room_id}/${filename}`;
+			savedUrls.push(publicPath);
+		});
+
+		// Insert images into room_images table
+		if (savedUrls.length) {
+			const imgRows = savedUrls.map((url, idx) => ({
+				room_id: created.room_id,
+				sequence_number: idx + 1,
+				image_url: url,
+				is_cover: idx === 0,
+			}));
+			await trx('room_images').insert(imgRows);
+		}
+
+		// Insert approval record
+		await trx('room_approvals').insert({ room_id: created.room_id, approval_status: 'PENDING' });
+
+		return { roomId: created.room_id, approval: 'PENDING' };
+	});
 }
 
-async function listMyRooms(user) {
-  return Room.listRoomsByLandlord(user.userId);
+async function updateRoom(landlordId, roomId, payload = {}, files = []) {
+	const path = require('path');
+	const fs = require('fs');
+
+	const allowed = ['title','room_type','detailed_address','max_capacity','monthly_rent','deposit_amount','electricity_cost','water_cost','internet_cost','service_fee','room_description','longitude','latitude','status'];
+	const numericFields = ['max_capacity','monthly_rent','deposit_amount','electricity_cost','water_cost','internet_cost','service_fee'];
+
+	// Fetch existing
+	const existing = await roomRepository.findById(roomId);
+	if (!existing) throw new AppError('NOT_FOUND', 'Room not found', 404);
+	if (existing.landlord_id !== landlordId) throw new AppError('FORBIDDEN', 'Not allowed to modify this room', 403);
+
+	const patch = {};
+	for (const k of allowed) {
+		if (payload[k] !== undefined) {
+			patch[k] = numericFields.includes(k) ? Number(payload[k]) : payload[k];
+		}
+	}
+
+	// Validate numeric values when provided
+	if (patch.monthly_rent !== undefined && Number(patch.monthly_rent) <= 0) throw new AppError('VALIDATION_ERROR', 'monthly_rent must be > 0', 400);
+	if (patch.deposit_amount !== undefined && Number(patch.deposit_amount) < 0) throw new AppError('VALIDATION_ERROR', 'deposit_amount must be >= 0', 400);
+	if (patch.max_capacity !== undefined && Number(patch.max_capacity) <= 0) throw new AppError('VALIDATION_ERROR', 'max_capacity must be > 0', 400);
+
+	// Determine whether we need to reset approval
+	const critical = ['monthly_rent','deposit_amount','title','room_description','room_type'];
+	let needApprovalReset = false;
+	for (const c of critical) {
+		if (payload[c] !== undefined && String(payload[c]) !== String(existing[c] || '')) {
+			needApprovalReset = true; break;
+		}
+	}
+	if (files && files.length) needApprovalReset = true;
+
+	const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'rooms');
+	if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+	return await db.transaction(async (trx) => {
+		let updated = existing;
+		if (Object.keys(patch).length) {
+			updated = await roomRepository.update(roomId, patch, trx);
+		}
+
+		// Handle images replacement if files provided
+		if (files && files.length) {
+			const roomFolder = path.join(uploadDir, roomId);
+			if (!fs.existsSync(roomFolder)) fs.mkdirSync(roomFolder, { recursive: true });
+
+			const savedUrls = [];
+			files.forEach((file, idx) => {
+				if (!file.size || file.size > MAX_IMAGE_BYTES) throw new AppError('VALIDATION_ERROR', 'Each image must be <= 5MB', 400);
+				const ext = path.extname(file.originalname) || '.jpg';
+				const filename = `${Date.now()}-${idx + 1}${ext}`;
+				const outPath = path.join(roomFolder, filename);
+				fs.writeFileSync(outPath, file.buffer);
+				const publicPath = `/uploads/rooms/${roomId}/${filename}`;
+				savedUrls.push(publicPath);
+			});
+
+			await roomRepository.replaceImages(roomId, savedUrls, trx);
+		}
+
+		if (needApprovalReset) {
+			await trx('room_approvals').insert({ room_id: roomId, approval_status: 'PENDING' });
+		}
+
+		// Fetch fresh data
+		const fresh = await roomRepository.findById(roomId);
+		const imgs = await trx('room_images').select('sequence_number','image_url','is_cover').where('room_id', roomId).orderBy('sequence_number');
+		const latestApproval = await trx('room_approvals').where('room_id', roomId).orderBy('approval_id', 'desc').first();
+
+		return { room: fresh, images: imgs, approval: latestApproval ? latestApproval.approval_status : null };
+	});
 }
 
-async function updateRoom(user, roomId, payload) {
-  await assertOwnRoom(roomId, user.userId);
-  const changes = validateUpdatePayload(payload);
-  await Room.updateRoom(roomId, changes);
-  return Room.findRoomById(roomId);
+async function listMyRooms(landlordId, query) {
+	const page = Number(query.page) || 1;
+	const limit = Number(query.limit) || 20;
+	const sortBy = query.sortBy || 'created_at';
+	const order = query.order || 'desc';
+	const status = query.status;
+
+	if (page <= 0 || limit <= 0) {
+		throw new AppError('VALIDATION_ERROR', 'Invalid pagination parameters', 400);
+	}
+
+	const { items, total } = await roomRepository.findByLandlord(landlordId, { page, limit, sortBy, order, status });
+
+	return { items, pagination: { page, limit, total } };
 }
 
-async function deleteRoom(user, roomId) {
-  await assertOwnRoom(roomId, user.userId);
-  await Room.deleteRoom(roomId);
-  return null;
+async function deleteRoom(landlordId, roomId) {
+	if (!roomId) throw new AppError('VALIDATION_ERROR', 'roomId is required', 400);
+
+	return await db.transaction(async (trx) => {
+		// Load room
+		const room = await roomRepository.findById(roomId, trx);
+		if (!room) throw new AppError('NOT_FOUND', 'Room not found', 404);
+		if (room.landlord_id !== landlordId) throw new AppError('FORBIDDEN', 'Not owner', 403);
+
+		// Check deposits existence
+		const depositCount = await depositRepository.countByRoomId(roomId, trx);
+		if (depositCount > 0) {
+			throw new AppError('CONFLICT', 'Room has active deposits; cannot delete', 409);
+		}
+
+		// Perform delete (will cascade images, favorites, approvals)
+		await roomRepository.remove(roomId, trx);
+
+		// Audit log
+		try {
+			await trx('system_logs').insert({ user_id: landlordId, action: `DELETE_ROOM:${roomId}` });
+		} catch (e) {
+			// don't fail deletion if logging fails, but print
+			console.error('Failed to write system log for deleteRoom', e);
+		}
+
+		return true;
+	});
 }
 
 module.exports = {
-  createRoom,
-  listMyRooms,
-  updateRoom,
-  deleteRoom,
+	createRoom,
+	listMyRooms,
+	updateRoom,
+	deleteRoom,
 };

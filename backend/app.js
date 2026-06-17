@@ -34,6 +34,7 @@ const { notFoundHandler, errorHandler } = require('./middlewares/errorHandler');
 const requestLogger = require('./middlewares/requestLogger');
 const { sendSuccess } = require('./utils/responseHelper');
 
+const adminRoomRoutes = require('./routes/admin/roomRoutes');
 const app = express();
 
 // Trust the first proxy so req.ip / X-Forwarded-For resolve correctly in prod.
@@ -41,7 +42,13 @@ app.set('trust proxy', 1);
 
 app.use(cors());
 app.use(express.json());
+
 app.use(requestLogger);
+
+const path = require('path');
+
+// Serve uploaded assets
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Liveness probe.
 app.get('/health', (req, res) => {
@@ -65,7 +72,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin/dashboard', dashboardRoutes);
 app.use('/api/admin/system-logs', systemLogRoutes);
 app.use('/api/admin/users', userRoutes);
-app.use('/api/admin/rooms', require('./routes/admin/roomRoutes'));
 app.use('/api/admin', adminBookingRoutes);           // /api/admin/transactions, /api/admin/bookings/expire-deposits
 
 // Host routes
@@ -85,7 +91,11 @@ app.use('/api/notifications', notificationRoutes);   // Notifications Module
 app.use('/api/support-tickets', supportTicketRoutes); // Support Tickets Module
 app.use('/api/violation-reports', violationReportRoutes); // Violation Reports Module
 app.use('/api/ai', aiRoutes);                        // AI Recommendations Module
+// Host routes mounted first so specific host paths (eg. /my) take precedence
+app.use('/api/rooms', hostRoomRoutes);
+// Public room routes (list, detail)
 app.use('/api/rooms', guestRoomRoutes);
+app.use('/api/admin/rooms', adminRoomRoutes);
 
 // 404 + centralised error handling (must be last).
 app.use(notFoundHandler);

@@ -1,12 +1,10 @@
 const express = require('express');
-const roomController = require('../../controllers/admin/roomController');
-const { requireAuth } = require('../../middlewares/authMiddleware');
-const { authorizeRoles } = require('../../middlewares/roleMiddleware');
-
 const router = express.Router();
+const { requireAuth, authorize } = require('../../middlewares/authMiddleware');
+const roomController = require('../../controllers/admin/roomController');
 
-router.get('/pending', requireAuth, authorizeRoles('ADMIN'), roomController.listPendingRooms);
-router.patch('/:id/approve', requireAuth, authorizeRoles('ADMIN'), roomController.approveRoom);
-router.patch('/:id/reject', requireAuth, authorizeRoles('ADMIN'), roomController.rejectRoom);
+router.patch('/:roomId/approve', requireAuth, authorize('ADMIN'), roomController.approveRoom);
+router.patch('/:roomId/reject', requireAuth, authorize('ADMIN'), roomController.rejectRoom);
+router.get('/pending', requireAuth, authorize('ADMIN'), roomController.listPendingRooms);
 
 module.exports = router;
