@@ -118,7 +118,7 @@ export default function RoomDetailContent({ room }: RoomDetailContentProps) {
                   src={imgUrl} 
                   alt={`${room.title} - Ảnh ${index + 1}`} 
                   fill 
-                  priority={index === 0}
+                  priority={true}
                   sizes="(min-width: 768px) 25vw, 50vw"
                   className="object-cover transition duration-300 hover:scale-[1.03]" 
                 />

@@ -62,37 +62,40 @@ export default function BookingCheckoutSection({
     async function syncActiveDeposit() {
       try {
         const res = await bookingService.getActiveDeposit(roomId);
-        if (res && res.data) {
+        if (res && res.data && res.data.deposit && res.data.deposit.status === 'PROCESSING') {
           const { deposit, transaction } = res.data;
-          if (deposit && deposit.status === 'PROCESSING') {
-            const expireTime = new Date(deposit.expired_at).getTime();
-            const remainingTime = Math.floor((expireTime - Date.now()) / 1000);
+          const expireTime = new Date(deposit.expired_at).getTime();
+          const remainingTime = Math.floor((expireTime - Date.now()) / 1000);
+          
+          if (remainingTime > 0) {
+            const paymentUrlFromDb = transaction?.payment_url || null;
             
-            if (remainingTime > 0) {
-              const paymentUrlFromDb = transaction?.payment_url || null;
+            setActiveDepositId(deposit.deposit_id);
+            setCountdown(remainingTime);
+            setTimerActive(true);
+            
+            if (paymentUrlFromDb) {
+              setPaymentUrl(paymentUrlFromDb);
+              setIsModalOpen(true);
               
-              setActiveDepositId(deposit.deposit_id);
-              setCountdown(remainingTime);
-              setTimerActive(true);
-              
-              if (paymentUrlFromDb) {
-                setPaymentUrl(paymentUrlFromDb);
-                setIsModalOpen(true);
-                
-                // Keep sessionStorage updated
-                sessionStorage.setItem(`active_deposit_${roomId}`, deposit.deposit_id);
-                sessionStorage.setItem(`active_deposit_url_${roomId}`, paymentUrlFromDb);
-                sessionStorage.setItem(`active_deposit_expire_${roomId}`, String(expireTime));
-              }
-            } else {
-              // Local state might think it's active but it's expired on server
-              setActiveDepositId(null);
-              setPaymentUrl(null);
-              setTimerActive(false);
-              setIsModalOpen(false);
+              // Keep sessionStorage updated
+              sessionStorage.setItem(`active_deposit_${roomId}`, deposit.deposit_id);
+              sessionStorage.setItem(`active_deposit_url_${roomId}`, paymentUrlFromDb);
+              sessionStorage.setItem(`active_deposit_expire_${roomId}`, String(expireTime));
             }
+            return;
           }
         }
+        
+        // No active deposit found or it has expired/cancelled on server, clear everything
+        setActiveDepositId(null);
+        setPaymentUrl(null);
+        setTimerActive(false);
+        setIsModalOpen(false);
+        
+        sessionStorage.removeItem(`active_deposit_${roomId}`);
+        sessionStorage.removeItem(`active_deposit_expire_${roomId}`);
+        sessionStorage.removeItem(`active_deposit_url_${roomId}`);
       } catch (err) {
         console.error('Failed to sync active deposit from database:', err);
       }
@@ -100,8 +103,14 @@ export default function BookingCheckoutSection({
 
     syncActiveDeposit();
 
+    const handleSyncEvent = () => {
+      syncActiveDeposit();
+    };
+    window.addEventListener('deposit-updated', handleSyncEvent);
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      window.removeEventListener('deposit-updated', handleSyncEvent);
     };
   }, [roomId]);
 
@@ -238,7 +247,13 @@ export default function BookingCheckoutSection({
       if (timerRef.current) clearInterval(timerRef.current);
 
       if (isExpired) {
-        alert('Giao dịch đặt cọc của bạn đã hết hạn (15 phút).');
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: { message: 'Giao dịch đặt cọc của bạn đã hết hạn (15 phút).', type: 'error' }
+        }));
+      } else {
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: { message: 'Đã hủy giao dịch đặt cọc thành công!', type: 'success' }
+        }));
       }
     }
   };
@@ -543,7 +558,7 @@ export default function BookingCheckoutSection({
               {/* simulated payment gateway details */}
               <div className="w-full space-y-4">
                 <p className="text-xs font-bold text-booking-muted uppercase tracking-[0.02em] text-left">
-                  Quét mã QR thanh toán (Mô phỏng Sandbox)
+                  Quét mã QR để thanh toán
                 </p>
 
                 {/* Mock QR Code Image Display */}
@@ -551,12 +566,12 @@ export default function BookingCheckoutSection({
                   {/* Since sandbox is mock, we output a beautiful generic checkout QR image */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://vnpay.vn"
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(paymentUrl || 'https://vnpay.vn')}`}
                     alt="Mock Payment QR Code"
                     className="h-full w-full object-contain"
                   />
                 </div>
-
+                
                 <div className="text-xs text-booking-muted space-y-1">
                   <p className="font-semibold text-booking-text">Nội dung chuyển khoản (Tự động):</p>
                   <p className="py-1 px-3 bg-slate-100 rounded-lg font-mono text-booking-text break-all select-all">
