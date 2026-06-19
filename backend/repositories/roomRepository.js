@@ -231,19 +231,36 @@ async function findByLandlord(landlordId, { page = 1, limit = 20, sortBy = 'crea
 
   const offset = (Math.max(1, Number(page)) - 1) * Number(limit);
 
+  // Latest approval row per room (room_approvals can have history after edits)
+  const latestApproval = db('room_approvals')
+    .select('room_id')
+    .max('approval_id as max_approval_id')
+    .groupBy('room_id')
+    .as('lra');
+
   const rows = await db('rooms as r')
     .select(
       'r.room_id',
       'r.title',
       'r.room_type',
       'r.detailed_address',
+      'r.room_description',
       'r.max_capacity',
       'r.monthly_rent',
       'r.deposit_amount',
+      'r.electricity_cost',
+      'r.water_cost',
+      'r.internet_cost',
+      'r.service_fee',
+      'r.longitude',
+      'r.latitude',
       'r.status',
       'r.created_at',
-      'r.updated_at'
+      'r.updated_at',
+      'ra.approval_status'
     )
+    .leftJoin(latestApproval, 'lra.room_id', 'r.room_id')
+    .leftJoin('room_approvals as ra', 'ra.approval_id', 'lra.max_approval_id')
     .where('r.landlord_id', landlordId)
     .modify((qb) => {
       if (status) qb.where('r.status', status);

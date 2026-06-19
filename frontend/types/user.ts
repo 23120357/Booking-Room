@@ -10,4 +10,8 @@ export interface User {
   gender?: 'MALE' | 'FEMALE' | 'OTHER';
   dateOfBirth?: string | null;
   address?: string | null;
+  approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | string | null;
+  approval_status?: 'PENDING' | 'APPROVED' | 'REJECTED' | string | null;
+  rejectionReason?: string | null;
+  rejection_reason?: string | null;
 }
