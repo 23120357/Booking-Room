@@ -136,6 +136,8 @@ function updateLandlordIdCards(landlordId, { frontKey, backKey, resetToPending =
   if (resetToPending) {
     update.approval_status = 'PENDING';
     update.rejection_reason = null;
+    update.reviewed_at = null;
+    update.reviewed_by = null;
   }
   return db('landlords').where({ landlord_id: landlordId }).update(update);
 }

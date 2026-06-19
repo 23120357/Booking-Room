@@ -5,6 +5,7 @@ const db = require('./config/db');
 
 // Auth
 const authRoutes = require('./routes/auth/auth.route');
+const profileRoutes = require('./routes/host/profileRoutes');
 
 // Admin routes (thanh)
 const dashboardRoutes = require('./routes/admin/dashboardRoutes');
@@ -74,6 +75,7 @@ app.get('/health/db', async (req, res, next) => {
 
 // Feature routes.
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
 
 // Admin routes
 app.use('/api/admin/dashboard', dashboardRoutes);

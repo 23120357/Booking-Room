@@ -19,6 +19,15 @@ function getActor(req) {
   };
 }
 
+function isHttpUrl(value) {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch (err) {
+    return false;
+  }
+}
+
 async function listUsers(req, res, next) {
   try {
     const result = await userService.listUsers(req.query || {});
@@ -187,6 +196,10 @@ async function rejectLandlord(req, res, next) {
 async function getLandlordIdCard(req, res, next) {
   try {
     const key = await userService.getLandlordIdCardKey(req.params.id, req.params.side);
+    if (isHttpUrl(key)) {
+      return res.redirect(302, key);
+    }
+
     const stream = idCardStorage.getStream(key);
     stream.on('error', () => next(new AppError('ID_CARD_NOT_FOUND', 'Khong doc duoc anh CCCD.', 404)));
     res.type('image/jpeg');
