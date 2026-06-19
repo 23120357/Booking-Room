@@ -3,6 +3,7 @@ const authController = require('../../controllers/auth/auth.controller');
 const { requireAuth } = require('../../middlewares/authMiddleware');
 const { validate } = require('../../middlewares/validateMiddleware');
 const { uploadAvatar } = require('../../middlewares/uploadMiddleware');
+const { uploadIdCards } = require('../../middlewares/uploadMiddleware');
 const {
   registerSchema,
   verifyOtpSchema,
@@ -19,8 +20,18 @@ const {
 
 const router = express.Router();
 
-// POST /api/auth/register — create a TENANT account (INACTIVE) and send an OTP.
+// POST /api/auth/register — đăng ký TENANT hoặc LANDLORD (chỉ JSON thông tin, không ảnh).
+// Landlord nộp ảnh CCCD ở endpoint riêng bên dưới sau khi đăng nhập.
 router.post('/register', validate({ body: registerSchema }), authController.register);
+
+// POST /api/auth/landlord/id-cards — landlord (đã đăng nhập) nộp/cập nhật 2 ảnh CCCD.
+// uploadIdCards: multer.fields (id_card_front + id_card_back).
+router.post(
+  '/landlord/id-cards',
+  requireAuth,
+  uploadIdCards,
+  authController.submitLandlordIdCards,
+);
 
 // POST /api/auth/verify-otp — verify the registration OTP and activate the account.
 router.post('/verify-otp', validate({ body: verifyOtpSchema }), authController.verifyOtp);

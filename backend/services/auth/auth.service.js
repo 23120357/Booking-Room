@@ -4,6 +4,7 @@ const authRepository = require('../../repositories/auth/auth.repository');
 const AppError = require('../../utils/AppError');
 const { comparePassword, hashPassword } = require('../../utils/hashPassword');
 const otpStore = require('../../redis/otpStore');
+const idCardStorage = require('../storage/idCardStorage');
 const oauthProviders = require('./oauthProviders');
 const { sendOtpEmail } = require('../../utils/mailer');
 const { toRegisterResponse } = require('../../models/User');
@@ -137,9 +138,55 @@ async function register({ fullName, username, email, phoneNumber, password, gend
   await otpStore.setOtp({ purpose: otpStore.OTP_PURPOSE.REGISTRATION, identifier: email, code });
   await sendOtpEmail({ to: email, code, purpose: otpStore.OTP_PURPOSE.REGISTRATION });
 
+  // Repo không trả role_name/approval_status; bổ sung để response phản ánh đúng vai trò.
+  user.role_name = roleName;
+  if (roleName === ROLES.LANDLORD) {
+    user.approval_status = 'PENDING';
+  }
+
   return {
     user: toRegisterResponse(user),
     otpExpiresInSeconds: env.otp.ttlSeconds,
+  };
+}
+
+/**
+ * Landlord (đã đăng nhập) nộp/cập nhật 2 ảnh CCCD. Ghi ảnh ra storage rồi cập nhật
+ * 2 cột id_card. Cho nộp lại khi đang PENDING/REJECTED (ghi đè tên cố định); nếu trước
+ * đó bị REJECTED thì đưa hồ sơ về PENDING để Admin duyệt lại.
+ *
+ * @param {{ userId: string, idCardFront: { buffer: Buffer }, idCardBack: { buffer: Buffer } }} input
+ * @returns {Promise<{ approvalStatus: string, idCardSubmitted: boolean }>}
+ */
+async function submitLandlordIdCards({ userId, idCardFront, idCardBack }) {
+  // 1. User phải tồn tại và là LANDLORD.
+  const user = await authRepository.findUserById(userId);
+  if (!user) {
+    throw new AppError('USER_NOT_FOUND', 'Tài khoản không tồn tại.', 404);
+  }
+  if (user.role_name !== ROLES.LANDLORD) {
+    throw new AppError('NOT_LANDLORD', 'Chỉ tài khoản chủ nhà mới được nộp ảnh CCCD.', 403);
+  }
+
+  // 2. Đã duyệt thì không cần nộp lại.
+  if (user.approval_status === 'APPROVED') {
+    throw new AppError('ALREADY_APPROVED', 'Hồ sơ chủ nhà đã được duyệt, không cần nộp lại CCCD.', 409);
+  }
+
+  // 3. Ghi 2 ảnh ra storage (ghi đè nếu nộp lại) rồi cập nhật DB.
+  const { frontKey, backKey } = await idCardStorage.save({
+    landlordId: userId,
+    frontFile: idCardFront,
+    backFile: idCardBack,
+  });
+
+  // Nộp lại sau khi bị từ chối → đưa về PENDING để duyệt lại.
+  const resetToPending = user.approval_status === 'REJECTED';
+  await authRepository.updateLandlordIdCards(userId, { frontKey, backKey, resetToPending });
+
+  return {
+    approvalStatus: resetToPending ? 'PENDING' : user.approval_status,
+    idCardSubmitted: true,
   };
 }
 
@@ -471,6 +518,8 @@ async function getCurrentUser(userId) {
   return {
     ...toPublicUser(user),
     avatarUrl: user.avatar_url || null,
+    // Chỉ landlord có approval_status (leftJoin → null cho vai trò khác).
+    ...(user.approval_status ? { approvalStatus: user.approval_status } : {}),
   };
 }
 
@@ -753,6 +802,7 @@ async function updateUserAvatar(userId, fileBuffer, originalName, mimeType) {
 
 module.exports = {
   register,
+  submitLandlordIdCards,
   verifyOtp,
   resendOtp,
   forgotPassword,

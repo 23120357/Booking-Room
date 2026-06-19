@@ -18,50 +18,58 @@ const phoneRegex = /^0\d{9}$/;
 // >=8 ký tự, có chữ hoa, chữ thường, số, ký tự đặc biệt.
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
+// Các field dùng chung cho mọi vai trò khi đăng ký (không gồm `role`).
+const baseRegisterFields = {
+  fullName: z
+    .string({ error: 'Vui lòng nhập họ tên.' })
+    .trim()
+    .min(1, 'Vui lòng nhập họ tên.')
+    .max(255, 'Họ tên tối đa 255 ký tự.'),
+  username: z
+    .string({ error: 'Vui lòng nhập tên đăng nhập.' })
+    .trim()
+    .toLowerCase()
+    .regex(usernameRegex, 'Tên đăng nhập 3–50 ký tự, bắt đầu bằng chữ thường, chỉ gồm chữ thường/số/`_`/`.`'),
+  email: z
+    .string({ error: 'Vui lòng nhập email.' })
+    .trim()
+    .toLowerCase()
+    .email('Email không hợp lệ.'),
+  phoneNumber: z
+    .string({ error: 'Vui lòng nhập số điện thoại.' })
+    .trim()
+    .regex(phoneRegex, 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0.'),
+  password: z
+    .string({ error: 'Vui lòng nhập mật khẩu.' })
+    .regex(passwordRegex, 'Mật khẩu tối thiểu 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.'),
+  confirmPassword: z.string({ error: 'Vui lòng xác nhận mật khẩu.' }),
+  gender: z.enum(['MALE', 'FEMALE', 'OTHER'], {
+    errorMap: () => ({ message: 'Vui lòng chọn giới tính (Nam, Nữ, hoặc Khác).' })
+  }),
+  dateOfBirth: z
+    .string({ error: 'Vui lòng chọn ngày sinh.' })
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Ngày sinh không đúng định dạng (YYYY-MM-DD).')
+    .refine((dateStr) => {
+      const date = new Date(dateStr);
+      return date <= new Date();
+    }, 'Ngày sinh không được ở tương lai.'),
+};
+
+const passwordsMatch = (d) => d.password === d.confirmPassword;
+const passwordsMatchError = { message: 'Xác nhận mật khẩu không khớp.', path: ['confirmPassword'] };
+
+// Một schema chung cho cả TENANT lẫn LANDLORD: chỉ khác `role`. Đăng ký nay chỉ nhận
+// thông tin (JSON); landlord nộp ảnh CCCD ở API riêng (POST /auth/landlord/id-cards),
+// nên không còn validate file ở bước này.
 const registerSchema = z
   .object({
-    fullName: z
-      .string({ error: 'Vui lòng nhập họ tên.' })
-      .trim()
-      .min(1, 'Vui lòng nhập họ tên.')
-      .max(255, 'Họ tên tối đa 255 ký tự.'),
-    username: z
-      .string({ error: 'Vui lòng nhập tên đăng nhập.' })
-      .trim()
-      .toLowerCase()
-      .regex(usernameRegex, 'Tên đăng nhập 3–50 ký tự, bắt đầu bằng chữ thường, chỉ gồm chữ thường/số/`_`/`.`'),
-    email: z
-      .string({ error: 'Vui lòng nhập email.' })
-      .trim()
-      .toLowerCase()
-      .email('Email không hợp lệ.'),
-    phoneNumber: z
-      .string({ error: 'Vui lòng nhập số điện thoại.' })
-      .trim()
-      .regex(phoneRegex, 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0.'),
-    password: z
-      .string({ error: 'Vui lòng nhập mật khẩu.' })
-      .regex(passwordRegex, 'Mật khẩu tối thiểu 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.'),
-    confirmPassword: z.string({ error: 'Vui lòng xác nhận mật khẩu.' }),
-    gender: z.enum(['MALE', 'FEMALE', 'OTHER'], {
-      errorMap: () => ({ message: 'Vui lòng chọn giới tính (Nam, Nữ, hoặc Khác).' })
-    }),
-    dateOfBirth: z
-      .string({ error: 'Vui lòng chọn ngày sinh.' })
-      .trim()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Ngày sinh không đúng định dạng (YYYY-MM-DD).')
-      .refine((dateStr) => {
-        const date = new Date(dateStr);
-        return date <= new Date();
-      }, 'Ngày sinh không được ở tương lai.'),
+    ...baseRegisterFields,
     role: z.enum(['TENANT', 'LANDLORD'], {
-      errorMap: () => ({ message: 'Vui lòng chọn vai trò (Người thuê hoặc Chủ nhà).' })
+      errorMap: () => ({ message: 'Vai trò đăng ký không hợp lệ.' }),
     }).default('TENANT'),
   })
-  .refine((d) => d.password === d.confirmPassword, {
-    message: 'Xác nhận mật khẩu không khớp.',
-    path: ['confirmPassword'],
-  });
+  .refine(passwordsMatch, passwordsMatchError);
 
 // PUT /api/auth/me (Cập nhật hồ sơ)
 const updateProfileSchema = z.object({
@@ -201,7 +209,7 @@ const logoutSchema = z.object({
  * @returns {object}
  */
 function toRegisterResponse(user) {
-  return {
+  const result = {
     userId: user.user_id,
     username: user.username,
     email: user.email,
@@ -210,6 +218,14 @@ function toRegisterResponse(user) {
     gender: user.gender,
     dateOfBirth: user.date_of_birth,
   };
+  if (user.role_name) {
+    result.role = user.role_name;
+  }
+  // Chỉ landlord mới có trạng thái duyệt.
+  if (user.approval_status) {
+    result.approvalStatus = user.approval_status;
+  }
+  return result;
 }
 
 module.exports = {
