@@ -1,5 +1,4 @@
 const userService = require('../../services/admin/userService');
-const idCardStorage = require('../../services/storage/idCardStorage');
 const AppError = require('../../utils/AppError');
 const { sendSuccess } = require('../../utils/responseHelper');
 
@@ -17,6 +16,15 @@ function getActor(req) {
     ipAddress: getClientIp(req),
     userAgent: req.headers['user-agent'],
   };
+}
+
+function isHttpUrl(value) {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch (err) {
+    return false;
+  }
 }
 
 async function listUsers(req, res, next) {
@@ -187,10 +195,15 @@ async function rejectLandlord(req, res, next) {
 async function getLandlordIdCard(req, res, next) {
   try {
     const key = await userService.getLandlordIdCardKey(req.params.id, req.params.side);
-    const stream = idCardStorage.getStream(key);
-    stream.on('error', () => next(new AppError('ID_CARD_NOT_FOUND', 'Khong doc duoc anh CCCD.', 404)));
-    res.type('image/jpeg');
-    return stream.pipe(res);
+    if (isHttpUrl(key)) {
+      return res.redirect(302, key);
+    }
+
+    throw new AppError(
+      'LEGACY_ID_CARD_STORAGE',
+      'Ảnh CCCD đang ở storage cũ. Vui lòng chạy migration ảnh CCCD lên S3.',
+      409,
+    );
   } catch (err) {
     return next(err);
   }

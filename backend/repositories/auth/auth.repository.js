@@ -121,7 +121,7 @@ async function createUserWithRole({
 }
 
 /**
- * Cập nhật 2 ảnh CCCD của landlord (key lưu DB). Khi `resetToPending` (nộp lại sau khi
+ * Cập nhật 2 ảnh CCCD của landlord (URL S3 lưu DB). Khi `resetToPending` (nộp lại sau khi
  * bị từ chối) thì đưa approval_status về PENDING + xóa lý do từ chối để Admin duyệt lại.
  *
  * @param {string} landlordId
@@ -136,6 +136,8 @@ function updateLandlordIdCards(landlordId, { frontKey, backKey, resetToPending =
   if (resetToPending) {
     update.approval_status = 'PENDING';
     update.rejection_reason = null;
+    update.reviewed_at = null;
+    update.reviewed_by = null;
   }
   return db('landlords').where({ landlord_id: landlordId }).update(update);
 }
