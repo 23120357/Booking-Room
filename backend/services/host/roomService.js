@@ -3,6 +3,7 @@ const AppError = require('../../utils/AppError');
 const roomRepository = require('../../repositories/roomRepository');
 const depositRepository = require('../../repositories/depositRepository');
 const { RESOURCE_TYPES, generateS3Key, uploadToS3, deleteFromS3, extractS3KeyFromUrl } = require('../../utils/s3Helper');
+const { geocodeAddress } = require('../../utils/geocode');
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
 
@@ -46,6 +47,23 @@ async function createRoom(landlordId, payload, files = []) {
 		}
 	}
 
+	// Geocode địa chỉ để lấy tọa độ (lat/lng) phục vụ tính năng bản đồ.
+	// Nếu client đã gửi kèm lat/lng thì dùng luôn, ngược lại tự động geocode.
+	// Geocoding thất bại sẽ không block việc tạo phòng — lat/lng = null.
+	let latitude = payload.latitude ? Number(payload.latitude) : null;
+	let longitude = payload.longitude ? Number(payload.longitude) : null;
+
+	if (!latitude || !longitude) {
+		const geo = await geocodeAddress(payload.detailed_address);
+		latitude = geo.lat;
+		longitude = geo.lng;
+		if (latitude && longitude) {
+			console.info('[createRoom] Geocoded "%s" → lat=%s, lng=%s', payload.detailed_address, latitude, longitude);
+		} else {
+			console.warn('[createRoom] Could not geocode address: "%s"', payload.detailed_address);
+		}
+	}
+
 	// Build room object according to schema
 	const room = {
 		landlord_id: landlordId,
@@ -60,8 +78,8 @@ async function createRoom(landlordId, payload, files = []) {
 		internet_cost: Number(payload.internet_cost || 0),
 		service_fee: Number(payload.service_fee || 0),
 		room_description: payload.room_description || null,
-		longitude: payload.longitude || null,
-		latitude: payload.latitude || null,
+		longitude,
+		latitude,
 	};
 
 	// Use transaction: insert room, images, approval
@@ -108,6 +126,20 @@ async function updateRoom(landlordId, roomId, payload = {}, files = []) {
 	for (const k of allowed) {
 		if (payload[k] !== undefined) {
 			patch[k] = numericFields.includes(k) ? Number(payload[k]) : payload[k];
+		}
+	}
+
+	// Re-geocode khi địa chỉ thay đổi và client không gửi kèm tọa độ mới
+	if (patch.detailed_address && patch.detailed_address !== existing.detailed_address) {
+		if (!patch.latitude || !patch.longitude) {
+			const geo = await geocodeAddress(patch.detailed_address);
+			if (geo.lat && geo.lng) {
+				patch.latitude = geo.lat;
+				patch.longitude = geo.lng;
+				console.info('[updateRoom] Re-geocoded "%s" → lat=%s, lng=%s', patch.detailed_address, geo.lat, geo.lng);
+			} else {
+				console.warn('[updateRoom] Could not geocode updated address: "%s"', patch.detailed_address);
+			}
 		}
 	}
 

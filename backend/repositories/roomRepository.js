@@ -104,6 +104,30 @@ function applyPublicRoomFilters(q, filters = {}) {
   if (filters.maxPrice !== undefined) {
     q.where('r.monthly_rent', '<=', filters.maxPrice);
   }
+
+  // Tìm theo khoảng cách địa lý bằng công thức Haversine (không cần PostGIS extension)
+  // nearLat, nearLng: tọa độ tâm tìm kiếm
+  // radiusKm: bán kính tìm kiếm (mặc định 5km)
+  if (filters.nearLat !== undefined && filters.nearLng !== undefined) {
+    const radiusKm = filters.radiusKm || 5;
+    const EARTH_RADIUS_KM = 6371;
+    q.whereNotNull('r.latitude')
+     .whereNotNull('r.longitude')
+     .whereRaw(
+       // GREATEST(-1.0, LEAST(1.0, ...)) clamp cả 2 phía để tránh lỗi acos() domain error
+       // khi floating point precision khiến giá trị vượt ra ngoài [-1, 1]
+       `(
+         ${EARTH_RADIUS_KM} * acos(
+           GREATEST(-1.0, LEAST(1.0,
+             cos(radians(?::float8)) * cos(radians(r.latitude::float8))
+             * cos(radians(r.longitude::float8) - radians(?::float8))
+             + sin(radians(?::float8)) * sin(radians(r.latitude::float8))
+           ))
+         )
+       ) <= ?::float8`,
+       [filters.nearLat, filters.nearLng, filters.nearLat, radiusKm]
+     );
+  }
 }
 
 function applyPublicRoomSorting(q, sort) {

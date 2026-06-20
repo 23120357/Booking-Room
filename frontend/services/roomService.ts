@@ -22,6 +22,9 @@ export interface BackendRoom {
   updated_at: string;
   room_description: string;
   cover_image_url: string | null;
+  /** Tọa độ địa lý — được tự động populate khi host đăng phòng qua geocoding */
+  latitude: number | null;
+  longitude: number | null;
   images: Array<{ image_url: string; sequence_number: number; is_cover: boolean }>;
   host: {
     user_id: string;
@@ -115,6 +118,9 @@ export function mapBackendRoomToBookingRoom(room: any, index?: number): BookingR
     internetCost: Number(room.internetCost !== undefined ? room.internetCost : room.internet_cost) || 0,
     serviceFee: Number(room.serviceFee !== undefined ? room.serviceFee : room.service_fee) || 0,
     deposit: Number(room.depositAmount !== undefined ? room.depositAmount : room.deposit_amount) || 0,
+    // Tọa độ địa lý cho bản đồ
+    latitude: room.latitude ?? null,
+    longitude: room.longitude ?? null,
     host: room.host ? {
       fullName: room.host.fullName || room.host.full_name || 'Nguyễn Văn A',
       avatarUrl: room.host.avatarUrl || room.host.avatar_url || null,
@@ -135,6 +141,11 @@ export const roomService = {
     roomType?: string;
     minPrice?: number;
     maxPrice?: number;
+    /** Tìm phòng gần tọa độ này */
+    nearLat?: number;
+    nearLng?: number;
+    /** Bán kính tìm kiếm (km), mặc định 5km */
+    radiusKm?: number;
   }): Promise<ApiResponse<ListRoomsResponse>> => {
     const query = new URLSearchParams();
     if (params.page) query.append('page', String(params.page));
@@ -145,6 +156,9 @@ export const roomService = {
     if (params.roomType) query.append('roomType', params.roomType);
     if (params.minPrice !== undefined) query.append('minPrice', String(params.minPrice));
     if (params.maxPrice !== undefined) query.append('maxPrice', String(params.maxPrice));
+    if (params.nearLat !== undefined) query.append('nearLat', String(params.nearLat));
+    if (params.nearLng !== undefined) query.append('nearLng', String(params.nearLng));
+    if (params.radiusKm !== undefined) query.append('radiusKm', String(params.radiusKm));
 
     const queryString = query.toString() ? `?${query.toString()}` : '';
     return apiClient.get<ApiResponse<ListRoomsResponse>>(`/rooms${queryString}`);
