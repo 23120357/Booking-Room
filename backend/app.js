@@ -44,13 +44,30 @@ const app = express();
 // Trust the first proxy so req.ip / X-Forwarded-For resolve correctly in prod.
 app.set('trust proxy', 1);
 
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+];
+
 app.use(cors({
-  origin: [
-    'http://localhost:3000',               // Cho phép chạy test ở local 
-    'https://booking-room-lovat.vercel.app/'      // link web Vercel thực tế 
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true                        // Nếu luồng Đăng nhập có dùng Cookie/Session thì bắt buộc phải có dòng này
+  origin: (origin, callback) => {
+    // Allow mobile apps, postman or server-to-server requests
+    if (!origin) return callback(null, true);
+
+    const cleanOrigin = origin.replace(/\/$/, ''); // strip trailing slash just in case
+    const isAllowed = allowedOrigins.includes(cleanOrigin) || 
+                      cleanOrigin.endsWith('.vercel.app') ||
+                      /^http:\/\/localhost:\d+$/.test(cleanOrigin) ||
+                      /^http:\/\/127\.0\.0\.1:\d+$/.test(cleanOrigin);
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  credentials: true
 }));
 app.use(express.json());
 
