@@ -67,9 +67,27 @@ app.use('/uploads/landlords', (req, res) => {
 // Serve uploaded assets
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Liveness probe.
-app.get('/health', (req, res) => {
-  return sendSuccess(res, { status: 200, message: 'OK' });
+// Liveness & Readiness health check probe.
+app.get(['/health', '/api/health'], async (req, res) => {
+  let dbStatus = 'OK';
+  try {
+    await db.raw('select 1');
+  } catch (err) {
+    dbStatus = 'DOWN';
+  }
+
+  return sendSuccess(res, {
+    status: 200,
+    message: 'Health check status retrieved',
+    data: {
+      status: 'healthy',
+      version: '1.2.0',
+      updatedAt: '2026-06-20T15:50:00+07:00', // Time of this deployment
+      timestamp: new Date().toISOString(),
+      database: dbStatus,
+      env: process.env.NODE_ENV || 'development'
+    }
+  });
 });
 
 // Database readiness probe.
