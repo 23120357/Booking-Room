@@ -6,6 +6,11 @@ const ROOM_COLUMNS = [
   'rooms.title',
   'rooms.room_type',
   'rooms.detailed_address',
+  'rooms.province_name',
+  'rooms.district_name',
+  'rooms.ward_name',
+  'rooms.formatted_address',
+  'rooms.place_id',
   'rooms.max_capacity',
   'rooms.monthly_rent',
   'rooms.deposit_amount',
@@ -88,6 +93,11 @@ function serializeRoom(row, images = [], approvalStatus = null) {
     title: row.title,
     room_type: row.room_type,
     detailed_address: row.detailed_address,
+    province_name: row.province_name || null,
+    district_name: row.district_name || null,
+    ward_name: row.ward_name || null,
+    formatted_address: row.formatted_address || null,
+    place_id: row.place_id || null,
     max_capacity: row.max_capacity,
     monthly_rent: Number(row.monthly_rent),
     deposit_amount: Number(row.deposit_amount),
@@ -125,11 +135,24 @@ async function listPublicRooms({ page = 1, limit = 12, keyword, minPrice, maxPri
       builder
         .whereILike('rooms.title', `%${keyword}%`)
         .orWhereILike('rooms.room_description', `%${keyword}%`)
-        .orWhereILike('rooms.detailed_address', `%${keyword}%`);
+        .orWhereILike('rooms.detailed_address', `%${keyword}%`)
+        .orWhereILike('rooms.formatted_address', `%${keyword}%`)
+        .orWhereILike('rooms.province_name', `%${keyword}%`)
+        .orWhereILike('rooms.district_name', `%${keyword}%`)
+        .orWhereILike('rooms.ward_name', `%${keyword}%`);
     });
   }
 
-  if (location) baseQuery.whereILike('rooms.detailed_address', `%${location}%`);
+  if (location) {
+    baseQuery.where((builder) => {
+      builder
+        .whereILike('rooms.detailed_address', `%${location}%`)
+        .orWhereILike('rooms.formatted_address', `%${location}%`)
+        .orWhereILike('rooms.province_name', `%${location}%`)
+        .orWhereILike('rooms.district_name', `%${location}%`)
+        .orWhereILike('rooms.ward_name', `%${location}%`);
+    });
+  }
   if (roomType) baseQuery.whereILike('rooms.room_type', `%${roomType}%`);
   if (minPrice !== undefined) baseQuery.where('rooms.monthly_rent', '>=', Number(minPrice));
   if (maxPrice !== undefined) baseQuery.where('rooms.monthly_rent', '<=', Number(maxPrice));
@@ -197,6 +220,11 @@ async function createRoom(payload) {
         title: payload.title,
         room_type: payload.room_type,
         detailed_address: payload.detailed_address,
+        province_name: payload.province_name || null,
+        district_name: payload.district_name || null,
+        ward_name: payload.ward_name || null,
+        formatted_address: payload.formatted_address || null,
+        place_id: payload.place_id || null,
         max_capacity: payload.max_capacity,
         monthly_rent: payload.monthly_rent,
         deposit_amount: payload.deposit_amount,

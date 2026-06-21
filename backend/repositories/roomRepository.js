@@ -19,6 +19,11 @@ async function findPublicById(roomId, trx) {
       'r.title',
       'r.room_type',
       'r.detailed_address',
+      'r.province_name',
+      'r.district_name',
+      'r.ward_name',
+      'r.formatted_address',
+      'r.place_id',
       'r.room_description',
       'r.max_capacity',
       'r.monthly_rent',
@@ -85,12 +90,27 @@ function applyPublicRoomFilters(q, filters = {}) {
     q.where(function () {
       this.whereILike('r.title', `%${filters.keyword}%`)
         .orWhereILike('r.detailed_address', `%${filters.keyword}%`)
+        .orWhereILike('r.formatted_address', `%${filters.keyword}%`)
+        .orWhereILike('r.province_name', `%${filters.keyword}%`)
+        .orWhereILike('r.district_name', `%${filters.keyword}%`)
+        .orWhereILike('r.ward_name', `%${filters.keyword}%`)
         .orWhereILike('r.room_description', `%${filters.keyword}%`);
     });
   }
 
   if (filters.location) {
-    q.whereILike('r.detailed_address', `%${filters.location}%`);
+    const locs = filters.location.split('|').map(l => l.trim()).filter(Boolean);
+    q.where(function () {
+      locs.forEach(loc => {
+        this.orWhere(function() {
+          this.whereILike('r.detailed_address', `%${loc}%`)
+            .orWhereILike('r.formatted_address', `%${loc}%`)
+            .orWhereILike('r.province_name', `%${loc}%`)
+            .orWhereILike('r.district_name', `%${loc}%`)
+            .orWhereILike('r.ward_name', `%${loc}%`);
+        });
+      });
+    });
   }
 
   if (filters.roomType) {
@@ -167,6 +187,11 @@ async function findPublic({ page = 1, limit = 20, filters = {}, sort = 'newest',
       'r.title',
       'r.room_type',
       'r.detailed_address',
+      'r.province_name',
+      'r.district_name',
+      'r.ward_name',
+      'r.formatted_address',
+      'r.place_id',
       'r.monthly_rent',
       'r.deposit_amount',
       'r.status',
@@ -279,6 +304,11 @@ async function findByLandlord(landlordId, { page = 1, limit = 20, sortBy = 'crea
       'r.title',
       'r.room_type',
       'r.detailed_address',
+      'r.province_name',
+      'r.district_name',
+      'r.ward_name',
+      'r.formatted_address',
+      'r.place_id',
       'r.room_description',
       'r.max_capacity',
       'r.monthly_rent',
@@ -336,6 +366,11 @@ async function findPendingRooms({ page = 1, limit = 20, status } = {}, trx) {
       'r.title',
       'r.room_type',
       'r.detailed_address',
+      'r.province_name',
+      'r.district_name',
+      'r.ward_name',
+      'r.formatted_address',
+      'r.place_id',
       'r.monthly_rent',
       'r.deposit_amount',
       'r.status',

@@ -24,15 +24,27 @@ function SearchCriteriaSummary() {
   const q = searchParams.get('q') || '';
   const budget = searchParams.get('budget') || '';
   const type = searchParams.get('type') || '';
+  const nearLat = searchParams.get('nearLat') || '';
+  const nearLng = searchParams.get('nearLng') || '';
 
-  if (!q && !budget && !type) return null;
+  if (!q && !budget && !type && !nearLat) return null;
 
   return (
     <div className="mt-3 p-3 rounded-xl bg-booking-surface border border-booking-border/60 text-xs sm:text-sm text-booking-muted font-medium flex flex-wrap gap-x-4 gap-y-1.5 items-center">
       <span className="font-bold text-booking-primary">Kết quả tìm kiếm cho:</span>
-      {q && (
+      {q && !nearLat && (
+        <span className="flex items-center gap-1 flex-wrap">
+          <strong>Khu vực:</strong> 
+          {q.split('|').map((loc, idx) => (
+            <span key={idx} className="bg-white border border-booking-border px-2 py-0.5 rounded-md text-booking-text font-semibold">
+              {loc}
+            </span>
+          ))}
+        </span>
+      )}
+      {nearLat && nearLng && (
         <span className="flex items-center gap-1">
-          <strong>Khu vực:</strong> <span className="bg-white border border-booking-border px-2 py-0.5 rounded-md text-booking-text font-semibold">{q}</span>
+          <strong>📍 Bán kính:</strong> <span className="bg-white border border-booking-border px-2 py-0.5 rounded-md text-booking-text font-semibold">5km quanh vị trí đã chọn</span>
         </span>
       )}
       {budget && (
@@ -59,6 +71,14 @@ function RoomsPageContent() {
   const q = searchParams.get('q') || '';
   const budget = searchParams.get('budget') || '';
   const type = searchParams.get('type') || '';
+  const nearLatStr = searchParams.get('nearLat') || '';
+  const nearLngStr = searchParams.get('nearLng') || '';
+  const nearLat = nearLatStr ? parseFloat(nearLatStr) : undefined;
+  const nearLng = nearLngStr ? parseFloat(nearLngStr) : undefined;
+  const searchCenter: [number, number] | null =
+    nearLat != null && nearLng != null && !isNaN(nearLat) && !isNaN(nearLng)
+      ? [nearLat, nearLng]
+      : null;
 
   useEffect(() => {
     async function fetchRooms() {
@@ -79,10 +99,13 @@ function RoomsPageContent() {
 
         // Fetch from backend API
         const res = await roomService.listRooms({
-          location: q || undefined,
+          location: (!nearLat && !nearLng && q) ? q : undefined,
           roomType: type || undefined,
           minPrice,
           maxPrice,
+          nearLat,
+          nearLng,
+          radiusKm: nearLat != null ? 5 : undefined,
         });
 
         if (res && res.data) {
@@ -101,7 +124,7 @@ function RoomsPageContent() {
     }
     
     fetchRooms();
-  }, [q, budget, type]);
+  }, [q, budget, type, nearLatStr, nearLngStr]);
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-10">
@@ -192,7 +215,7 @@ function RoomsPageContent() {
           </div>
         ) : viewMode === 'map' ? (
           /* ---- Bản đồ ---- */
-          <RoomMap rooms={rooms} height={580} />
+          <RoomMap rooms={rooms} height={580} searchCenter={searchCenter} />
         ) : (
           /* ---- Danh sách ---- */
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

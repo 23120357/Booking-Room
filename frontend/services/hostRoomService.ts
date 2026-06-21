@@ -18,6 +18,11 @@ export interface HostRoom {
   title: string;
   room_type: string;
   detailed_address: string;
+  province_name: string | null;
+  district_name: string | null;
+  ward_name: string | null;
+  formatted_address: string | null;
+  place_id: string | null;
   room_description: string | null;
   max_capacity: number;
   monthly_rent: number;
@@ -26,8 +31,8 @@ export interface HostRoom {
   water_cost: number;
   internet_cost: number;
   service_fee: number;
-  longitude: string | null;
-  latitude: string | null;
+  longitude: string | number | null;
+  latitude: string | number | null;
   status: 'AVAILABLE' | 'LOCKED' | 'RENTED' | string;
   approval_status: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
   created_at: string;

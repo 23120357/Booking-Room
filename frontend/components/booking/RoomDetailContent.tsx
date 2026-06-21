@@ -72,6 +72,10 @@ export default function RoomDetailContent({ room }: RoomDetailContentProps) {
   const displayLocation = (room.location || '').includes('Phường') 
     ? room.location 
     : 'Phường 12, ' + (room.location || '');
+  const hasCoordinates = room.latitude != null && room.longitude != null;
+  const googleMapsUrl = hasCoordinates
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${room.latitude},${room.longitude}`)}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(room.location || '')}`;
 
   // Consolidate unique S3 & mockup images, ensuring no empty paths
   const allImages = (room.images && room.images.length > 0
@@ -451,7 +455,7 @@ export default function RoomDetailContent({ room }: RoomDetailContentProps) {
             <div id="position" className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm">
               <h2 className="text-lg font-bold text-booking-text mb-1">Vị trí</h2>
               <p className="text-sm text-booking-muted mb-4">{displayLocation}</p>
-              <div className="relative h-[250px] w-full rounded-2xl border border-slate-200 bg-[#e2e8f0] overflow-hidden flex items-center justify-center shadow-inner group cursor-pointer">
+              <a href={googleMapsUrl} target="_blank" rel="noreferrer" className="relative block h-[250px] w-full rounded-2xl border border-slate-200 bg-[#e2e8f0] overflow-hidden shadow-inner group cursor-pointer">
                 {/* Mock map background element */}
                 <div className="absolute inset-0 bg-[#e8ecef]" />
                 <div className="absolute top-1/4 left-0 w-full h-4 bg-white/80 rotate-6 transform origin-center" />
@@ -476,7 +480,7 @@ export default function RoomDetailContent({ room }: RoomDetailContentProps) {
                     <span className="text-xs font-bold text-booking-text mt-1">Xem vị trí trên bản đồ</span>
                   </div>
                 </div>
-              </div>
+              </a>
             </div>
           </div>
 

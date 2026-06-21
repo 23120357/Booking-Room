@@ -8,6 +8,11 @@ export interface BackendRoom {
   title: string;
   room_type: string;
   detailed_address: string;
+  province_name?: string | null;
+  district_name?: string | null;
+  ward_name?: string | null;
+  formatted_address?: string | null;
+  place_id?: string | null;
   max_capacity: number;
   monthly_rent: number;
   deposit_amount: number;
@@ -53,6 +58,7 @@ export function mapBackendRoomToBookingRoom(room: any, index?: number): BookingR
   
   // Extract detailed address
   const detailedAddress = room.detailedAddress || room.addressSummary || room.detailed_address || '';
+  const formattedAddress = room.formattedAddress || room.formatted_address || '';
   
   // Extract district from address
   const district = detailedAddress?.match(/(Quận \d+|Bình Thạnh|Gò Vấp|Thủ Đức|Tân Bình|Phú Nhuận|Quận [1-9]|Quận 1[0-2]|Tân Phú|Bình Tân)/i)?.[0] || 'Khác';
@@ -99,7 +105,7 @@ export function mapBackendRoomToBookingRoom(room: any, index?: number): BookingR
   return {
     id: String(roomId),
     title,
-    location: detailedAddress,
+    location: formattedAddress || detailedAddress,
     district,
     price,
     priceLabel: new Intl.NumberFormat('vi-VN').format(price) + 'đ',

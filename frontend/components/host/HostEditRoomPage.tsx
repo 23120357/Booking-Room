@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import HostSidebar from '@/components/host/HostSidebar';
+import GoogleAddressInput, { type SelectedPlace } from '@/components/host/GoogleAddressInput';
 import { hostRoomService, type HostRoom } from '@/services/hostRoomService';
 import { roomTypeOptions } from '@/data/hostCreateRoom';
 
@@ -86,6 +87,13 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
   const [roomType, setRoomType] = useState('');
   const [capacity, setCapacity] = useState('');
   const [address, setAddress] = useState('');
+  const [provinceName, setProvinceName] = useState('');
+  const [districtName, setDistrictName] = useState('');
+  const [wardName, setWardName] = useState('');
+  const [formattedAddress, setFormattedAddress] = useState('');
+  const [placeId, setPlaceId] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
   const [description, setDescription] = useState('');
   const [monthlyRent, setMonthlyRent] = useState('');
   const [depositAmount, setDepositAmount] = useState('');
@@ -115,6 +123,13 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
         setRoomType(found.room_type || '');
         setCapacity(String(found.max_capacity ?? ''));
         setAddress(found.detailed_address || '');
+        setProvinceName(found.province_name || '');
+        setDistrictName(found.district_name || '');
+        setWardName(found.ward_name || '');
+        setFormattedAddress(found.formatted_address || '');
+        setPlaceId(found.place_id || '');
+        setLatitude(found.latitude == null ? '' : String(found.latitude));
+        setLongitude(found.longitude == null ? '' : String(found.longitude));
         setDescription(found.room_description || '');
         setMonthlyRent(String(found.monthly_rent ?? ''));
         setDepositAmount(String(found.deposit_amount ?? ''));
@@ -177,6 +192,17 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
     });
   };
 
+  const handlePlaceSelected = useCallback((place: SelectedPlace) => {
+    setAddress(place.detailedAddress || place.formattedAddress);
+    setFormattedAddress(place.formattedAddress);
+    setPlaceId(place.placeId);
+    setLatitude(place.latitude);
+    setLongitude(place.longitude);
+    setProvinceName(place.provinceName);
+    setDistrictName(place.districtName);
+    setWardName(place.wardName);
+  }, []);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!room) return;
@@ -192,6 +218,13 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
     formData.append('title', title.trim());
     formData.append('room_type', roomType);
     formData.append('detailed_address', address.trim());
+    if (provinceName.trim()) formData.append('province_name', provinceName.trim());
+    if (districtName.trim()) formData.append('district_name', districtName.trim());
+    if (wardName.trim()) formData.append('ward_name', wardName.trim());
+    if (formattedAddress.trim()) formData.append('formatted_address', formattedAddress.trim());
+    if (placeId.trim()) formData.append('place_id', placeId.trim());
+    if (latitude.trim()) formData.append('latitude', latitude.trim());
+    if (longitude.trim()) formData.append('longitude', longitude.trim());
     formData.append('max_capacity', String(capacity));
     formData.append('monthly_rent', String(monthlyRent));
     formData.append('deposit_amount', String(depositAmount));
@@ -339,9 +372,32 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
                   </svg>
                 }
               >
-                <div className="flex flex-col gap-1">
-                  <Label htmlFor="edit-address">Địa chỉ</Label>
-                  <input id="edit-address" value={address} onChange={(event) => setAddress(event.target.value)} className={inputClass} />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="flex flex-col gap-1 md:col-span-2">
+                    <Label htmlFor="edit-address">Địa chỉ</Label>
+                    <GoogleAddressInput
+                      id="edit-address"
+                      value={address}
+                      onChange={(value) => {
+                        setAddress(value);
+                        setFormattedAddress('');
+                        setPlaceId('');
+                        setLatitude('');
+                        setLongitude('');
+                      }}
+                      onPlaceSelected={handlePlaceSelected}
+                      placeholder="Số nhà, tên đường, phường/xã, quận/huyện..."
+                      inputClassName={inputClass}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor="edit-latitude">Vĩ độ</Label>
+                    <input id="edit-latitude" type="number" step="any" value={latitude} onChange={(event) => setLatitude(event.target.value)} className={inputClass} />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor="edit-longitude">Kinh độ</Label>
+                    <input id="edit-longitude" type="number" step="any" value={longitude} onChange={(event) => setLongitude(event.target.value)} className={inputClass} />
+                  </div>
                 </div>
               </EditSection>
 

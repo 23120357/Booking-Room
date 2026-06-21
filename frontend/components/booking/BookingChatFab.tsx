@@ -25,6 +25,7 @@ export default function BookingChatFab() {
           <div className="relative max-w-[210px] rounded-bl-2xl rounded-br-sm rounded-t-2xl border border-booking-border bg-booking-surface/95 px-4 py-3 text-sm text-booking-text shadow-xl backdrop-blur-md">
             <button
               type="button"
+              suppressHydrationWarning
               aria-label="Ẩn lời chào"
               onClick={() => setShowBubble(false)}
               className="absolute right-2 top-1 text-booking-muted transition hover:text-booking-text"
@@ -47,6 +48,7 @@ export default function BookingChatFab() {
           <button
             id="google-maps-fab-btn"
             type="button"
+            suppressHydrationWarning
             aria-label="Xem phòng trọ gần bạn trên bản đồ"
             onClick={() => setIsMapOpen(true)}
             onMouseEnter={() => setShowMapTooltip(true)}
@@ -71,6 +73,7 @@ export default function BookingChatFab() {
         {/* ── Nút Chatbot AI ── */}
         <button
           type="button"
+          suppressHydrationWarning
           aria-label="Mở trợ lý AI"
           className="grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-booking-primary to-booking-teal text-white shadow-xl transition hover:scale-105"
         >

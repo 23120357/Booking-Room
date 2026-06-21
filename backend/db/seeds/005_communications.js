@@ -41,7 +41,7 @@ exports.seed = async function (knex) {
       notification_id: 'f4000000-0000-0000-0000-000000000001',
       user_id: 'c0000000-0000-0000-0000-000000000005',
       title: 'Đặt cọc thành công',
-      content: 'Bạn đã đặt cọc phòng "Căn hộ mini full nội thất".',
+      content: 'Bạn đã đặt cọc phòng "Căn hộ mini full nội thất Nguyen Trai".',
       notification_type: 'DEPOSIT',
       status: 'UNREAD',
     },
