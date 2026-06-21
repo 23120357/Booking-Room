@@ -45,15 +45,19 @@ function RoomsPageContent() {
   const [rooms, setRooms] = useState<BookingRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const q = searchParams.get('q') || '';
   const budget = searchParams.get('budget') || '';
   const type = searchParams.get('type') || '';
 
+  const ITEMS_PER_PAGE = 14;
+
   useEffect(() => {
     async function fetchRooms() {
       setLoading(true);
       setError(null);
+      setCurrentPage(1);
       try {
         // Map UI budget string to minPrice / maxPrice numbers
         let minPrice: number | undefined;
@@ -93,6 +97,11 @@ function RoomsPageContent() {
     fetchRooms();
   }, [q, budget, type]);
 
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedRooms = rooms.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(rooms.length / ITEMS_PER_PAGE);
+
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-10">
       <section className="rounded-2xl border border-booking-border bg-white p-4 shadow-sm sm:p-6">
@@ -122,8 +131,8 @@ function RoomsPageContent() {
         </div>
 
         {loading ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map((n) => (
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
+            {[1, 2, 3, 4].map((n) => (
               <div key={n} className="animate-pulse rounded-2xl border border-booking-border bg-white overflow-hidden shadow-sm h-[320px]">
                 <div className="bg-slate-200 h-48 w-full" />
                 <div className="p-4 space-y-3">
@@ -143,10 +152,45 @@ function RoomsPageContent() {
             Không tìm thấy phòng nào phù hợp với điều kiện lọc của bạn.
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {rooms.map((room) => (
-              <RoomCard key={room.id} room={room} />
-            ))}
+          <div className="space-y-8">
+            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
+              {paginatedRooms.map((room) => (
+                <RoomCard key={room.id} room={room} />
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="mt-8 flex items-center justify-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2 rounded-xl border border-booking-border bg-white text-sm font-semibold text-booking-text hover:bg-booking-surface disabled:opacity-50 transition-colors"
+                >
+                  Trước
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setCurrentPage(p)}
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
+                      currentPage === p
+                        ? 'bg-booking-primary border-booking-primary text-white shadow-sm'
+                        : 'bg-white border-booking-border text-booking-text hover:bg-booking-surface'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-2 rounded-xl border border-booking-border bg-white text-sm font-semibold text-booking-text hover:bg-booking-surface disabled:opacity-50 transition-colors"
+                >
+                  Sau
+                </button>
+              </div>
+            )}
           </div>
         )}
       </section>

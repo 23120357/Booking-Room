@@ -64,9 +64,9 @@ export default function ListingApprovalPage() {
     fetchRooms();
   }, [filterStatus, page, limit, debouncedSearch]);
 
-  const handleApprove = async () => {
-    if (!approvingRoomId) return;
-    const roomId = approvingRoomId;
+  const handleApprove = async (roomIdParam?: string) => {
+    const roomId = roomIdParam || approvingRoomId;
+    if (!roomId) return;
 
     try {
       setActionLoading(roomId);

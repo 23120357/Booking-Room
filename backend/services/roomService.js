@@ -14,6 +14,13 @@ function normalizeNumber(value, fallback) {
 }
 
 async function listRooms(query) {
+  try {
+    const depositService = require('./booking/depositService');
+    await depositService.expireOverdueDeposits();
+  } catch (err) {
+    console.error('Error expiring overdue deposits during listRooms:', err);
+  }
+
   const page = normalizeNumber(query.page, DEFAULT_PAGE);
   const limit = normalizeNumber(query.limit, DEFAULT_LIMIT);
   const sort = typeof query.sort === 'string' ? query.sort : 'newest';
@@ -85,6 +92,13 @@ async function listRooms(query) {
 async function getRoomById(roomId, user = null) {
   if (!roomId) {
     throw new AppError('BAD_REQUEST', 'roomId is required', 400);
+  }
+
+  try {
+    const depositService = require('./booking/depositService');
+    await depositService.expireOverdueDeposits();
+  } catch (err) {
+    console.error('Error expiring overdue deposits during getRoomById:', err);
   }
 
   let room;
