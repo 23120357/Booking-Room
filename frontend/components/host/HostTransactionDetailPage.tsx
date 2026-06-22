@@ -19,10 +19,10 @@ export default function HostTransactionDetailPage({ transactionId }: { transacti
   };
 
   return (
-    <main className="flex min-h-screen bg-[#FAF8FF] text-[#191B23]">
+    <main className="flex min-h-screen bg-slate-50 font-sans text-slate-900">
       <HostSidebar user={user} onLogout={handleLogout} activePage="transactions" />
 
-      <section className="flex flex-1 flex-col lg:ml-[272px]">
+      <section className="flex flex-1 flex-col lg:ml-64">
         <header className="sticky top-0 z-10 flex h-[62px] items-center justify-between border-b border-[#C3C6D7] bg-[rgba(250,248,255,0.9)] px-6 backdrop-blur-md">
           <div className="relative w-full max-w-sm">
             <svg className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#737686]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">

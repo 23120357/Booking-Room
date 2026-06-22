@@ -43,7 +43,7 @@ function PendingRequestRow({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-lg border border-[rgba(195,198,215,0.3)] bg-[#FAF8FF] px-3 py-2">
+    <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2">
       {/* Tenant info */}
       <div className="flex items-center gap-4">
         <span
@@ -53,10 +53,10 @@ function PendingRequestRow({
           {request.tenantInitial}
         </span>
         <div>
-          <p className="text-sm font-bold leading-[21px] text-[#191B23]">
+          <p className="text-sm font-semibold leading-[21px] text-slate-900">
             {request.tenantName}
           </p>
-          <p className="text-sm leading-[21px] text-[#434655]">
+          <p className="text-sm leading-[21px] text-slate-500">
             {request.roomTitle}&nbsp;•&nbsp;Đặt cọc {formatVND(request.depositAmount)}
           </p>
         </div>
@@ -104,18 +104,18 @@ function StatCard({ stat }: { stat: QuickStat }) {
   const iconColor = stat.iconType === 'rooms' ? '#006F66' : '#EEEFFF';
 
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-[#C3C6D7] bg-[#FAF8FF] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+    <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <span
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg"
         style={{ background: stat.iconBg, color: iconColor }}
       >
         {icon}
       </span>
       <div>
-        <p className="text-xs font-bold leading-3 tracking-[0.6px] text-[#434655]">
+        <p className="text-sm font-medium text-slate-500">
           {stat.label}
         </p>
-        <p className="mt-2 text-2xl font-semibold leading-8 text-[#191B23]">
+        <p className="mt-1 text-3xl font-bold text-slate-900">
           {stat.value}
         </p>
       </div>
@@ -136,14 +136,14 @@ function RevenueChart() {
   };
 
   return (
-    <div className="rounded-xl border border-[#C3C6D7] bg-[#FAF8FF] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       {/* Chart header */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xl font-semibold leading-7 text-[#191B23]">
+          <p className="text-lg font-bold text-slate-900">
             Doanh thu tháng này
           </p>
-          <p className="mt-1 text-2xl font-semibold leading-8 text-[#004AC6]">
+          <p className="mt-1 text-2xl font-bold text-booking-primary">
             {formatVND(revenueData.totalRevenue)}
           </p>
         </div>
@@ -152,7 +152,7 @@ function RevenueChart() {
         <div className="relative">
           <select
             aria-label="Chọn tháng"
-            className="appearance-none rounded-lg border border-[#C3C6D7] bg-[#F3F3FE] py-2 pl-3 pr-8 text-sm text-[#191B23] focus:outline-none focus:ring-2 focus:ring-[#004AC6]/20"
+            className="appearance-none rounded-lg border border-slate-200 bg-slate-50 py-2 pl-3 pr-8 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-booking-primary/20"
           >
             <option>Tháng 4, 2026</option>
             <option>Tháng 3, 2026</option>
@@ -232,6 +232,10 @@ const statusConfig: Record<
     label: 'Chờ duyệt',
     className: 'bg-[#FFDAD6] text-[#93000A] border-transparent',
   },
+  hidden: {
+    label: 'Đã ẩn',
+    className: 'bg-slate-200 text-slate-600 border-transparent',
+  },
 };
 
 /** Dashboard room card */
@@ -239,9 +243,9 @@ function DashboardRoomCard({ room }: { room: DashboardRoom }) {
   const badge = statusConfig[room.status];
 
   return (
-    <article className="overflow-hidden rounded-xl border border-[#C3C6D7] bg-[#FAF8FF] shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+    <article className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       {/* Room image */}
-      <div className="relative aspect-[298/218] overflow-hidden bg-[#E1E2ED]">
+      <div className="relative aspect-[298/218] overflow-hidden bg-slate-100">
         <img
           src={room.imageSrc}
           alt={room.imageAlt}
@@ -260,11 +264,11 @@ function DashboardRoomCard({ room }: { room: DashboardRoom }) {
 
       {/* Info */}
       <div className="p-4">
-        <h3 className="text-xl font-semibold leading-7 text-[#191B23]">
+        <h3 className="text-lg font-bold text-slate-900">
           {room.title}
         </h3>
 
-        <p className="mt-1 flex items-center gap-1 text-sm leading-[21px] text-[#434655]">
+        <p className="mt-1 flex items-center gap-1 text-sm leading-[21px] text-slate-500">
           <svg className="h-3.5 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s7-4.6 7-11a7 7 0 1 0-14 0c0 6.4 7 11 7 11z" />
             <circle cx="12" cy="10" r="2" />
@@ -275,13 +279,13 @@ function DashboardRoomCard({ room }: { room: DashboardRoom }) {
         <div className="mt-3 flex items-end justify-between">
           <div>
             {room.originalPrice && (
-              <p className="text-sm leading-[21px] text-[#434655] line-through">
+              <p className="text-sm leading-[21px] text-slate-400 line-through">
                 {formatVND(room.originalPrice)}
               </p>
             )}
-            <p className="text-xl font-semibold leading-7 text-[#004AC6]">
+            <p className="text-xl font-bold text-booking-primary">
               {formatVND(room.currentPrice)}
-              <span className="ml-1 text-sm font-normal leading-[21px] text-[#434655]">
+              <span className="ml-1 text-sm font-normal leading-[21px] text-slate-500">
                 / tháng
               </span>
             </p>
@@ -291,9 +295,9 @@ function DashboardRoomCard({ room }: { room: DashboardRoom }) {
           <Link
             href={`/host/listings/${room.id}/edit`}
             aria-label={`Chỉnh sửa ${room.title}`}
-            className="flex h-[34px] w-[34px] items-center justify-center rounded-full transition hover:bg-[#E1E2ED]"
+            className="flex h-[34px] w-[34px] items-center justify-center rounded-full transition hover:bg-slate-100"
           >
-            <svg className="h-[18px] w-[18px] text-[#434655]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <svg className="h-[18px] w-[18px] text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.9 4.6l2.5 2.5M5 19l4.8-1 9.3-9.3a1.8 1.8 0 0 0-2.5-2.5l-9.3 9.3L5 19z" />
             </svg>
           </Link>
@@ -379,19 +383,19 @@ export default function HostDashboardPage() {
   };
 
   return (
-    <main className="flex min-h-screen bg-[#FFFFFF]">
+    <main className="flex min-h-screen bg-slate-50 font-sans text-slate-900">
       <HostSidebar user={user} onLogout={handleLogout} activePage="overview" />
 
       {/* Main content — offset by sidebar width */}
-      <section className="flex-1 bg-[#FAF8FF] lg:ml-[272px]">
-        <div className="mx-auto max-w-[1045px] px-12 pb-16 pt-12">
+      <section className="flex-1 bg-slate-50 lg:ml-64">
+        <div className="mx-auto max-w-[1045px] px-8 pb-16 pt-8">
 
           {/* ── Header ──────────────────────────────────────────────── */}
           <header className="mb-8">
-            <h1 className="text-[32px] font-bold leading-[38px] text-[#191B23]">
+            <h1 className="text-2xl font-bold text-slate-900">
               Tổng quan kinh doanh
             </h1>
-            <p className="mt-2 text-base leading-6 text-[#434655]">
+            <p className="mt-1 text-sm text-slate-500">
               Theo dõi hiệu suất và quản lý danh sách phòng của bạn.
             </p>
           </header>
@@ -400,7 +404,7 @@ export default function HostDashboardPage() {
           {requests.length > 0 && (
             <section
               aria-labelledby="pending-heading"
-              className="relative mb-8 overflow-hidden rounded-xl border border-[rgba(195,198,215,0.5)] bg-[#F3F3FE] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+              className="relative mb-8 overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
             >
               {/* Top gradient bar */}
               <div
@@ -422,7 +426,7 @@ export default function HostDashboardPage() {
                 </svg>
                 <h2
                   id="pending-heading"
-                  className="text-xl font-semibold leading-7 text-[#191B23]"
+                  className="text-lg font-bold text-slate-900"
                 >
                   Yêu cầu cần duyệt
                 </h2>
@@ -464,13 +468,13 @@ export default function HostDashboardPage() {
             <div className="mb-4 flex items-center justify-between">
               <h2
                 id="rooms-heading"
-                className="text-2xl font-semibold leading-8 text-[#191B23]"
+                className="text-lg font-bold text-slate-900"
               >
                 Danh sách phòng
               </h2>
               <a
                 href="/host/listings"
-                className="flex items-center gap-1 text-base font-semibold leading-4 text-[#004AC6] hover:underline"
+                className="flex items-center gap-1 text-sm font-semibold text-booking-primary hover:underline"
               >
                 Xem tất cả
                 <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -486,9 +490,9 @@ export default function HostDashboardPage() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl border border-[#C3C6D7] bg-[#FAF8FF] px-6 py-12 text-center">
-                <p className="text-base font-semibold text-[#191B23]">Bạn chưa có phòng nào.</p>
-                <a href="/host/listings/new" className="mt-2 inline-block text-sm font-semibold text-[#004AC6] hover:underline">
+              <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+                <p className="text-base font-semibold text-slate-900">Bạn chưa có phòng nào.</p>
+                <a href="/host/listings/new" className="mt-2 inline-block text-sm font-semibold text-booking-primary hover:underline">
                   Đăng phòng đầu tiên
                 </a>
               </div>

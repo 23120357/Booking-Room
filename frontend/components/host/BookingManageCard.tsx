@@ -3,15 +3,31 @@ import type { HostListing, HostListingStatus } from '@/data/hostListings';
 
 interface BookingManageCardProps {
   listing: HostListing;
+  /** Called when the host toggles visibility. Receives the desired next state. */
+  onToggleVisibility?: (id: string, nextVisible: boolean) => void;
+  /** Whether a visibility request is in flight for this listing. */
+  toggling?: boolean;
 }
 
 const statusStyles: Record<HostListingStatus, string> = {
   active: 'bg-[#86f2e4] text-[#006f66]',
   rented: 'bg-[#e1e2ed] text-booking-muted',
   pending: 'bg-[#bc4800] text-[#ffede6]',
+  hidden: 'bg-[#e1e2ed] text-booking-muted',
 };
 
-export default function BookingManageCard({ listing }: BookingManageCardProps) {
+export default function BookingManageCard({ listing, onToggleVisibility, toggling = false }: BookingManageCardProps) {
+  // Visibility can only be toggled for listings that are live ('active') or
+  // host-hidden ('hidden'). Rented/pending rooms are locked by the system.
+  const canToggle = listing.status === 'active' || listing.status === 'hidden';
+  const toggleTitle =
+    listing.status === 'rented'
+      ? 'Phòng đang được thuê — không thể ẩn'
+      : listing.status === 'pending'
+        ? 'Tin đang chờ duyệt — không thể đổi hiển thị'
+        : listing.isVisible
+          ? 'Tạm ẩn tin đăng'
+          : 'Hiển thị lại tin đăng';
   return (
     <article
       className={`overflow-hidden rounded-xl border border-booking-border/20 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] ${
@@ -58,7 +74,17 @@ export default function BookingManageCard({ listing }: BookingManageCardProps) {
         </p>
 
         <div className="mt-4 flex items-center justify-between border-t border-booking-border/20 pt-4">
-          <div className={`flex items-center gap-2 ${listing.isVisible ? 'text-booking-text' : 'text-booking-muted/55'}`}>
+          <button
+            type="button"
+            onClick={() => canToggle && onToggleVisibility?.(listing.id, !listing.isVisible)}
+            disabled={!canToggle || toggling}
+            title={toggleTitle}
+            aria-label={toggleTitle}
+            aria-pressed={listing.isVisible}
+            className={`flex items-center gap-2 ${listing.isVisible ? 'text-booking-text' : 'text-booking-muted/55'} ${
+              canToggle ? 'cursor-pointer' : 'cursor-not-allowed'
+            } ${toggling ? 'opacity-60' : ''}`}
+          >
             <span
               className={`relative h-6 w-10 rounded-full border transition ${
                 listing.isVisible ? 'border-booking-primary bg-booking-primary' : 'border-[#737686] bg-[#e1e2ed]'
@@ -70,8 +96,8 @@ export default function BookingManageCard({ listing }: BookingManageCardProps) {
                 }`}
               />
             </span>
-            <span className="text-sm leading-5">{listing.visibilityLabel}</span>
-          </div>
+            <span className="text-sm leading-5">{toggling ? 'Đang lưu…' : listing.visibilityLabel}</span>
+          </button>
 
           <div className="flex items-center gap-2 text-booking-muted">
             <Link

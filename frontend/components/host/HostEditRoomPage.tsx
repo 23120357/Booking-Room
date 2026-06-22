@@ -214,9 +214,9 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#FAF8FF] text-[#191B23]">
+      <main className="min-h-screen bg-slate-50 font-sans text-slate-900">
         <HostSidebar user={user} onLogout={handleLogout} activePage="listings" />
-        <section className="flex min-h-screen items-center justify-center lg:ml-[272px]">
+        <section className="flex min-h-screen items-center justify-center lg:ml-64">
           <p className="text-base font-semibold text-[#434655]">Đang tải thông tin phòng...</p>
         </section>
       </main>
@@ -225,9 +225,9 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
 
   if (loadError || !room) {
     return (
-      <main className="min-h-screen bg-[#FAF8FF] text-[#191B23]">
+      <main className="min-h-screen bg-slate-50 font-sans text-slate-900">
         <HostSidebar user={user} onLogout={handleLogout} activePage="listings" />
-        <section className="flex min-h-screen flex-col items-center justify-center gap-4 lg:ml-[272px]">
+        <section className="flex min-h-screen flex-col items-center justify-center gap-4 lg:ml-64">
           <p className="text-base font-semibold text-[#BA1A1A]">{loadError || 'Không tìm thấy phòng.'}</p>
           <Link href="/host/listings" className="rounded-lg bg-[#004AC6] px-6 py-3 text-base text-white hover:bg-[#003f9e]">
             Quay lại danh sách
@@ -241,9 +241,9 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
   const existingImages = room.images || [];
 
   return (
-    <main className="min-h-screen bg-[#FAF8FF] text-[#191B23]">
+    <main className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <HostSidebar user={user} onLogout={handleLogout} activePage="listings" />
-      <section className="flex min-h-screen flex-col lg:ml-[272px]">
+      <section className="flex min-h-screen flex-col lg:ml-64">
         <TopIcons />
 
         <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-[1024px] flex-col gap-4 p-4 sm:p-6">

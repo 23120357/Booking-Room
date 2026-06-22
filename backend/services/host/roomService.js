@@ -96,7 +96,10 @@ async function createRoom(landlordId, payload, files = []) {
 }
 
 async function updateRoom(landlordId, roomId, payload = {}, files = []) {
-	const allowed = ['title','room_type','detailed_address','max_capacity','monthly_rent','deposit_amount','electricity_cost','water_cost','internet_cost','service_fee','room_description','longitude','latitude','status'];
+	// NOTE: 'status' is intentionally NOT editable here — visibility is changed
+	// only via setRoomVisibility() so transitions stay validated. Lifecycle
+	// statuses (LOCKED/RENTED) are managed by the deposit/payment flow.
+	const allowed = ['title','room_type','detailed_address','max_capacity','monthly_rent','deposit_amount','electricity_cost','water_cost','internet_cost','service_fee','room_description','longitude','latitude'];
 	const numericFields = ['max_capacity','monthly_rent','deposit_amount','electricity_cost','water_cost','internet_cost','service_fee'];
 
 	// Fetch existing
@@ -191,6 +194,48 @@ async function listMyRooms(landlordId, query) {
 	return { items, pagination: { page, limit, total } };
 }
 
+/**
+ * Toggle a room's public visibility (Hiển thị / Tạm ẩn).
+ *
+ * - visible=false: AVAILABLE -> HIDDEN (chỉ cho phép khi đang AVAILABLE)
+ * - visible=true:  HIDDEN    -> AVAILABLE
+ *
+ * Không cho ẩn phòng đang LOCKED/RENTED (đang có giao dịch/đã cho thuê).
+ * Không reset approval (đây không phải thay đổi nội dung tin).
+ */
+async function setRoomVisibility(landlordId, roomId, visible) {
+	if (typeof visible !== 'boolean') {
+		throw new AppError('VALIDATION_ERROR', 'visible must be a boolean', 400);
+	}
+
+	const existing = await roomRepository.findById(roomId);
+	if (!existing) throw new AppError('NOT_FOUND', 'Room not found', 404);
+	if (existing.landlord_id !== landlordId) {
+		throw new AppError('FORBIDDEN', 'Not allowed to modify this room', 403);
+	}
+
+	const current = existing.status;
+
+	if (visible) {
+		// Bỏ ẩn: chỉ có ý nghĩa khi đang HIDDEN; các trạng thái khác coi như no-op.
+		if (current !== 'HIDDEN') {
+			return { room_id: roomId, status: current };
+		}
+		const updated = await roomRepository.update(roomId, { status: 'AVAILABLE', updated_at: db.fn.now() });
+		return { room_id: roomId, status: updated ? updated.status : 'AVAILABLE' };
+	}
+
+	// Ẩn phòng: chỉ cho phép khi đang AVAILABLE.
+	if (current === 'HIDDEN') {
+		return { room_id: roomId, status: current };
+	}
+	if (current !== 'AVAILABLE') {
+		throw new AppError('CONFLICT', 'Không thể ẩn phòng đang có giao dịch hoặc đã cho thuê.', 409);
+	}
+	const updated = await roomRepository.update(roomId, { status: 'HIDDEN', updated_at: db.fn.now() });
+	return { room_id: roomId, status: updated ? updated.status : 'HIDDEN' };
+}
+
 async function deleteRoom(landlordId, roomId) {
 	if (!roomId) throw new AppError('VALIDATION_ERROR', 'roomId is required', 400);
 
@@ -238,5 +283,6 @@ module.exports = {
 	createRoom,
 	listMyRooms,
 	updateRoom,
+	setRoomVisibility,
 	deleteRoom,
 };

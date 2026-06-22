@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import BookingManageCard from '@/components/host/BookingManageCard';
 import HostSidebar from '@/components/host/HostSidebar';
 import { hostRoomService, mapToHostListing } from '@/services/hostRoomService';
+import { getListingVisibilityMeta } from '@/services/hostRoomService';
 import type { HostListing, HostListingStatus } from '@/data/hostListings';
 
 type ActiveFilter = 'all' | HostListingStatus;
@@ -18,6 +19,7 @@ const FILTER_LABELS: Array<{ key: ActiveFilter; label: string }> = [
   { key: 'active', label: 'Đang hoạt động' },
   { key: 'rented', label: 'Đã cho thuê' },
   { key: 'pending', label: 'Chờ duyệt' },
+  { key: 'hidden', label: 'Đã ẩn' },
 ];
 
 export default function HostListingsPage() {
@@ -30,6 +32,7 @@ export default function HostListingsPage() {
   const [listings, setListings] = useState<HostListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,8 +91,27 @@ export default function HostListingsPage() {
     router.push('/auth/login');
   };
 
+  const handleToggleVisibility = async (id: string, nextVisible: boolean) => {
+    if (togglingId) return;
+    const previous = listings;
+    // Optimistic update.
+    setTogglingId(id);
+    setListings((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, ...getListingVisibilityMeta(nextVisible) } : l)),
+    );
+    try {
+      await hostRoomService.setVisibility(id, nextVisible);
+    } catch (err: any) {
+      // Revert on failure.
+      setListings(previous);
+      alert(err?.message || 'Không thể cập nhật trạng thái hiển thị. Vui lòng thử lại.');
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   return (
-    <main className="min-h-screen bg-booking-surface text-booking-text">
+    <main className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <HostSidebar user={user} onLogout={handleLogout} activePage="listings" />
 
       <section className="lg:pl-64">
@@ -211,7 +233,12 @@ export default function HostListingsPage() {
           ) : pagedListings.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               {pagedListings.map((listing) => (
-                <BookingManageCard key={listing.id} listing={listing} />
+                <BookingManageCard
+                  key={listing.id}
+                  listing={listing}
+                  onToggleVisibility={handleToggleVisibility}
+                  toggling={togglingId === listing.id}
+                />
               ))}
             </div>
           ) : (

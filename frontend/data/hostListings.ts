@@ -1,4 +1,4 @@
-export type HostListingStatus = 'active' | 'rented' | 'pending';
+export type HostListingStatus = 'active' | 'rented' | 'pending' | 'hidden';
 
 export interface HostListing {
   id: string;

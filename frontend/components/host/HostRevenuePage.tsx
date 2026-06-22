@@ -318,10 +318,10 @@ export default function HostRevenuePage() {
   };
 
   return (
-    <main className="flex min-h-screen bg-[#FAF8FF]">
+    <main className="flex min-h-screen bg-slate-50 font-sans text-slate-900">
       <HostSidebar user={user} onLogout={handleLogout} activePage="revenue" />
 
-      <div className="flex flex-1 flex-col lg:ml-[272px]">
+      <div className="flex flex-1 flex-col lg:ml-64">
         <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-[#C3C6D7] bg-[rgba(250,248,255,0.9)] px-6 backdrop-blur-md">
           <div className="relative flex max-w-3xl flex-1">
             <svg

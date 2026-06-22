@@ -90,10 +90,10 @@ export default function HostListingDetailPage({ listingId }: { listingId: string
   const badge = room ? statusBadge(room) : null;
 
   return (
-    <main className="min-h-screen bg-[#FAF8FF] text-[#191B23]">
+    <main className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <HostSidebar user={user} onLogout={handleLogout} activePage="listings" />
 
-      <section className="flex min-h-screen flex-col lg:ml-[272px]">
+      <section className="flex min-h-screen flex-col lg:ml-64">
         <HostIconBar />
 
         <div className="mx-auto flex w-full max-w-[1024px] flex-col gap-6 p-4 sm:p-6">

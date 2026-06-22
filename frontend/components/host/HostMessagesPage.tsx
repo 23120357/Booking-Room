@@ -281,10 +281,10 @@ export default function HostMessagesPage() {
   };
 
   return (
-    <main className="flex min-h-screen bg-[#FAF8FF]">
+    <main className="flex min-h-screen bg-slate-50 font-sans text-slate-900">
       <HostSidebar user={user} onLogout={handleLogout} activePage="messages" />
 
-      <div className="flex flex-1 flex-col lg:ml-[272px]">
+      <div className="flex flex-1 flex-col lg:ml-64">
         {/* ── Top Nav Bar ────────────────────────────────────────────── */}
         <header className="flex h-16 items-center justify-end gap-4 border-b border-[rgba(195,198,215,0.3)] bg-[#FAF8FF] px-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
           <button type="button" aria-label="Thông báo" className="flex h-8 w-8 items-center justify-center rounded-full text-[#004AC6] hover:bg-[#EEF3FF]">

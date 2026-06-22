@@ -66,6 +66,7 @@ function coverImage(room: HostRoom): string {
 
 /** Map backend room status + approval into the listings-card status. */
 function toListingStatus(room: HostRoom): HostListingStatus {
+  if (room.status === 'HIDDEN') return 'hidden';
   if (room.approval_status === 'PENDING') return 'pending';
   if (room.status === 'RENTED') return 'rented';
   return 'active';
@@ -73,9 +74,27 @@ function toListingStatus(room: HostRoom): HostListingStatus {
 
 const listingStatusMeta: Record<HostListingStatus, { statusLabel: string; visibilityLabel: string; isVisible: boolean }> = {
   active: { statusLabel: 'Đang hoạt động', visibilityLabel: 'Hiển thị', isVisible: true },
-  rented: { statusLabel: 'Đã cho thuê', visibilityLabel: 'Tạm ẩn', isVisible: false },
+  rented: { statusLabel: 'Đã cho thuê', visibilityLabel: 'Đã cho thuê', isVisible: true },
   pending: { statusLabel: 'Chờ duyệt', visibilityLabel: 'Chờ duyệt', isVisible: false },
+  hidden: { statusLabel: 'Đã ẩn', visibilityLabel: 'Đã ẩn', isVisible: false },
 };
+
+/**
+ * Compute the listing fields that change after a visibility toggle, so the UI
+ * can update optimistically without re-deriving from a full room object.
+ */
+export function getListingVisibilityMeta(
+  nextVisible: boolean,
+): Pick<HostListing, 'status' | 'statusLabel' | 'visibilityLabel' | 'isVisible'> {
+  const status: HostListingStatus = nextVisible ? 'active' : 'hidden';
+  const meta = listingStatusMeta[status];
+  return {
+    status,
+    statusLabel: meta.statusLabel,
+    visibilityLabel: meta.visibilityLabel,
+    isVisible: meta.isVisible,
+  };
+}
 
 /** Map a backend host room to the HostListing UI shape. */
 export function mapToHostListing(room: HostRoom): HostListing {
@@ -100,7 +119,10 @@ export function mapToHostListing(room: HostRoom): HostListing {
 export function mapToDashboardRoom(room: HostRoom): DashboardRoom {
   let status: DashboardRoomStatus;
   let statusLabel: string;
-  if (room.approval_status === 'PENDING') {
+  if (room.status === 'HIDDEN') {
+    status = 'hidden';
+    statusLabel = 'Đã ẩn';
+  } else if (room.approval_status === 'PENDING') {
     status = 'pending';
     statusLabel = 'Chờ duyệt';
   } else if (room.status === 'RENTED') {
@@ -167,5 +189,19 @@ export const hostRoomService = {
 
   deleteRoom: async (roomId: string): Promise<ApiResponse<null>> => {
     return apiClient.delete<ApiResponse<null>>(`/host/rooms/${roomId}`);
+  },
+
+  /**
+   * Toggle a room's public visibility (Hiển thị / Tạm ẩn).
+   * visible=false hides an AVAILABLE room; visible=true shows a HIDDEN one.
+   */
+  setVisibility: async (
+    roomId: string,
+    visible: boolean,
+  ): Promise<ApiResponse<{ room_id: string; status: string }>> => {
+    return apiClient.patch<ApiResponse<{ room_id: string; status: string }>>(
+      `/host/rooms/${roomId}/status`,
+      { visible },
+    );
   },
 };
