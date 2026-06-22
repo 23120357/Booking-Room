@@ -14,22 +14,26 @@ function normalizeNumber(value, fallback) {
 }
 
 async function listRooms(query) {
-  const page = normalizeNumber(query.page, DEFAULT_PAGE);
-  const limit = normalizeNumber(query.limit, DEFAULT_LIMIT);
-  const sort = typeof query.sort === 'string' ? query.sort : 'newest';
+  try {
+    const depositService = require('./booking/depositService');
+    await depositService.expireOverdueDeposits();
+  } catch (err) {
+    console.error('Error expiring overdue deposits during listRooms:', err);
+  }
+
+  const page = Math.max(1, Math.floor(normalizeNumber(query.page, DEFAULT_PAGE)));
+  const limit = Math.min(MAX_LIMIT, Math.max(1, Math.floor(normalizeNumber(query.limit, DEFAULT_LIMIT))));
+  const sort = ALLOWED_SORTS.includes(query.sort) ? query.sort : 'newest';
   const keyword = query.keyword ? String(query.keyword).trim() : undefined;
   const location = query.location ? String(query.location).trim() : undefined;
   const roomType = query.roomType ? String(query.roomType).trim() : undefined;
   const minPrice = query.minPrice !== undefined ? normalizeNumber(query.minPrice, undefined) : undefined;
   const maxPrice = query.maxPrice !== undefined ? normalizeNumber(query.maxPrice, undefined) : undefined;
 
-  if (page <= 0 || !Number.isInteger(page)) {
-    throw new AppError('VALIDATION_ERROR', 'page must be a positive integer', 400);
-  }
-
-  if (limit <= 0 || !Number.isInteger(limit) || limit > MAX_LIMIT) {
-    throw new AppError('VALIDATION_ERROR', `limit must be a positive integer and no more than ${MAX_LIMIT}`, 400);
-  }
+  // Tìm theo vị trí địa lý
+  const nearLat = query.nearLat !== undefined ? normalizeNumber(query.nearLat, undefined) : undefined;
+  const nearLng = query.nearLng !== undefined ? normalizeNumber(query.nearLng, undefined) : undefined;
+  const radiusKm = query.radiusKm !== undefined ? Math.max(0.5, normalizeNumber(query.radiusKm, 5)) : undefined;
 
   if (minPrice !== undefined && minPrice < 0) {
     throw new AppError('VALIDATION_ERROR', 'minPrice must be >= 0', 400);
@@ -43,8 +47,12 @@ async function listRooms(query) {
     throw new AppError('VALIDATION_ERROR', 'minPrice must be less than or equal to maxPrice', 400);
   }
 
-  if (!ALLOWED_SORTS.includes(sort)) {
-    throw new AppError('VALIDATION_ERROR', `sort must be one of ${ALLOWED_SORTS.join(', ')}`, 400);
+  // Validate tọa độ hợp lẹ
+  if (nearLat !== undefined && (nearLat < -90 || nearLat > 90)) {
+    throw new AppError('VALIDATION_ERROR', 'nearLat must be between -90 and 90', 400);
+  }
+  if (nearLng !== undefined && (nearLng < -180 || nearLng > 180)) {
+    throw new AppError('VALIDATION_ERROR', 'nearLng must be between -180 and 180', 400);
   }
 
   const filters = {
@@ -53,6 +61,9 @@ async function listRooms(query) {
     roomType,
     minPrice,
     maxPrice,
+    nearLat,
+    nearLng,
+    radiusKm,
   };
 
   const items = await roomRepository.findPublic({ page, limit, filters, sort, onlyApproved: true });
@@ -66,6 +77,11 @@ async function listRooms(query) {
     monthlyRent: Number(row.monthly_rent),
     depositAmount: Number(row.deposit_amount),
     addressSummary: row.detailed_address,
+    provinceName: row.province_name || null,
+    districtName: row.district_name || null,
+    wardName: row.ward_name || null,
+    formattedAddress: row.formatted_address || null,
+    placeId: row.place_id || null,
     status: row.status,
     averageRating: row.average_rating !== null ? Number(row.average_rating) : null,
     longitude: row.longitude,
@@ -85,6 +101,13 @@ async function listRooms(query) {
 async function getRoomById(roomId, user = null) {
   if (!roomId) {
     throw new AppError('BAD_REQUEST', 'roomId is required', 400);
+  }
+
+  try {
+    const depositService = require('./booking/depositService');
+    await depositService.expireOverdueDeposits();
+  } catch (err) {
+    console.error('Error expiring overdue deposits during getRoomById:', err);
   }
 
   let room;
@@ -134,6 +157,11 @@ async function getRoomById(roomId, user = null) {
             'r.title',
             'r.room_type',
             'r.detailed_address',
+            'r.province_name',
+            'r.district_name',
+            'r.ward_name',
+            'r.formatted_address',
+            'r.place_id',
             'r.room_description',
             'r.max_capacity',
             'r.monthly_rent',
@@ -181,6 +209,11 @@ async function getRoomById(roomId, user = null) {
     title: room.title,
     roomType: room.room_type,
     detailedAddress: room.detailed_address,
+    provinceName: room.province_name || null,
+    districtName: room.district_name || null,
+    wardName: room.ward_name || null,
+    formattedAddress: room.formatted_address || null,
+    placeId: room.place_id || null,
     roomDescription: room.room_description,
     maxCapacity: room.max_capacity,
     monthlyRent: Number(room.monthly_rent),

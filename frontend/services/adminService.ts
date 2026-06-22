@@ -108,6 +108,16 @@ export const adminService = {
     return response.data;
   },
 
+  approveLandlord: async (userId: string): Promise<any> => {
+    const response = await apiClient.patch<{ data: any }>(`/admin/landlords/${userId}/approve`);
+    return response.data;
+  },
+
+  rejectLandlord: async (userId: string, reason: string): Promise<any> => {
+    const response = await apiClient.patch<{ data: any }>(`/admin/landlords/${userId}/reject`, { reason });
+    return response.data;
+  },
+
   getTransactions: async (params?: Record<string, any>): Promise<TransactionListResponse> => {
     const queryString = buildQueryString(params);
     // The backend returns { data: { transactions: [...], pagination: {...} } }
@@ -125,12 +135,12 @@ export const adminService = {
   },
 
   approveRoom: async (roomId: string): Promise<any> => {
-    const response = await apiClient.post<{ data: any }>(`/admin/rooms/${roomId}/approve`);
+    const response = await apiClient.patch<{ data: any }>(`/admin/rooms/${roomId}/approve`);
     return response.data;
   },
 
   rejectRoom: async (roomId: string, reason: string): Promise<any> => {
-    const response = await apiClient.post<{ data: any }>(`/admin/rooms/${roomId}/reject`, { reason });
+    const response = await apiClient.patch<{ data: any }>(`/admin/rooms/${roomId}/reject`, { reason });
     return response.data;
   },
 
@@ -140,8 +150,8 @@ export const adminService = {
     return response.data;
   },
 
-  updateViolationReportStatus: async (reportId: string, status: string): Promise<any> => {
-    const response = await apiClient.patch<{ data: any }>(`/admin/violation-reports/${reportId}/status`, { status });
+  updateViolationReportStatus: async (reportId: string, status: string, adminResponseTenant?: string, adminResponseLandlord?: string): Promise<any> => {
+    const response = await apiClient.patch<{ data: any }>(`/admin/violation-reports/${reportId}/status`, { status, adminResponseTenant, adminResponseLandlord });
     return response.data;
   },
 
@@ -151,8 +161,8 @@ export const adminService = {
     return response.data;
   },
 
-  updateSupportTicketStatus: async (ticketId: string, status: string): Promise<any> => {
-    const response = await apiClient.patch<{ data: any }>(`/admin/support-tickets/${ticketId}/status`, { status });
+  updateSupportTicketStatus: async (ticketId: string, status: string, adminResponse?: string): Promise<any> => {
+    const response = await apiClient.patch<{ data: any }>(`/admin/support-tickets/${ticketId}/status`, { status, adminResponse });
     return response.data;
   },
 

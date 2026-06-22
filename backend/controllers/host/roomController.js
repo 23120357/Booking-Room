@@ -66,10 +66,21 @@ async function updateRoomStatus(req, res, next) {
   }
 }
 
+async function getOverview(req, res, next) {
+  try {
+    const result = await roomService.getOverview(req.user.userId, { year: req.query.year });
+    return sendSuccess(res, { status: 200, message: 'Tổng quan kinh doanh', data: result });
+  } catch (err) {
+    if (!(err instanceof AppError)) console.error('[host.roomController.getOverview ERROR]', err);
+    return next(err instanceof AppError ? err : new AppError('UNEXPECTED', 'Đã xảy ra lỗi.', 500));
+  }
+}
+
 module.exports = {
   listMyRooms,
   createRoom,
   updateRoom,
   deleteRoom,
   updateRoomStatus,
+  getOverview,
 };

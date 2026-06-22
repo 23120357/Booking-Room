@@ -165,7 +165,7 @@ export default function HostListingsPage() {
                 Quản lý tin đăng
               </h1>
               <p className="mt-2 text-base leading-6 text-booking-muted">
-                Manage your property listings efficiently.
+                Quản lý tin đăng phòng của bạn một cách hiệu quả.
               </p>
             </div>
             <Link

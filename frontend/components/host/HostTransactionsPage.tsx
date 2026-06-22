@@ -1,20 +1,34 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import HostSidebar from '@/components/host/HostSidebar';
 import {
-  transactions,
-  transactionSummary,
   statusConfig,
   statusFilterOptions,
   formatVND,
-  ITEMS_PER_PAGE,
-  TOTAL_TRANSACTIONS,
   type TransactionStatus,
 } from '@/data/hostTransactions';
+import {
+  hostTransactionService,
+  type HostTransactionItem,
+  type HostTransactionSummary,
+} from '@/services/hostTransactionService';
+
+const ITEMS_PER_PAGE = 8;
+
+/** Map the month dropdown selection to an ISO `dateFrom` (or undefined). */
+function dateFromForRange(label: string): string | undefined {
+  const now = new Date();
+  if (label.startsWith('Tháng này')) return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  if (label.startsWith('Tháng trước')) return new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+  if (label.startsWith('3 tháng')) return new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString();
+  if (label.startsWith('6 tháng')) return new Date(now.getFullYear(), now.getMonth() - 6, 1).toISOString();
+  if (label.startsWith('Năm nay')) return new Date(now.getFullYear(), 0, 1).toISOString();
+  return undefined;
+}
 
 // ─── Summary Card ─────────────────────────────────────────────────────────────
 
@@ -68,46 +82,92 @@ export default function HostTransactionsPage() {
   // ── Filter state ─────────────────────────────────────────────────────────────
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<TransactionStatus | 'all'>('all');
-  const [roomFilter, setRoomFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedMonth, setSelectedMonth] = useState('Tháng này (Tháng 10, 2024)');
+  const [selectedMonth, setSelectedMonth] = useState('Tất cả thời gian');
+
+  // ── Data from API ──────────────────────────────────────────────────────────
+  const [items, setItems] = useState<HostTransactionItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [summary, setSummary] = useState<HostTransactionSummary | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const handleLogout = async () => {
     await logout();
     router.push('/auth/login');
   };
 
-  // ── Filtered data (client-side mock; replace with API call in production) ──
-  const filtered = useMemo(() => {
-    const q = search.trim().toLocaleLowerCase('vi-VN');
-    return transactions.filter((t) => {
-      const matchStatus = statusFilter === 'all' || t.status === statusFilter;
-      const matchSearch =
-        !q ||
-        t.bookingCode.toLocaleLowerCase('vi-VN').includes(q) ||
-        t.tenantName.toLocaleLowerCase('vi-VN').includes(q) ||
-        t.roomTitle.toLocaleLowerCase('vi-VN').includes(q);
-      return matchStatus && matchSearch;
-    });
-  }, [search, statusFilter]);
+  // Reset to first page whenever a filter changes.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, selectedMonth]);
 
-  // Paginate
-  const totalPages = Math.ceil(TOTAL_TRANSACTIONS / ITEMS_PER_PAGE); // 21
-  const paginated = filtered.slice(0, ITEMS_PER_PAGE); // in production, pass page to API
+  // Fetch the summary once.
+  useEffect(() => {
+    let cancelled = false;
+    hostTransactionService
+      .getSummary()
+      .then((res) => {
+        if (!cancelled && res.data) setSummary(res.data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Fetch the list (server-side filtered + paginated); debounce the search box.
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    const handle = setTimeout(() => {
+      hostTransactionService
+        .list({
+          page: currentPage,
+          limit: ITEMS_PER_PAGE,
+          status: statusFilter,
+          search: search.trim() || undefined,
+          dateFrom: dateFromForRange(selectedMonth),
+        })
+        .then((res) => {
+          if (cancelled || !res.data) return;
+          setItems(res.data.items);
+          setTotal(res.data.pagination.total);
+          setTotalPages(res.data.pagination.totalPages);
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setItems([]);
+            setTotal(0);
+            setTotalPages(1);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [search, statusFilter, selectedMonth, currentPage]);
+
+  const paginated = items;
 
   const handleClearFilters = () => {
     setSearch('');
     setStatusFilter('all');
-    setRoomFilter('all');
   };
 
-  // ── Unique rooms for filter dropdown ─────────────────────────────────────────
-  const roomOptions = useMemo(() => {
-    const titles = Array.from(new Set(transactions.map((t) => t.roomTitle)));
-    return [{ value: 'all', label: 'Tất cả các phòng' }, ...titles.map((t) => ({ value: t, label: t }))];
-  }, []);
+  const pageNumbers = useMemo(() => {
+    const pages: number[] = [];
+    const start = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
+    const end = Math.min(totalPages, start + 4);
+    for (let p = start; p <= end; p += 1) pages.push(p);
+    return pages;
+  }, [currentPage, totalPages]);
 
-  const hasActiveFilters = statusFilter !== 'all' || roomFilter !== 'all' || search.trim().length > 0;
+  const hasActiveFilters = statusFilter !== 'all' || search.trim().length > 0;
 
   return (
     <main className="flex min-h-screen bg-slate-50 font-sans text-slate-900">
@@ -195,14 +255,14 @@ export default function HostTransactionsPage() {
           <div className="flex gap-6">
             <SummaryCard
               label="Tổng giao dịch"
-              value={formatVND(transactionSummary.totalRevenue)}
+              value={formatVND(summary?.totalRevenue ?? 0)}
               sub={
                 <>
                   <svg className="h-3 w-3 text-[#006A61]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
                   </svg>
                   <span className="text-[#006A61]">
-                    +{transactionSummary.totalRevenueChange}% so với tháng trước
+                    {(summary?.totalRevenueChange ?? 0) >= 0 ? '+' : ''}{summary?.totalRevenueChange ?? 0}% so với tháng trước
                   </span>
                 </>
               }
@@ -216,10 +276,10 @@ export default function HostTransactionsPage() {
             />
             <SummaryCard
               label="Đang xử lý"
-              value={formatVND(transactionSummary.processingAmount)}
+              value={formatVND(summary?.processingAmount ?? 0)}
               sub={
                 <span className="text-[#434655]">
-                  {String(transactionSummary.processingCount).padStart(2, '0')} giao dịch chờ duyệt
+                  {String(summary?.processingCount ?? 0).padStart(2, '0')} giao dịch chờ duyệt
                 </span>
               }
               iconBg="rgba(148,55,0,0.1)"
@@ -233,10 +293,10 @@ export default function HostTransactionsPage() {
             />
             <SummaryCard
               label="Giao dịch thành công"
-              value={formatVND(transactionSummary.completedAmount)}
+              value={formatVND(summary?.completedAmount ?? 0)}
               sub={
                 <span className="text-[#006A61]">
-                  {transactionSummary.completionRate}% tỷ lệ hoàn tất
+                  {summary?.completionRate ?? 0}% tỷ lệ hoàn tất
                 </span>
               }
               iconBg="rgba(0,106,97,0.1)"
@@ -263,8 +323,9 @@ export default function HostTransactionsPage() {
                   onChange={(e) => setSelectedMonth(e.target.value)}
                   className="appearance-none rounded-lg border border-[#C3C6D7] bg-white py-1.5 pl-3 pr-8 text-sm font-semibold text-[#191B23] focus:outline-none"
                 >
-                  <option>Tháng này (Tháng 10, 2024)</option>
-                  <option>Tháng trước (Tháng 9, 2024)</option>
+                  <option>Tất cả thời gian</option>
+                  <option>Tháng này</option>
+                  <option>Tháng trước</option>
                   <option>3 tháng gần đây</option>
                   <option>6 tháng gần đây</option>
                   <option>Năm nay</option>
@@ -289,26 +350,6 @@ export default function HostTransactionsPage() {
                   className="appearance-none rounded-full border border-[#C3C6D7] bg-white py-1 pl-3 pr-7 text-sm text-[#191B23] focus:outline-none"
                 >
                   {statusFilterOptions.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-                <svg className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-
-            {/* Room filter */}
-            <div className="flex items-center gap-2">
-              <span className="shrink-0 text-sm text-[#434655]">Phòng:</span>
-              <div className="relative">
-                <select
-                  aria-label="Lọc theo phòng"
-                  value={roomFilter}
-                  onChange={(e) => setRoomFilter(e.target.value)}
-                  className="appearance-none rounded-full border border-[#C3C6D7] bg-white py-1 pl-3 pr-7 text-sm text-[#191B23] focus:outline-none"
-                >
-                  {roomOptions.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </select>
@@ -441,11 +482,11 @@ export default function HostTransactionsPage() {
                     </tr>
                   ))}
 
-                  {/* Empty state */}
+                  {/* Loading / empty state */}
                   {paginated.length === 0 && (
                     <tr>
                       <td colSpan={7} className="px-4 py-16 text-center text-base text-[#434655]">
-                        Không tìm thấy giao dịch phù hợp.
+                        {loading ? 'Đang tải giao dịch...' : 'Không tìm thấy giao dịch phù hợp.'}
                       </td>
                     </tr>
                   )}
@@ -456,7 +497,9 @@ export default function HostTransactionsPage() {
             {/* ── Pagination ──────────────────────────────────────────── */}
             <div className="flex items-center justify-between border-t border-[#C3C6D7] px-4 py-3">
               <p className="text-sm text-[#434655]">
-                Hiển thị 1 - {Math.min(ITEMS_PER_PAGE, paginated.length)} trong tổng số {TOTAL_TRANSACTIONS} giao dịch
+                {total === 0
+                  ? 'Không có giao dịch'
+                  : `Hiển thị ${(currentPage - 1) * ITEMS_PER_PAGE + 1} - ${Math.min(currentPage * ITEMS_PER_PAGE, total)} trong tổng số ${total} giao dịch`}
               </p>
 
               <div className="flex items-center gap-1">
@@ -473,8 +516,8 @@ export default function HostTransactionsPage() {
                   </svg>
                 </button>
 
-                {/* Page numbers */}
-                {[1, 2, 3].map((page) => (
+                {/* Page numbers (windowed) */}
+                {pageNumbers.map((page) => (
                   <button
                     key={page}
                     type="button"
@@ -488,20 +531,12 @@ export default function HostTransactionsPage() {
                     {page}
                   </button>
                 ))}
-                <span className="px-1 text-sm text-[#434655]">...</span>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(totalPages)}
-                  className="flex h-8 w-8 items-center justify-center rounded text-sm font-semibold text-[#191B23] transition hover:bg-[#F3F3FE]"
-                >
-                  {totalPages}
-                </button>
 
                 {/* Next */}
                 <button
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
+                  disabled={currentPage >= totalPages}
                   aria-label="Trang sau"
                   className="flex h-8 w-8 items-center justify-center rounded text-[#434655] transition hover:bg-[#F3F3FE] disabled:opacity-40"
                 >

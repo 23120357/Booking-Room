@@ -5,7 +5,8 @@ import AdminHeader from '@/components/admin/AdminHeader';
 import StatusBadge from '@/components/admin/StatusBadge';
 import { adminService } from '@/services/adminService';
 import { getRoomFallbackImage } from '@/utils/imageFallback';
-import { Search, Filter, AlertCircle, AlertTriangle, ShieldCheck, XCircle, ChevronRight } from 'lucide-react';
+import { Check, X, Building, Search, Filter, AlertCircle, AlertTriangle, CheckCircle, Eye, ShieldCheck, XCircle, ChevronRight, MessageSquare } from 'lucide-react';
+import RoomDetailModal from '@/components/admin/RoomDetailModal';
 
 const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
   if (typeof window !== 'undefined') {
@@ -24,6 +25,9 @@ export default function ComplaintsPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const [adminResponsesTenant, setAdminResponsesTenant] = useState<Record<string, string>>({});
+  const [adminResponsesLandlord, setAdminResponsesLandlord] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -61,8 +65,12 @@ export default function ComplaintsPage() {
   const handleUpdateStatus = async (reportId: string, status: string) => {
     try {
       setActionLoading(reportId);
-      await adminService.updateViolationReportStatus(reportId, status);
+      const tenantResp = adminResponsesTenant[reportId] || '';
+      const landlordResp = adminResponsesLandlord[reportId] || '';
+      await adminService.updateViolationReportStatus(reportId, status, tenantResp || undefined, landlordResp || undefined);
       showToast('Cập nhật trạng thái thành công', 'success');
+      setAdminResponsesTenant(prev => { const copy = { ...prev }; delete copy[reportId]; return copy; });
+      setAdminResponsesLandlord(prev => { const copy = { ...prev }; delete copy[reportId]; return copy; });
       fetchReports();
     } catch (err: any) {
       showToast(err.message || 'Lỗi khi cập nhật trạng thái', 'error');
@@ -134,6 +142,18 @@ export default function ComplaintsPage() {
               >
                 Đang xử lý
               </button>
+              <button
+                onClick={() => setFilterStatus('RESOLVED')}
+                className={`px-4 py-1.5 font-medium rounded-md text-sm transition-colors ${filterStatus === 'RESOLVED' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
+              >
+                Đã giải quyết
+              </button>
+              <button
+                onClick={() => setFilterStatus('DISMISSED')}
+                className={`px-4 py-1.5 font-medium rounded-md text-sm transition-colors ${filterStatus === 'DISMISSED' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
+              >
+                Bị bác bỏ
+              </button>
             </div>
           </div>
         </div>
@@ -180,7 +200,10 @@ export default function ComplaintsPage() {
                       </div>
 
                       {report.room && (
-                        <div className="flex items-center gap-3 mt-3 mb-2 p-2 bg-slate-50 border border-slate-100 rounded-lg w-fit">
+                        <div
+                          className="flex items-center gap-3 mt-3 mb-2 p-2 bg-slate-50 border border-slate-100 rounded-lg w-fit cursor-pointer hover:bg-slate-100 transition-colors"
+                          onClick={() => setSelectedRoomId(report.room.roomId)}
+                        >
                           <div className="w-10 h-10 bg-slate-200 rounded flex-shrink-0 overflow-hidden border border-slate-200">
                             <img
                               src={getRoomFallbackImage(report.room.roomId || 'rp', report.room.coverImageUrl)}
@@ -189,7 +212,7 @@ export default function ComplaintsPage() {
                             />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-slate-800 line-clamp-1">{report.room.title}</p>
+                            <p className="text-sm font-semibold text-booking-primary hover:text-booking-primary-dark line-clamp-1">{report.room.title}</p>
                             <p className="text-xs text-slate-500 line-clamp-1">{report.room.address}</p>
                           </div>
                         </div>
@@ -221,8 +244,37 @@ export default function ComplaintsPage() {
                 </div>
 
                 {/* Right side: Actions */}
-                <div className="p-6 w-full md:w-64 bg-slate-50 flex flex-col justify-center gap-3">
+                <div className="p-6 w-full md:w-72 bg-slate-50 flex flex-col justify-center gap-3">
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Hành động xử lý</p>
+
+                  {['PENDING', 'PROCESSING'].includes(report.resolutionStatus) && (
+                    <div className="space-y-2 bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                          Phản hồi cho Tenant
+                        </label>
+                        <textarea
+                          value={adminResponsesTenant[report.reportId] || ''}
+                          onChange={(e) => setAdminResponsesTenant(prev => ({ ...prev, [report.reportId]: e.target.value }))}
+                          placeholder="Gửi người báo cáo..."
+                          rows={1}
+                          className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-booking-primary/20 focus:border-booking-primary transition-all text-xs resize-none h-11"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                          Phản hồi cho Host
+                        </label>
+                        <textarea
+                          value={adminResponsesLandlord[report.reportId] || ''}
+                          onChange={(e) => setAdminResponsesLandlord(prev => ({ ...prev, [report.reportId]: e.target.value }))}
+                          placeholder="Gửi người bị báo cáo..."
+                          rows={1}
+                          className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-booking-primary/20 focus:border-booking-primary transition-all text-xs resize-none h-11"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {report.resolutionStatus === 'PENDING' && (
                     <button
@@ -295,6 +347,18 @@ export default function ComplaintsPage() {
           </div>
         )}
       </div>
+      {/* Room Detail Modal for viewing room info without approve/reject actions */}
+      {selectedRoomId && (
+        <RoomDetailModal
+          roomId={selectedRoomId}
+          isOpen={!!selectedRoomId}
+          onClose={() => setSelectedRoomId(null)}
+          onApprove={() => { }}
+          onReject={() => { }}
+          actionLoading={null}
+          isPending={false}
+        />
+      )}
     </div>
   );
 }

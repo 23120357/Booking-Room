@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import AdminHeader from '@/components/admin/AdminHeader';
 import StatusBadge from '@/components/admin/StatusBadge';
 import { adminService } from '@/services/adminService';
-import { Search, Filter, AlertCircle, MessageSquare, Tag, Clock, ChevronDown, MessageCircle } from 'lucide-react';
+import { Search, Filter, AlertCircle, MessageSquare, Tag, Clock, ChevronDown, MessageCircle, Send } from 'lucide-react';
 
 const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
   if (typeof window !== 'undefined') {
@@ -25,6 +25,7 @@ export default function SupportPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
+  const [adminResponses, setAdminResponses] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -63,8 +64,10 @@ export default function SupportPage() {
   const handleUpdateStatus = async (ticketId: string, status: string) => {
     try {
       setActionLoading(ticketId);
-      await adminService.updateSupportTicketStatus(ticketId, status);
+      const response = adminResponses[ticketId] || '';
+      await adminService.updateSupportTicketStatus(ticketId, status, response || undefined);
       showToast('Cập nhật trạng thái thành công', 'success');
+      setAdminResponses(prev => { const copy = {...prev}; delete copy[ticketId]; return copy; });
       fetchTickets();
     } catch (err: any) {
       showToast(err.message || 'Lỗi khi cập nhật trạng thái', 'error');
@@ -75,9 +78,9 @@ export default function SupportPage() {
 
   const getStatusText = (status: string) => {
     switch(status) {
-      case 'OPEN': return 'Mở';
+      case 'OPEN': return 'Chờ xử lý';
       case 'IN_PROGRESS': return 'Đang xử lý';
-      case 'CLOSED': return 'Đã đóng';
+      case 'CLOSED': return 'Đã giải quyết';
       default: return status;
     }
   };
@@ -137,7 +140,7 @@ export default function SupportPage() {
                 onClick={() => setFilterStatus('OPEN')}
                 className={`px-4 py-1.5 font-medium rounded-md text-sm transition-colors ${filterStatus === 'OPEN' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                Đang mở
+                Chờ xử lý
               </button>
               <button 
                 onClick={() => setFilterStatus('IN_PROGRESS')}
@@ -236,6 +239,22 @@ export default function SupportPage() {
                       
                       <div className="w-full md:w-64 bg-white border border-slate-200 rounded-xl p-5 shadow-sm h-fit">
                         <h4 className="text-sm font-bold text-slate-900 mb-4 border-b border-slate-100 pb-2">Cập nhật trạng thái</h4>
+
+                        {ticket.status !== 'CLOSED' && (
+                          <div className="mb-4">
+                            <label className="text-xs font-medium text-slate-600 mb-1 flex items-center gap-1">
+                              <Send size={12} />
+                              Phản hồi của Admin (tùy chọn)
+                            </label>
+                            <textarea
+                              value={adminResponses[ticket.ticketId] || ''}
+                              onChange={(e) => setAdminResponses(prev => ({...prev, [ticket.ticketId]: e.target.value}))}
+                              placeholder="Nhập phản hồi gửi đến người dùng..."
+                              rows={2}
+                              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-booking-primary/20 focus:border-booking-primary transition-all text-sm resize-none mt-1"
+                            />
+                          </div>
+                        )}
                         
                         <div className="space-y-2">
                           <button 
@@ -244,7 +263,7 @@ export default function SupportPage() {
                             className={`w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-colors ${ticket.status === 'OPEN' ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'hover:bg-slate-50 text-slate-600 border border-transparent hover:border-slate-200'}`}
                           >
                             <div className="flex justify-between items-center">
-                              <span>Mở</span>
+                              <span>Chờ xử lý</span>
                               {ticket.status === 'OPEN' && <span className="w-2 h-2 rounded-full bg-orange-500"></span>}
                             </div>
                           </button>
@@ -266,7 +285,7 @@ export default function SupportPage() {
                             className={`w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-colors ${ticket.status === 'CLOSED' ? 'bg-slate-100 text-slate-700 border border-slate-300' : 'hover:bg-slate-50 text-slate-600 border border-transparent hover:border-slate-200'}`}
                           >
                             <div className="flex justify-between items-center">
-                              <span>Đã đóng</span>
+                              <span>Đã giải quyết</span>
                               {ticket.status === 'CLOSED' && <span className="w-2 h-2 rounded-full bg-slate-500"></span>}
                             </div>
                           </button>

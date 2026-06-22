@@ -1,16 +1,16 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import HostSidebar from '@/components/host/HostSidebar';
+import GoogleAddressInput, { type SelectedPlace } from '@/components/host/GoogleAddressInput';
 import { hostRoomService } from '@/services/hostRoomService';
 import {
   MAX_ROOM_IMAGES,
   MIN_REQUIRED_IMAGES,
   amenityOptions,
-  cityOptions,
   roomTypeOptions,
 } from '@/data/hostCreateRoom';
 
@@ -56,20 +56,6 @@ function SectionCard({ number, title, children }: SectionCardProps) {
   );
 }
 
-function SelectChevron() {
-  return (
-    <svg
-      className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6B7280]"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-    </svg>
-  );
-}
-
 const priceInputClass =
   'h-[58px] rounded-lg border border-[#C3C6D7] bg-white px-4 text-base text-[#191B23] outline-none placeholder:text-[#6B7280] focus:ring-2 focus:ring-[#004AC6]/20';
 
@@ -83,8 +69,15 @@ export default function HostCreateRoomPage() {
   const [capacity, setCapacity] = useState('2');
   const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
+  const [provinceName, setProvinceName] = useState('');
+  const [districtName, setDistrictName] = useState('');
+  const [wardName, setWardName] = useState('');
+
+  const [formattedAddress, setFormattedAddress] = useState('');
+  const [placeId, setPlaceId] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
   const [area, setArea] = useState('45');
-  const [city, setCity] = useState(cityOptions[0].value);
   const [amenities, setAmenities] = useState<string[]>([]);
 
   // Pricing
@@ -108,11 +101,6 @@ export default function HostCreateRoomPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const cityLabel = useMemo(
-    () => cityOptions.find((c) => c.value === city)?.label ?? city,
-    [city],
-  );
 
   const handleLogout = async () => {
     await logout();
@@ -159,6 +147,17 @@ export default function HostCreateRoomPage() {
     );
   };
 
+  const handlePlaceSelected = useCallback((place: SelectedPlace) => {
+    setAddress(place.formattedAddress || place.detailedAddress);
+    setFormattedAddress(place.formattedAddress);
+    setPlaceId(place.placeId);
+    setLatitude(place.latitude);
+    setLongitude(place.longitude);
+    setProvinceName(place.provinceName);
+    setDistrictName(place.districtName);
+    setWardName(place.wardName);
+  }, []);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
@@ -172,14 +171,19 @@ export default function HostCreateRoomPage() {
     if (images.length < MIN_REQUIRED_IMAGES) return setError(`Cần tối thiểu ${MIN_REQUIRED_IMAGES} hình ảnh.`);
 
     const roomTypeLabel = roomTypeOptions.find((o) => o.value === roomType)?.label ?? roomType;
-    const fullAddress = address.trim().toLocaleLowerCase('vi-VN').includes(cityLabel.toLocaleLowerCase('vi-VN'))
-      ? address.trim()
-      : `${address.trim()}, ${cityLabel}`;
+    const composedAddress = [address.trim(), wardName, districtName, provinceName, 'Việt Nam'].filter(Boolean).join(', ');
 
     const formData = new FormData();
     formData.append('title', title.trim());
     formData.append('room_type', roomTypeLabel);
-    formData.append('detailed_address', fullAddress);
+    formData.append('detailed_address', address.trim());
+    if (provinceName.trim()) formData.append('province_name', provinceName.trim());
+    if (districtName.trim()) formData.append('district_name', districtName.trim());
+    if (wardName.trim()) formData.append('ward_name', wardName.trim());
+    formData.append('formatted_address', formattedAddress.trim() || composedAddress);
+    if (placeId.trim()) formData.append('place_id', placeId.trim());
+    if (latitude.trim()) formData.append('latitude', latitude.trim());
+    if (longitude.trim()) formData.append('longitude', longitude.trim());
     formData.append('max_capacity', String(capacity));
     formData.append('monthly_rent', String(monthlyRent));
     formData.append('deposit_amount', String(depositAmount));
@@ -288,7 +292,7 @@ export default function HostCreateRoomPage() {
 
           <SectionCard number={1} title="Thông Tin Cơ Bản">
             <div className="grid gap-5 md:grid-cols-2">
-              <div className="md:col-span-2">
+              <div className="relative z-[60] md:col-span-2">
                 <div className="flex flex-col gap-[4.5px]">
                   <FieldLabel htmlFor="room-title">Tên Phòng / Tiêu đề niêm yết</FieldLabel>
                   <input
@@ -317,7 +321,9 @@ export default function HostCreateRoomPage() {
                       </option>
                     ))}
                   </select>
-                  <SelectChevron />
+                  <svg className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6B7280]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
                 </div>
               </div>
 
@@ -349,148 +355,139 @@ export default function HostCreateRoomPage() {
             </div>
           </SectionCard>
 
-          <SectionCard number={2} title="Không Gian & Vị Trí">
-            <div className="grid gap-5 md:grid-cols-2">
-              <div className="md:col-span-2">
+          <div className="relative z-30">
+            <SectionCard number={2} title="Không Gian & Vị Trí">
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="md:col-span-2">
+                  <div className="flex flex-col gap-[4.5px]">
+                    <FieldLabel htmlFor="address">Địa chỉ chi tiết</FieldLabel>
+                    <div className="relative">
+                      {/* Icon GPS dạng tâm ngắm tọa độ đặt đằng trước input địa chỉ */}
+                      <svg
+                        className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#434655]"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1.5m0 15V21m9-9h-1.5M4.5 12H3m13.5 0a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" />
+                      </svg>
+                      <GoogleAddressInput
+                        id="address"
+                        value={address}
+                        onChange={(value) => {
+                          setAddress(value);
+                          setFormattedAddress('');
+                          setPlaceId('');
+                          setLatitude('');
+                          setLongitude('');
+                        }}
+                        onPlaceSelected={handlePlaceSelected}
+                        placeholder="Số nhà, tên đường, phường/xã, quận/huyện..."
+                        inputClassName="h-[58px] w-full rounded-lg border border-[#C3C6D7] bg-white pl-10 pr-12 text-base text-[#191B23] outline-none placeholder:text-[#6B7280] focus:ring-2 focus:ring-[#004AC6]/20"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex flex-col gap-[4.5px]">
-                  <FieldLabel htmlFor="address">Địa chỉ chi tiết</FieldLabel>
+                  <FieldLabel htmlFor="area">Diện tích (m2)</FieldLabel>
                   <div className="relative">
-                    <svg
-                      className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#434655]"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s7-4.6 7-11a7 7 0 1 0-14 0c0 6.4 7 11 7 11z" />
-                      <circle cx="12" cy="10" r="2.5" />
-                    </svg>
                     <input
-                      id="address"
-                      type="text"
-                      value={address}
-                      onChange={(event) => setAddress(event.target.value)}
-                      placeholder="Số nhà, tên đường, Phường/Xã, Quận/Huyện..."
-                      className="h-[58px] w-full rounded-lg border border-[#C3C6D7] bg-white pl-10 pr-4 text-base text-[#191B23] outline-none placeholder:text-[#6B7280] focus:ring-2 focus:ring-[#004AC6]/20"
+                      id="area"
+                      type="number"
+                      min="1"
+                      value={area}
+                      onChange={(event) => setArea(event.target.value)}
+                      className="h-[58px] w-full rounded-lg border border-[#C3C6D7] bg-white px-4 pr-12 text-base text-[#191B23] outline-none focus:ring-2 focus:ring-[#004AC6]/20"
                     />
+                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-base text-[#C3C6D7]">
+                      m²
+                    </span>
                   </div>
                 </div>
               </div>
+            </SectionCard>
+          </div>
 
-              <div className="flex flex-col gap-[4.5px]">
-                <FieldLabel htmlFor="area">Diện tích (m2)</FieldLabel>
-                <div className="relative">
+          <div className="relative z-10">
+            <SectionCard number={3} title="Giá & Chi Phí">
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="flex flex-col gap-[4.5px]">
+                  <FieldLabel htmlFor="monthly-rent">Giá thuê hàng tháng (đ)</FieldLabel>
                   <input
-                    id="area"
+                    id="monthly-rent"
                     type="number"
-                    min="1"
-                    value={area}
-                    onChange={(event) => setArea(event.target.value)}
-                    className="h-[58px] w-full rounded-lg border border-[#C3C6D7] bg-white px-4 pr-12 text-base text-[#191B23] outline-none focus:ring-2 focus:ring-[#004AC6]/20"
+                    min="0"
+                    value={monthlyRent}
+                    onChange={(event) => setMonthlyRent(event.target.value)}
+                    placeholder="VD: 4500000"
+                    className={priceInputClass}
                   />
-                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-base text-[#C3C6D7]">
-                    m²
-                  </span>
+                </div>
+                <div className="flex flex-col gap-[4.5px]">
+                  <FieldLabel htmlFor="deposit-amount">Tiền đặt cọc (đ)</FieldLabel>
+                  <input
+                    id="deposit-amount"
+                    type="number"
+                    min="0"
+                    value={depositAmount}
+                    onChange={(event) => setDepositAmount(event.target.value)}
+                    placeholder="VD: 4500000"
+                    className={priceInputClass}
+                  />
+                </div>
+                <div className="flex flex-col gap-[4.5px]">
+                  <FieldLabel htmlFor="electricity-cost">Phí điện (đ)</FieldLabel>
+                  <input
+                    id="electricity-cost"
+                    type="number"
+                    min="0"
+                    value={electricityCost}
+                    onChange={(event) => setElectricityCost(event.target.value)}
+                    placeholder="0"
+                    className={priceInputClass}
+                  />
+                </div>
+                <div className="flex flex-col gap-[4.5px]">
+                  <FieldLabel htmlFor="water-cost">Phí nước (đ)</FieldLabel>
+                  <input
+                    id="water-cost"
+                    type="number"
+                    min="0"
+                    value={waterCost}
+                    onChange={(event) => setWaterCost(event.target.value)}
+                    placeholder="0"
+                    className={priceInputClass}
+                  />
+                </div>
+                <div className="flex flex-col gap-[4.5px]">
+                  <FieldLabel htmlFor="internet-cost">Phí internet (đ)</FieldLabel>
+                  <input
+                    id="internet-cost"
+                    type="number"
+                    min="0"
+                    value={internetCost}
+                    onChange={(event) => setInternetCost(event.target.value)}
+                    placeholder="0"
+                    className={priceInputClass}
+                  />
+                </div>
+                <div className="flex flex-col gap-[4.5px]">
+                  <FieldLabel htmlFor="service-fee">Phí dịch vụ (đ)</FieldLabel>
+                  <input
+                    id="service-fee"
+                    type="number"
+                    min="0"
+                    value={serviceFee}
+                    onChange={(event) => setServiceFee(event.target.value)}
+                    placeholder="0"
+                    className={priceInputClass}
+                  />
                 </div>
               </div>
-
-              <div className="flex flex-col gap-[4.5px]">
-                <FieldLabel htmlFor="city">Tỉnh/Thành phố</FieldLabel>
-                <div className="relative">
-                  <select
-                    id="city"
-                    value={city}
-                    onChange={(event) => setCity(event.target.value)}
-                    className="h-[58px] w-full appearance-none rounded-lg border border-[#C3C6D7] bg-white px-4 pr-12 text-base text-[#191B23] outline-none focus:ring-2 focus:ring-[#004AC6]/20"
-                  >
-                    {cityOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  <SelectChevron />
-                </div>
-              </div>
-            </div>
-          </SectionCard>
-
-          <SectionCard number={3} title="Giá & Chi Phí">
-            <div className="grid gap-5 md:grid-cols-2">
-              <div className="flex flex-col gap-[4.5px]">
-                <FieldLabel htmlFor="monthly-rent">Giá thuê hàng tháng (đ)</FieldLabel>
-                <input
-                  id="monthly-rent"
-                  type="number"
-                  min="0"
-                  value={monthlyRent}
-                  onChange={(event) => setMonthlyRent(event.target.value)}
-                  placeholder="VD: 4500000"
-                  className={priceInputClass}
-                />
-              </div>
-              <div className="flex flex-col gap-[4.5px]">
-                <FieldLabel htmlFor="deposit-amount">Tiền đặt cọc (đ)</FieldLabel>
-                <input
-                  id="deposit-amount"
-                  type="number"
-                  min="0"
-                  value={depositAmount}
-                  onChange={(event) => setDepositAmount(event.target.value)}
-                  placeholder="VD: 4500000"
-                  className={priceInputClass}
-                />
-              </div>
-              <div className="flex flex-col gap-[4.5px]">
-                <FieldLabel htmlFor="electricity-cost">Phí điện (đ)</FieldLabel>
-                <input
-                  id="electricity-cost"
-                  type="number"
-                  min="0"
-                  value={electricityCost}
-                  onChange={(event) => setElectricityCost(event.target.value)}
-                  placeholder="0"
-                  className={priceInputClass}
-                />
-              </div>
-              <div className="flex flex-col gap-[4.5px]">
-                <FieldLabel htmlFor="water-cost">Phí nước (đ)</FieldLabel>
-                <input
-                  id="water-cost"
-                  type="number"
-                  min="0"
-                  value={waterCost}
-                  onChange={(event) => setWaterCost(event.target.value)}
-                  placeholder="0"
-                  className={priceInputClass}
-                />
-              </div>
-              <div className="flex flex-col gap-[4.5px]">
-                <FieldLabel htmlFor="internet-cost">Phí internet (đ)</FieldLabel>
-                <input
-                  id="internet-cost"
-                  type="number"
-                  min="0"
-                  value={internetCost}
-                  onChange={(event) => setInternetCost(event.target.value)}
-                  placeholder="0"
-                  className={priceInputClass}
-                />
-              </div>
-              <div className="flex flex-col gap-[4.5px]">
-                <FieldLabel htmlFor="service-fee">Phí dịch vụ (đ)</FieldLabel>
-                <input
-                  id="service-fee"
-                  type="number"
-                  min="0"
-                  value={serviceFee}
-                  onChange={(event) => setServiceFee(event.target.value)}
-                  placeholder="0"
-                  className={priceInputClass}
-                />
-              </div>
-            </div>
-          </SectionCard>
+            </SectionCard>
+          </div>
 
           <SectionCard number={4} title="Tiện Ích & Dịch Vụ">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

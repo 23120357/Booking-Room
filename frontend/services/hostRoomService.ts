@@ -18,6 +18,11 @@ export interface HostRoom {
   title: string;
   room_type: string;
   detailed_address: string;
+  province_name: string | null;
+  district_name: string | null;
+  ward_name: string | null;
+  formatted_address: string | null;
+  place_id: string | null;
   room_description: string | null;
   max_capacity: number;
   monthly_rent: number;
@@ -26,14 +31,33 @@ export interface HostRoom {
   water_cost: number;
   internet_cost: number;
   service_fee: number;
-  longitude: string | null;
-  latitude: string | null;
-  status: 'AVAILABLE' | 'LOCKED' | 'RENTED' | string;
+  longitude: string | number | null;
+  latitude: string | number | null;
+  status: 'AVAILABLE' | 'LOCKED' | 'RENTED' | 'HIDDEN' | string;
   approval_status: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
+  average_rating?: number;
+  favorite_count?: number;
   created_at: string;
   updated_at: string;
   images: HostRoomImage[];
   cover_image_url: string | null;
+}
+
+export interface RoomReview {
+  review_id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  updated_at: string;
+  reviewer_name: string;
+  reviewer_avatar: string | null;
+}
+
+export interface RoomReviewsResponse {
+  items: RoomReview[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 export interface ListMyRoomsResponse {
@@ -41,11 +65,59 @@ export interface ListMyRoomsResponse {
   pagination: { page: number; limit: number; total: number };
 }
 
+// ---------------------------------------------------------------------------
+// Overview / dashboard shapes (from GET /api/host/rooms/overview)
+// ---------------------------------------------------------------------------
+
+export interface HostOverviewStats {
+  total: number;
+  rented: number;
+  available: number;
+  pending: number;
+  hidden: number;
+  averageRating: number;
+}
+
+export interface HostMonthlyRevenue {
+  month: number; // 1–12
+  amount: number; // VND
+}
+
+export interface HostOverviewRevenue {
+  year: number;
+  totalRevenue: number;
+  monthly: HostMonthlyRevenue[];
+}
+
+export interface HostFeaturedRoom {
+  room_id: string;
+  title: string;
+  detailed_address: string;
+  monthly_rent: number;
+  status: string;
+  approval_status: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
+  average_rating: number;
+  favorite_count: number;
+  cover_image_url: string | null;
+}
+
+export interface HostOverview {
+  stats: HostOverviewStats;
+  revenue: HostOverviewRevenue;
+  featuredRooms: HostFeaturedRoom[];
+}
+
 const FALLBACK_IMAGE = '/images/booking/host/studio-apartment.png';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/** Format a monthly rent explicitly, e.g. 9700000 → "9.700.000đ". */
+export function formatExactPrice(amount: number): string {
+  if (!amount || amount <= 0) return '0đ';
+  return `${Number(amount).toLocaleString('vi-VN')}đ`;
+}
 
 /** Format a monthly rent into a compact label, e.g. 8500000 → "8,5 Tr". */
 export function formatCompactPrice(amount: number): string {
@@ -104,7 +176,7 @@ export function mapToHostListing(room: HostRoom): HostListing {
     id: room.room_id,
     title: room.title,
     address: room.detailed_address,
-    price: formatCompactPrice(Number(room.monthly_rent)),
+    price: formatExactPrice(Number(room.monthly_rent)),
     priceUnit: '/tháng',
     status,
     statusLabel: meta.statusLabel,
@@ -112,6 +184,34 @@ export function mapToHostListing(room: HostRoom): HostListing {
     isVisible: meta.isVisible,
     imageSrc: coverImage(room),
     imageAlt: room.title,
+    rating: Number(room.average_rating) || 0,
+    favoriteCount: Number(room.favorite_count) || 0,
+  };
+}
+
+/** Map a featured (top-rated) room to the HostListing card shape. */
+export function mapFeaturedToListing(room: HostFeaturedRoom): HostListing {
+  let status: HostListingStatus;
+  if (room.status === 'HIDDEN') status = 'hidden';
+  else if (room.approval_status === 'PENDING') status = 'pending';
+  else if (room.status === 'RENTED' || room.status === 'LOCKED') status = 'rented';
+  else status = 'active';
+  const meta = listingStatusMeta[status];
+
+  return {
+    id: room.room_id,
+    title: room.title,
+    address: room.detailed_address,
+    price: formatExactPrice(Number(room.monthly_rent)),
+    priceUnit: '/tháng',
+    status,
+    statusLabel: meta.statusLabel,
+    visibilityLabel: meta.visibilityLabel,
+    isVisible: meta.isVisible,
+    imageSrc: room.cover_image_url || FALLBACK_IMAGE,
+    imageAlt: room.title,
+    rating: Number(room.average_rating) || 0,
+    favoriteCount: Number(room.favorite_count) || 0,
   };
 }
 
@@ -189,6 +289,24 @@ export const hostRoomService = {
 
   deleteRoom: async (roomId: string): Promise<ApiResponse<null>> => {
     return apiClient.delete<ApiResponse<null>>(`/host/rooms/${roomId}`);
+  },
+
+  /** Fetch public reviews for a room (used on the host listing detail page). */
+  getRoomReviews: async (
+    roomId: string,
+    params: { page?: number; limit?: number } = {},
+  ): Promise<ApiResponse<RoomReviewsResponse>> => {
+    const query = new URLSearchParams();
+    if (params.page) query.append('page', String(params.page));
+    if (params.limit) query.append('limit', String(params.limit));
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return apiClient.get<ApiResponse<RoomReviewsResponse>>(`/rooms/${roomId}/reviews${qs}`);
+  },
+
+  /** Fetch landlord dashboard overview (counts, avg rating, revenue, top rooms). */
+  getOverview: async (year?: number): Promise<ApiResponse<HostOverview>> => {
+    const qs = year ? `?year=${year}` : '';
+    return apiClient.get<ApiResponse<HostOverview>>(`/host/rooms/overview${qs}`);
   },
 
   /**

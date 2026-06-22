@@ -90,14 +90,49 @@ Lý do:
 - [ ] Phòng `HIDDEN` không tạo được đơn cọc (`findRoomForDeposit`/`depositService` từ chối status ≠ AVAILABLE).
 
 # 3
-- Tạo plan thực hiện tính năng Hiển thị thông tin tổng quan của Landlord tại UI tổng quan.
+- Thực hiện tính năng Hiển thị thông tin tổng quan của Landlord tại UI tổng quan.
 - Bổ sung các API phần Backend nếu cần.
 - Thông tin cần hiển thị:
     - Tổng số phòng 
     - Đã cho thuê
     - Đang trống
     - Chờ duyệt
-    - 
+    - Đang ẩn
+    - Số sao trung bình của tất cả các phòng
     - Doanh thu theo tháng:
         - Không cần chi tiết từng tuần
         - Chủ phòng có thể lựa chọn xem từng tháng trong năm
+    - Danh sách phòng nổi bật:
+        - Phần này chỉ hiển thị 3 phòng có đánh giá cao nhất
+        - Từng khung chứa phòng có chức năng tương tự như khung phòng bên "Tin đăng":
+            - Có thể ấn vô để xem
+            - Có các chức năng chỉ sửa giống khung phòng bên "Tin đăng"
+        - Bổ sung thêm thông tin số lượt yêu thích + số sao ở các khung
+
+# 4 
+- Ở trang "Tin đăng"
+- Cập nhật khung thông tin phòng giống với khung thông tin phòng nổi bật ở "Tổng quan"
+- Dịch dòng chữ Manage your property listings efficiently. sang tiếng việt
+- Ở API http://localhost:3000/host/listings/mã phòng:
+    - Hiển thị ảnh:
+        - Mỗi lần chỉ hiển thị được 1 ảnh
+        - Ảnh chính mặc định sẽ hiển thị đầu tiên
+        - Các ảnh kế sẽ có nút điều hướng để xuay tới
+        - Hiển thị các đốm để biết hiện tại đang ở ảnh thứ mấy
+    - Thông tin cần thể hiện:
+        - Tên phòng
+        - Địa chỉ cụ thể
+        - Trạng thái
+        - Số sao
+        - Số tim
+        - Giá thuê, giá thuê, tiền cọc, sức chứa
+        - Tiền điện, tiền nước, internet, dịch vụ
+        - Mô tả
+        - Các lượt review
+- Ở API http://localhost:3000/host/listings/mã phòng/edit
+    - Đặt Giá & Chi phí lên trên Vị trí: format nhập giá 6.500.000
+    - Anh tìm kiếm địa chỉ khi liệt kê ra danh sách sẽ nổi lên trên layer trên
+
+# 5
+- Ở trang "Giao dịch"
+- Hãy tạo API phục vụ cho UI hiện tại

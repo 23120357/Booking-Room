@@ -19,6 +19,11 @@ async function findPublicById(roomId, trx) {
       'r.title',
       'r.room_type',
       'r.detailed_address',
+      'r.province_name',
+      'r.district_name',
+      'r.ward_name',
+      'r.formatted_address',
+      'r.place_id',
       'r.room_description',
       'r.max_capacity',
       'r.monthly_rent',
@@ -85,12 +90,27 @@ function applyPublicRoomFilters(q, filters = {}) {
     q.where(function () {
       this.whereILike('r.title', `%${filters.keyword}%`)
         .orWhereILike('r.detailed_address', `%${filters.keyword}%`)
+        .orWhereILike('r.formatted_address', `%${filters.keyword}%`)
+        .orWhereILike('r.province_name', `%${filters.keyword}%`)
+        .orWhereILike('r.district_name', `%${filters.keyword}%`)
+        .orWhereILike('r.ward_name', `%${filters.keyword}%`)
         .orWhereILike('r.room_description', `%${filters.keyword}%`);
     });
   }
 
   if (filters.location) {
-    q.whereILike('r.detailed_address', `%${filters.location}%`);
+    const locs = filters.location.split('|').map(l => l.trim()).filter(Boolean);
+    q.where(function () {
+      locs.forEach(loc => {
+        this.orWhere(function() {
+          this.whereILike('r.detailed_address', `%${loc}%`)
+            .orWhereILike('r.formatted_address', `%${loc}%`)
+            .orWhereILike('r.province_name', `%${loc}%`)
+            .orWhereILike('r.district_name', `%${loc}%`)
+            .orWhereILike('r.ward_name', `%${loc}%`);
+        });
+      });
+    });
   }
 
   if (filters.roomType) {
@@ -103,6 +123,30 @@ function applyPublicRoomFilters(q, filters = {}) {
 
   if (filters.maxPrice !== undefined) {
     q.where('r.monthly_rent', '<=', filters.maxPrice);
+  }
+
+  // Tìm theo khoảng cách địa lý bằng công thức Haversine (không cần PostGIS extension)
+  // nearLat, nearLng: tọa độ tâm tìm kiếm
+  // radiusKm: bán kính tìm kiếm (mặc định 5km)
+  if (filters.nearLat !== undefined && filters.nearLng !== undefined) {
+    const radiusKm = filters.radiusKm || 5;
+    const EARTH_RADIUS_KM = 6371;
+    q.whereNotNull('r.latitude')
+     .whereNotNull('r.longitude')
+     .whereRaw(
+       // GREATEST(-1.0, LEAST(1.0, ...)) clamp cả 2 phía để tránh lỗi acos() domain error
+       // khi floating point precision khiến giá trị vượt ra ngoài [-1, 1]
+       `(
+         ${EARTH_RADIUS_KM} * acos(
+           GREATEST(-1.0, LEAST(1.0,
+             cos(radians(?::float8)) * cos(radians(r.latitude::float8))
+             * cos(radians(r.longitude::float8) - radians(?::float8))
+             + sin(radians(?::float8)) * sin(radians(r.latitude::float8))
+           ))
+         )
+       ) <= ?::float8`,
+       [filters.nearLat, filters.nearLng, filters.nearLat, radiusKm]
+     );
   }
 }
 
@@ -143,6 +187,11 @@ async function findPublic({ page = 1, limit = 20, filters = {}, sort = 'newest',
       'r.title',
       'r.room_type',
       'r.detailed_address',
+      'r.province_name',
+      'r.district_name',
+      'r.ward_name',
+      'r.formatted_address',
+      'r.place_id',
       'r.monthly_rent',
       'r.deposit_amount',
       'r.status',
@@ -255,6 +304,11 @@ async function findByLandlord(landlordId, { page = 1, limit = 20, sortBy = 'crea
       'r.title',
       'r.room_type',
       'r.detailed_address',
+      'r.province_name',
+      'r.district_name',
+      'r.ward_name',
+      'r.formatted_address',
+      'r.place_id',
       'r.room_description',
       'r.max_capacity',
       'r.monthly_rent',
@@ -266,11 +320,18 @@ async function findByLandlord(landlordId, { page = 1, limit = 20, sortBy = 'crea
       'r.longitude',
       'r.latitude',
       'r.status',
+      'r.average_rating',
       'r.created_at',
       'r.updated_at',
-      'ra.approval_status'
+      'ra.approval_status',
+      db.raw('COALESCE(fav.favorite_count, 0)::int as favorite_count')
     )
     .leftJoin(approvalAgg, 'ra.room_id', 'r.room_id')
+    .leftJoin(
+      db('favorites').select('room_id').count('* as favorite_count').where('status', true).groupBy('room_id').as('fav'),
+      'fav.room_id',
+      'r.room_id'
+    )
     .where('r.landlord_id', landlordId)
     .modify((qb) => {
       if (status) qb.where('r.status', status);
@@ -301,17 +362,22 @@ async function findByLandlord(landlordId, { page = 1, limit = 20, sortBy = 'crea
   return { items, total };
 }
 
-async function findPendingRooms({ page = 1, limit = 20, status } = {}, trx) {
+async function findPendingRooms({ page = 1, limit = 20, status, keyword } = {}, trx) {
   const conn = trx || db;
   const offset = (Math.max(1, Number(page)) - 1) * Number(limit);
 
-  const rows = await conn('rooms as r')
+  const query = conn('rooms as r')
     .select(
       'r.room_id',
       'r.landlord_id',
       'r.title',
       'r.room_type',
       'r.detailed_address',
+      'r.province_name',
+      'r.district_name',
+      'r.ward_name',
+      'r.formatted_address',
+      'r.place_id',
       'r.monthly_rent',
       'r.deposit_amount',
       'r.status',
@@ -336,7 +402,20 @@ async function findPendingRooms({ page = 1, limit = 20, status } = {}, trx) {
     .leftJoin('users as u', 'u.user_id', 'r.landlord_id')
     .leftJoin('room_images as ri', function () {
       this.on('ri.room_id', 'r.room_id').andOnVal('ri.is_cover', '=', true);
-    })
+    });
+
+  if (keyword) {
+    const kw = `%${keyword}%`;
+    query.where((builder) => {
+      builder
+        .whereILike('r.title', kw)
+        .orWhereILike('r.detailed_address', kw)
+        .orWhereILike('u.full_name', kw)
+        .orWhereILike('u.email', kw);
+    });
+  }
+
+  const rows = await query
     .orderBy('r.created_at', 'desc')
     .limit(limit)
     .offset(offset);
@@ -344,9 +423,9 @@ async function findPendingRooms({ page = 1, limit = 20, status } = {}, trx) {
   return rows;
 }
 
-async function countPendingRooms({ status } = {}, trx) {
+async function countPendingRooms({ status, keyword } = {}, trx) {
   const conn = trx || db;
-  const [result] = await conn('rooms as r')
+  const query = conn('rooms as r')
     .countDistinct({ total: 'r.room_id' })
     .innerJoin('room_approvals as ra', function () {
       this.on('r.room_id', 'ra.room_id');
@@ -355,7 +434,21 @@ async function countPendingRooms({ status } = {}, trx) {
       } else {
         this.andOnVal('ra.approval_status', '=', 'PENDING');
       }
+    })
+    .leftJoin('users as u', 'u.user_id', 'r.landlord_id');
+
+  if (keyword) {
+    const kw = `%${keyword}%`;
+    query.where((builder) => {
+      builder
+        .whereILike('r.title', kw)
+        .orWhereILike('r.detailed_address', kw)
+        .orWhereILike('u.full_name', kw)
+        .orWhereILike('u.email', kw);
     });
+  }
+
+  const [result] = await query;
   
   return Number(result.total) || 0;
 }
@@ -367,6 +460,109 @@ async function updateApprovalStatus(roomId, status, trx) {
     .update({ approval_status: status })
     .returning('*');
   return updated;
+}
+
+// ---------------------------------------------------------------------------
+// Landlord overview / dashboard aggregates
+// ---------------------------------------------------------------------------
+
+/**
+ * Effective approval status per room as a joinable subquery.
+ * room_approvals can hold multiple rows after edits; we surface PENDING when
+ * any pending exists, else APPROVED, else REJECTED.
+ */
+function approvalAggSubquery() {
+  return db('room_approvals')
+    .select('room_id')
+    .select(
+      db.raw(
+        `CASE
+           WHEN bool_or(approval_status = 'PENDING') THEN 'PENDING'
+           WHEN bool_or(approval_status = 'APPROVED') THEN 'APPROVED'
+           ELSE 'REJECTED'
+         END as approval_status`
+      )
+    )
+    .groupBy('room_id')
+    .as('ra');
+}
+
+/**
+ * Aggregate room counts by bucket + average rating for a landlord.
+ * Buckets are mutually exclusive (priority: hidden > pending > rented > available).
+ * RENTED and LOCKED are both counted as "rented" (occupied / in a deal).
+ */
+async function getLandlordStats(landlordId) {
+  const row = await db('rooms as r')
+    .leftJoin(approvalAggSubquery(), 'ra.room_id', 'r.room_id')
+    .where('r.landlord_id', landlordId)
+    .select(
+      db.raw('COUNT(*)::int as total'),
+      db.raw(`COUNT(*) FILTER (WHERE r.status = 'HIDDEN')::int as hidden`),
+      db.raw(`COUNT(*) FILTER (WHERE r.status <> 'HIDDEN' AND ra.approval_status = 'PENDING')::int as pending`),
+      db.raw(`COUNT(*) FILTER (WHERE r.status <> 'HIDDEN' AND (ra.approval_status IS NULL OR ra.approval_status <> 'PENDING') AND r.status IN ('RENTED','LOCKED'))::int as rented`),
+      db.raw(`COUNT(*) FILTER (WHERE r.status <> 'HIDDEN' AND (ra.approval_status IS NULL OR ra.approval_status <> 'PENDING') AND r.status = 'AVAILABLE')::int as available`),
+      db.raw(`COALESCE(ROUND(AVG(r.average_rating) FILTER (WHERE r.average_rating > 0), 2), 0)::float as average_rating`)
+    )
+    .first();
+
+  return row || { total: 0, hidden: 0, pending: 0, rented: 0, available: 0, average_rating: 0 };
+}
+
+/**
+ * Monthly revenue (SUCCESS transactions) for a landlord in a given year.
+ * Revenue = tiền cọc khách đã thanh toán thành công cho phòng của landlord.
+ * @returns {Promise<Array<{ month: number, amount: number }>>}
+ */
+async function getLandlordMonthlyRevenue(landlordId, year) {
+  const rows = await db('transactions as t')
+    .join('deposits as d', 't.deposit_id', 'd.deposit_id')
+    .where('d.landlord_id', landlordId)
+    .where('t.status', 'SUCCESS')
+    .whereRaw('EXTRACT(YEAR FROM t.created_at) = ?', [year])
+    .groupByRaw('EXTRACT(MONTH FROM t.created_at)')
+    .select(
+      db.raw('EXTRACT(MONTH FROM t.created_at)::int as month'),
+      db.raw('SUM(t.amount)::float as amount')
+    );
+
+  return rows;
+}
+
+/**
+ * Top-rated rooms of a landlord, with favourite count + cover image.
+ */
+async function findTopRatedByLandlord(landlordId, limit = 3) {
+  const favAgg = db('favorites')
+    .select('room_id')
+    .count('* as favorite_count')
+    .where('status', true)
+    .groupBy('room_id')
+    .as('fav');
+
+  const rows = await db('rooms as r')
+    .leftJoin(approvalAggSubquery(), 'ra.room_id', 'r.room_id')
+    .leftJoin(favAgg, 'fav.room_id', 'r.room_id')
+    .leftJoin('room_images as ri', function () {
+      this.on('ri.room_id', 'r.room_id').andOnVal('ri.is_cover', '=', true);
+    })
+    .where('r.landlord_id', landlordId)
+    .select(
+      'r.room_id',
+      'r.title',
+      'r.detailed_address',
+      'r.monthly_rent',
+      'r.status',
+      'r.average_rating',
+      'ra.approval_status',
+      db.raw('COALESCE(fav.favorite_count, 0)::int as favorite_count'),
+      'ri.image_url as cover_image_url'
+    )
+    .orderBy('r.average_rating', 'desc')
+    .orderBy('r.created_at', 'desc')
+    .limit(limit);
+
+  return rows;
 }
 
 module.exports = {
@@ -385,4 +581,7 @@ module.exports = {
   findPendingRooms,
   countPendingRooms,
   updateApprovalStatus,
+  getLandlordStats,
+  getLandlordMonthlyRevenue,
+  findTopRatedByLandlord,
 };

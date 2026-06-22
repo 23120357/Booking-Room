@@ -18,6 +18,7 @@ const adminSupportTicketRoutes = require('./routes/admin/supportTicketRoutes');
 // Host routes
 const hostRoomRoutes = require('./routes/host/roomRoutes');
 const hostBookingRoutes = require('./routes/host/bookingRoutes');
+const hostTransactionRoutes = require('./routes/host/transactionRoutes');
 
 // Booking / Payment routes (thinh)
 const depositRoutes = require('./routes/booking/depositRoutes');
@@ -44,7 +45,31 @@ const app = express();
 // Trust the first proxy so req.ip / X-Forwarded-For resolve correctly in prod.
 app.set('trust proxy', 1);
 
-app.use(cors());
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow mobile apps, postman or server-to-server requests
+    if (!origin) return callback(null, true);
+
+    const cleanOrigin = origin.replace(/\/$/, ''); // strip trailing slash just in case
+    const isAllowed = allowedOrigins.includes(cleanOrigin) || 
+                      cleanOrigin.endsWith('.vercel.app') ||
+                      /^http:\/\/localhost:\d+$/.test(cleanOrigin) ||
+                      /^http:\/\/127\.0\.0\.1:\d+$/.test(cleanOrigin);
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  credentials: true
+}));
 app.use(express.json());
 
 app.use(requestLogger);
@@ -60,9 +85,27 @@ app.use('/uploads/landlords', (req, res) => {
 // Serve uploaded assets
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Liveness probe.
-app.get('/health', (req, res) => {
-  return sendSuccess(res, { status: 200, message: 'OK' });
+// Liveness & Readiness health check probe.
+app.get(['/health', '/api/health'], async (req, res) => {
+  let dbStatus = 'OK';
+  try {
+    await db.raw('select 1');
+  } catch (err) {
+    dbStatus = 'DOWN';
+  }
+
+  return sendSuccess(res, {
+    status: 200,
+    message: 'Health check status retrieved',
+    data: {
+      status: 'healthy',
+      version: '1.2.0',
+      updatedAt: '2026-06-20T15:50:00+07:00', // Time of this deployment
+      timestamp: new Date().toISOString(),
+      database: dbStatus,
+      env: process.env.NODE_ENV || 'development'
+    }
+  });
 });
 
 // Database readiness probe.
@@ -91,6 +134,7 @@ app.use('/api/admin', adminBookingRoutes);           // /api/admin/transactions,
 // Host routes
 app.use('/api/host/rooms', hostRoomRoutes);
 app.use('/api/host/bookings/deposits', hostBookingRoutes);
+app.use('/api/host/transactions', hostTransactionRoutes);
 
 // Booking / Payment routes (thinh)
 app.use('/api/bookings/deposits', depositRoutes);

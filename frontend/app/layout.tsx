@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import 'leaflet/dist/leaflet.css';
 import { AuthProvider } from '@/context/AuthContext';
 
 export const metadata: Metadata = {
@@ -11,6 +12,9 @@ export const metadata: Metadata = {
 };
 
 import ToastContainer from '@/components/common/ToastContainer';
+import { TenantChatProvider } from '@/context/TenantChatContext';
+import TenantChatContainer from '@/components/booking/TenantChatContainer';
+import { SocketProvider } from '@/context/SocketContext';
 
 export default function RootLayout({
   children,
@@ -18,10 +22,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi">
-      <body>
+    <html lang="vi" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <AuthProvider>
-          {children}
+          <SocketProvider>
+            <TenantChatProvider>
+              {children}
+              <TenantChatContainer />
+            </TenantChatProvider>
+          </SocketProvider>
           <ToastContainer />
         </AuthProvider>
       </body>

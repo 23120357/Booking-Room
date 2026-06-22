@@ -138,7 +138,7 @@ async function getReportDetail(reportId) {
 /**
  * Admin: update report status (PENDING → PROCESSING → RESOLVED | DISMISSED).
  */
-async function updateReportStatus({ reportId, status, actor }) {
+async function updateReportStatus({ reportId, status, adminResponseTenant, adminResponseLandlord, actor }) {
   const upperStatus = String(status).trim().toUpperCase();
   if (!VALID_STATUSES.includes(upperStatus)) {
     throw new AppError('VALIDATION_ERROR', `Trạng thái không hợp lệ. Phải là: ${VALID_STATUSES.join(', ')}`, 400);
@@ -162,21 +162,81 @@ async function updateReportStatus({ reportId, status, actor }) {
     userAgent: actor.userAgent,
   });
 
-  // Notify the reporting tenant
-  const notificationRepository = require('../../repositories/guest/notificationRepository');
-  const statusLabels = {
-    PENDING: 'Chờ xử lý',
-    PROCESSING: 'Đang xử lý',
-    RESOLVED: 'Đã giải quyết',
-    DISMISSED: 'Đã từ chối',
-  };
-  await notificationRepository.insertNotification({
-    user_id: existing.tenant_id,
-    title: 'Cập nhật khiếu nại vi phạm',
-    content: `Khiếu nại của bạn (Mã: ${reportId.split('-')[0]}) đã được chuyển sang trạng thái: ${statusLabels[upperStatus] || upperStatus}.`,
-    notification_type: 'SYSTEM',
-    status: 'UNREAD',
-  });
+  const trimmedTenantResponse = adminResponseTenant ? String(adminResponseTenant).trim() : '';
+  const trimmedLandlordResponse = adminResponseLandlord ? String(adminResponseLandlord).trim() : '';
+
+  // Only notify when the report is completely resolved or dismissed
+  if (upperStatus === 'RESOLVED' || upperStatus === 'DISMISSED') {
+    const notificationRepository = require('../../repositories/guest/notificationRepository');
+    
+    // 1. Notify the reporting tenant
+    let tenantTitle = 'Kết quả giải quyết khiếu nại';
+    let tenantContent = `Khiếu nại của bạn (Mã: ${reportId.split('-')[0]}) đã được xử lý. `;
+    if (upperStatus === 'RESOLVED') {
+      tenantContent += 'Cảm ơn bạn đã báo cáo. Chúng tôi đã xác minh vi phạm của chủ phòng và tiến hành xử lý.';
+    } else {
+      tenantContent += 'Sau khi xác minh, chúng tôi không tìm thấy đủ bằng chứng vi phạm từ phía chủ phòng nên khiếu nại đã bị từ chối.';
+    }
+    if (trimmedTenantResponse) {
+      tenantContent += ` Phản hồi từ quản trị viên: "${trimmedTenantResponse}"`;
+    }
+
+    await notificationRepository.insertNotification({
+      user_id: existing.tenant_id,
+      title: tenantTitle,
+      content: tenantContent,
+      notification_type: 'VIOLATION',
+      status: 'UNREAD',
+    });
+
+    // 2. Notify the reported landlord ONLY IF resolved (has guilt)
+    if (existing.landlord_id && upperStatus === 'RESOLVED') {
+      let landlordTitle = '⚠️ Cảnh báo vi phạm chính sách';
+      let landlordContent = '';
+      const shortId = reportId.split('-')[0];
+
+      if (existing.room_id) {
+         landlordContent = `CẢNH BÁO: Phòng của bạn đã bị tố cáo vi phạm (Mã: ${shortId}) với lý do: "${existing.reason}". Hệ thống xác minh là đúng sự thật. Vui lòng chấn chỉnh lại dịch vụ để tránh bị khóa tài khoản.`;
+      } else {
+         landlordContent = `CẢNH BÁO: Bạn đã bị khách hàng tố cáo về hành vi: "${existing.reason}" (Mã: ${shortId}). Hệ thống xác minh là đúng sự thật. Vui lòng chấn chỉnh lại hành vi để tránh bị khóa tài khoản.`;
+      }
+      if (trimmedLandlordResponse) {
+        landlordContent += ` Phản hồi từ quản trị viên: "${trimmedLandlordResponse}"`;
+      }
+
+      await notificationRepository.insertNotification({
+        user_id: existing.landlord_id,
+        title: landlordTitle,
+        content: landlordContent,
+        notification_type: 'VIOLATION',
+        status: 'UNREAD',
+      });
+    }
+  } else {
+    // For PROCESSING status, still send notification with admin response if provided
+    const notificationRepository = require('../../repositories/guest/notificationRepository');
+    
+    if (trimmedTenantResponse) {
+      await notificationRepository.insertNotification({
+        user_id: existing.tenant_id,
+        title: 'Phản hồi từ quản trị viên về khiếu nại',
+        content: `Khiếu nại của bạn (Mã: ${reportId.split('-')[0]}) đã được tiếp nhận. Phản hồi từ quản trị viên: "${trimmedTenantResponse}"`,
+        notification_type: 'VIOLATION',
+        status: 'UNREAD',
+      });
+    }
+
+    if (existing.landlord_id && trimmedLandlordResponse) {
+      const shortId = reportId.split('-')[0];
+      await notificationRepository.insertNotification({
+        user_id: existing.landlord_id,
+        title: 'Thông báo về yêu cầu làm rõ khiếu nại',
+        content: `Bạn nhận được thông báo liên quan đến khiếu nại (Mã: ${shortId}) về lý do: "${existing.reason}". Phản hồi từ quản trị viên: "${trimmedLandlordResponse}"`,
+        notification_type: 'VIOLATION',
+        status: 'UNREAD',
+      });
+    }
+  }
 
   return mapReportRow(updated);
 }

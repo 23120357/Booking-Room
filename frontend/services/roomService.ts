@@ -8,6 +8,11 @@ export interface BackendRoom {
   title: string;
   room_type: string;
   detailed_address: string;
+  province_name?: string | null;
+  district_name?: string | null;
+  ward_name?: string | null;
+  formatted_address?: string | null;
+  place_id?: string | null;
   max_capacity: number;
   monthly_rent: number;
   deposit_amount: number;
@@ -22,6 +27,9 @@ export interface BackendRoom {
   updated_at: string;
   room_description: string;
   cover_image_url: string | null;
+  /** Tọa độ địa lý — được tự động populate khi host đăng phòng qua geocoding */
+  latitude: number | null;
+  longitude: number | null;
   images: Array<{ image_url: string; sequence_number: number; is_cover: boolean }>;
   host: {
     user_id: string;
@@ -50,6 +58,7 @@ export function mapBackendRoomToBookingRoom(room: any, index?: number): BookingR
   
   // Extract detailed address
   const detailedAddress = room.detailedAddress || room.addressSummary || room.detailed_address || '';
+  const formattedAddress = room.formattedAddress || room.formatted_address || '';
   
   // Extract district from address
   const district = detailedAddress?.match(/(Quận \d+|Bình Thạnh|Gò Vấp|Thủ Đức|Tân Bình|Phú Nhuận|Quận [1-9]|Quận 1[0-2]|Tân Phú|Bình Tân)/i)?.[0] || 'Khác';
@@ -96,7 +105,7 @@ export function mapBackendRoomToBookingRoom(room: any, index?: number): BookingR
   return {
     id: String(roomId),
     title,
-    location: detailedAddress,
+    location: formattedAddress || detailedAddress,
     district,
     price,
     priceLabel: new Intl.NumberFormat('vi-VN').format(price) + 'đ',
@@ -115,7 +124,11 @@ export function mapBackendRoomToBookingRoom(room: any, index?: number): BookingR
     internetCost: Number(room.internetCost !== undefined ? room.internetCost : room.internet_cost) || 0,
     serviceFee: Number(room.serviceFee !== undefined ? room.serviceFee : room.service_fee) || 0,
     deposit: Number(room.depositAmount !== undefined ? room.depositAmount : room.deposit_amount) || 0,
+    // Tọa độ địa lý cho bản đồ
+    latitude: room.latitude ?? null,
+    longitude: room.longitude ?? null,
     host: room.host ? {
+      userId: room.host.userId || room.host.user_id || room.host.landlordId || null,
       fullName: room.host.fullName || room.host.full_name || 'Nguyễn Văn A',
       avatarUrl: room.host.avatarUrl || room.host.avatar_url || null,
       email: room.host.email,
@@ -135,6 +148,11 @@ export const roomService = {
     roomType?: string;
     minPrice?: number;
     maxPrice?: number;
+    /** Tìm phòng gần tọa độ này */
+    nearLat?: number;
+    nearLng?: number;
+    /** Bán kính tìm kiếm (km), mặc định 5km */
+    radiusKm?: number;
   }): Promise<ApiResponse<ListRoomsResponse>> => {
     const query = new URLSearchParams();
     if (params.page) query.append('page', String(params.page));
@@ -145,6 +163,9 @@ export const roomService = {
     if (params.roomType) query.append('roomType', params.roomType);
     if (params.minPrice !== undefined) query.append('minPrice', String(params.minPrice));
     if (params.maxPrice !== undefined) query.append('maxPrice', String(params.maxPrice));
+    if (params.nearLat !== undefined) query.append('nearLat', String(params.nearLat));
+    if (params.nearLng !== undefined) query.append('nearLng', String(params.nearLng));
+    if (params.radiusKm !== undefined) query.append('radiusKm', String(params.radiusKm));
 
     const queryString = query.toString() ? `?${query.toString()}` : '';
     return apiClient.get<ApiResponse<ListRoomsResponse>>(`/rooms${queryString}`);
