@@ -1,20 +1,30 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import HostSidebar from '@/components/host/HostSidebar';
 import {
-  REVENUE_ITEMS_PER_PAGE,
-  TOTAL_REVENUE_TRANSACTIONS,
   formatRevenueVND,
   rangeOptions,
-  revenueSummaryByRange,
-  revenueTrendByRange,
-  settlementTransactions,
   type RevenueRange,
   type RevenueSettlement,
+  type RevenueSummary,
+  type RevenueTrendPoint,
 } from '@/data/hostRevenue';
+import {
+  hostRevenueService,
+  type RevenueSettlementItem,
+} from '@/services/hostRevenueService';
+
+const REVENUE_ITEMS_PER_PAGE = 8;
+
+const EMPTY_SUMMARY: RevenueSummary = {
+  paidRevenue: 0,
+  pendingSettlement: 0,
+  completedOrders: 0,
+  growthRate: 0,
+};
 
 interface KpiCardProps {
   label: string;
@@ -77,9 +87,8 @@ function MoneyValue({ amount }: { amount: number }) {
   );
 }
 
-function RevenueTrendChart({ range }: { range: RevenueRange }) {
-  const trend = revenueTrendByRange[range];
-  const maxRevenue = Math.max(...trend.map((point) => point.revenue));
+function RevenueTrendChart({ trend }: { trend: RevenueTrendPoint[] }) {
+  const maxRevenue = Math.max(1, ...trend.map((point) => point.revenue));
 
   return (
     <section className="rounded-xl border border-[#C3C6D7] bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
@@ -151,9 +160,28 @@ function SettlementStatusBadge({ status }: { status: RevenueSettlement['status']
   );
 }
 
-function SettlementTable() {
-  const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.ceil(TOTAL_REVENUE_TRANSACTIONS / REVENUE_ITEMS_PER_PAGE);
+function SettlementTable({
+  items,
+  total,
+  currentPage,
+  totalPages,
+  loading,
+  onPageChange,
+}: {
+  items: RevenueSettlementItem[];
+  total: number;
+  currentPage: number;
+  totalPages: number;
+  loading: boolean;
+  onPageChange: (page: number) => void;
+}) {
+  const pageNumbers = useMemo(() => {
+    const pages: number[] = [];
+    const start = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
+    const end = Math.min(totalPages, start + 4);
+    for (let p = start; p <= end; p += 1) pages.push(p);
+    return pages;
+  }, [currentPage, totalPages]);
 
   return (
     <section className="overflow-hidden rounded-xl border border-[#C3C6D7] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
@@ -198,11 +226,11 @@ function SettlementTable() {
             </tr>
           </thead>
           <tbody>
-            {settlementTransactions.map((transaction) => (
+            {items.map((transaction) => (
               <tr key={transaction.id} className="border-b border-[#C3C6D7]">
                 <td className="px-6 py-6">
                   <a
-                    href={`/host/transactions/${encodeURIComponent(transaction.id.replace('#', ''))}`}
+                    href={`/host/transactions/${encodeURIComponent(transaction.depositId)}`}
                     className="text-base font-bold leading-5 text-[#004AC6] hover:underline"
                   >
                     {transaction.id}
@@ -242,19 +270,29 @@ function SettlementTable() {
                 </td>
               </tr>
             ))}
+
+            {items.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-6 py-16 text-center text-base text-[#434655]">
+                  {loading ? 'Đang tải dữ liệu đối soát...' : 'Chưa có giao dịch đối soát nào.'}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
       <div className="flex flex-col gap-4 bg-[rgba(243,243,254,0.3)] px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm leading-[21px] text-[#434655]">
-          Hiển thị {settlementTransactions.length} trên tổng số {TOTAL_REVENUE_TRANSACTIONS} giao dịch
+          {total === 0
+            ? 'Không có giao dịch'
+            : `Hiển thị ${(currentPage - 1) * REVENUE_ITEMS_PER_PAGE + 1} - ${Math.min(currentPage * REVENUE_ITEMS_PER_PAGE, total)} trên tổng số ${total} giao dịch`}
         </p>
 
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
             aria-label="Trang trước"
             className="flex h-10 w-8 items-center justify-center rounded-lg border border-[#C3C6D7] text-[#191B23] transition hover:bg-white disabled:opacity-50"
@@ -264,11 +302,11 @@ function SettlementTable() {
             </svg>
           </button>
 
-          {[1, 2, 3].map((page) => (
+          {pageNumbers.map((page) => (
             <button
               key={page}
               type="button"
-              onClick={() => setCurrentPage(page)}
+              onClick={() => onPageChange(page)}
               className={`flex h-10 w-10 items-center justify-center rounded-lg border text-sm transition ${
                 currentPage === page
                   ? 'border-[#004AC6] bg-[rgba(37,99,235,0.1)] font-bold text-[#004AC6]'
@@ -281,8 +319,8 @@ function SettlementTable() {
 
           <button
             type="button"
-            onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-            disabled={currentPage === totalPages}
+            onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage >= totalPages}
             aria-label="Trang sau"
             className="flex h-10 w-8 items-center justify-center rounded-lg border border-[#C3C6D7] text-[#191B23] transition hover:bg-white disabled:opacity-50"
           >
@@ -302,11 +340,77 @@ export default function HostRevenuePage() {
   const [range, setRange] = useState<RevenueRange>('month');
   const [search, setSearch] = useState('');
 
-  const summary = revenueSummaryByRange[range];
+  // Overview (summary + trend) — refetched when range changes.
+  const [summary, setSummary] = useState<RevenueSummary>(EMPTY_SUMMARY);
+  const [trend, setTrend] = useState<RevenueTrendPoint[]>([]);
+
+  // Settlement table — paginated + searchable.
+  const [settlements, setSettlements] = useState<RevenueSettlementItem[]>([]);
+  const [settlementTotal, setSettlementTotal] = useState(0);
+  const [settlementPages, setSettlementPages] = useState(1);
+  const [settlementPage, setSettlementPage] = useState(1);
+  const [settlementLoading, setSettlementLoading] = useState(true);
+
   const activeRangeLabel = useMemo(
     () => rangeOptions.find((option) => option.value === range)?.label ?? 'Tháng này',
     [range],
   );
+
+  // Fetch overview whenever the range changes.
+  useEffect(() => {
+    let cancelled = false;
+    hostRevenueService
+      .getOverview(range)
+      .then((res) => {
+        if (cancelled || !res.data) return;
+        setSummary(res.data.summary);
+        setTrend(res.data.trend);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSummary(EMPTY_SUMMARY);
+          setTrend([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [range]);
+
+  // Reset to first page when the search term changes.
+  useEffect(() => {
+    setSettlementPage(1);
+  }, [search]);
+
+  // Fetch the settlement table (debounced search + pagination).
+  useEffect(() => {
+    let cancelled = false;
+    setSettlementLoading(true);
+    const handle = setTimeout(() => {
+      hostRevenueService
+        .listSettlements({ page: settlementPage, limit: REVENUE_ITEMS_PER_PAGE, search: search.trim() || undefined })
+        .then((res) => {
+          if (cancelled || !res.data) return;
+          setSettlements(res.data.items);
+          setSettlementTotal(res.data.pagination.total);
+          setSettlementPages(res.data.pagination.totalPages);
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setSettlements([]);
+            setSettlementTotal(0);
+            setSettlementPages(1);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setSettlementLoading(false);
+        });
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [search, settlementPage]);
 
   const handleLogout = async () => {
     await logout();
@@ -455,8 +559,15 @@ export default function HostRevenuePage() {
             />
           </section>
 
-          <RevenueTrendChart range={range} />
-          <SettlementTable />
+          <RevenueTrendChart trend={trend} />
+          <SettlementTable
+            items={settlements}
+            total={settlementTotal}
+            currentPage={settlementPage}
+            totalPages={settlementPages}
+            loading={settlementLoading}
+            onPageChange={setSettlementPage}
+          />
         </div>
       </div>
     </main>

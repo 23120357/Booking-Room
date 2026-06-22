@@ -19,6 +19,7 @@ const adminSupportTicketRoutes = require('./routes/admin/supportTicketRoutes');
 const hostRoomRoutes = require('./routes/host/roomRoutes');
 const hostBookingRoutes = require('./routes/host/bookingRoutes');
 const hostTransactionRoutes = require('./routes/host/transactionRoutes');
+const hostRevenueRoutes = require('./routes/host/revenueRoutes');
 
 // Booking / Payment routes (thinh)
 const depositRoutes = require('./routes/booking/depositRoutes');
@@ -135,6 +136,7 @@ app.use('/api/admin', adminBookingRoutes);           // /api/admin/transactions,
 app.use('/api/host/rooms', hostRoomRoutes);
 app.use('/api/host/bookings/deposits', hostBookingRoutes);
 app.use('/api/host/transactions', hostTransactionRoutes);
+app.use('/api/host/revenue', hostRevenueRoutes);
 
 // Booking / Payment routes (thinh)
 app.use('/api/bookings/deposits', depositRoutes);
