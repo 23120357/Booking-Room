@@ -20,7 +20,7 @@ function findConfirmedDeposit(depositId, tenantId) {
     .where({ 
       'deposits.deposit_id': depositId, 
       'deposits.tenant_id': tenantId, 
-      'deposits.status': 'CONFIRMED' 
+      'deposits.status': 'ACCEPTED' 
     })
     .select(
       'deposits.*', 

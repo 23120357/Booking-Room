@@ -355,10 +355,17 @@ export default function RoomDetailView({ room, sidebar, backLink, bottomSlot }: 
               </h1>
 
               <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs md:text-sm">
-                <span className="flex items-center gap-1 font-bold text-booking-text">
-                  <StarIcon className="h-4 w-4 text-yellow-400 fill-current" />
-                  {room.rating || 4.8}
-                </span>
+                {room.rating && room.rating > 0 ? (
+                  <span className="flex items-center gap-1 font-bold text-booking-text">
+                    <StarIcon className="h-4 w-4 text-yellow-400 fill-current" />
+                    {room.rating.toFixed(1)}
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-booking-muted font-semibold">
+                    <StarIcon className="h-4 w-4 text-slate-300 fill-current" />
+                    Chưa có đánh giá
+                  </span>
+                )}
                 {room.favoriteCount != null && (
                   <>
                     <span className="text-slate-300">•</span>

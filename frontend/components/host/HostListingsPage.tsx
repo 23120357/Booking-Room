@@ -86,6 +86,10 @@ export default function HostListingsPage() {
     setPage(1);
   }, [activeFilter, searchTerm]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [page]);
+
   const handleLogout = async () => {
     await logout();
     router.push('/auth/login');

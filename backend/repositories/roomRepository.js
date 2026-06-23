@@ -48,7 +48,7 @@ async function findPublicById(roomId, trx) {
     .leftJoin('users as u', 'u.user_id', 'r.landlord_id')
     .leftJoin('account_security as sec', 'sec.user_id', 'u.user_id')
     .where('r.room_id', roomId)
-    .where('r.status', 'AVAILABLE')
+    .whereIn('r.status', ['AVAILABLE', 'RENTED'])
     .whereExists(function () {
       this.select('*')
         .from('room_approvals as ra')
@@ -203,7 +203,7 @@ async function findPublic({ page = 1, limit = 20, filters = {}, sort = 'newest',
     .leftJoin('room_images as ri', function () {
       this.on('ri.room_id', 'r.room_id').andOnVal('ri.is_cover', '=', true);
     })
-    .where('r.status', 'AVAILABLE');
+    .whereIn('r.status', ['AVAILABLE', 'RENTED']);
 
   applyPublicRoomFilters(q, filters);
   applyApprovalConstraint(q, onlyApproved);
@@ -214,7 +214,7 @@ async function findPublic({ page = 1, limit = 20, filters = {}, sort = 'newest',
 }
 
 async function countPublic({ filters = {}, onlyApproved = true } = {}) {
-  const q = db('rooms as r').countDistinct({ total: 'r.room_id' }).where('r.status', 'AVAILABLE');
+  const q = db('rooms as r').countDistinct({ total: 'r.room_id' }).whereIn('r.status', ['AVAILABLE', 'RENTED']);
   applyPublicRoomFilters(q, filters);
   applyApprovalConstraint(q, onlyApproved);
   const [{ total }] = await q;

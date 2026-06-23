@@ -200,6 +200,10 @@ function RoomsPageContent() {
     fetchRooms();
   }, [q, budget, type, nearLatStr, nearLngStr]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
+
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedRooms = rooms.slice(startIndex, endIndex);

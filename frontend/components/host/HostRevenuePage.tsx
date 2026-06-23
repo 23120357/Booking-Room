@@ -529,6 +529,10 @@ export default function HostRevenuePage() {
     };
   }, [search, settlementPage]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [settlementPage]);
+
   const handleLogout = async () => {
     await logout();
     router.push('/auth/login');

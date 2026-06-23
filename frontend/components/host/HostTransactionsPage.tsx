@@ -171,6 +171,10 @@ export default function HostTransactionsPage() {
     };
   }, [search, statusFilter, selectedMonth, currentPage]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
+
   const paginated = items;
 
   const handleClearFilters = () => {

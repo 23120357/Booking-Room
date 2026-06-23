@@ -115,7 +115,7 @@ export function mapBackendRoomToBookingRoom(room: any, index?: number): BookingR
     isNew: new Date().getTime() - new Date(createdAt).getTime() < 30 * 24 * 60 * 60 * 1000,
     type: roomType,
     area: `${(room.maxCapacity || room.max_capacity || 2) * 8 + 4} m²`,
-    rating: averageRating || 4.8,
+    rating: averageRating !== undefined && averageRating > 0 ? averageRating : undefined,
     reviews: 24, // Mock default review count
     amenities: room.amenities || [],
     description: room.roomDescription || room.room_description || '',

@@ -170,11 +170,7 @@ async function getRoomById(roomId, user = null) {
         throw new AppError('ROOM_NOT_AVAILABLE', 'Phòng không khả dụng.', 400);
       }
     } else if (rawRoom.status === 'RENTED') {
-      if (user && user.userId === tenantRentingId) {
-        room = rawRoom;
-      } else {
-        throw new AppError('ROOM_RENTED', 'Phòng này đã được thuê.', 400);
-      }
+      room = rawRoom;
     } else {
       throw new AppError('ROOM_NOT_AVAILABLE', 'Phòng không khả dụng.', 400);
     }

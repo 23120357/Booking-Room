@@ -112,6 +112,10 @@ export default function TenantDashboard() {
     }
   }, [activeTab, depositFilter, page]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [page]);
+
   // Handle Logout
   const handleLogout = async () => {
     await logout();

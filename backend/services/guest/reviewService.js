@@ -43,12 +43,12 @@ async function createReview({ tenantId, depositId, rating, comment }) {
     throw new AppError('INVALID_RATING', 'Rating phải là số nguyên từ 1 đến 5.', 400);
   }
 
-  // Check deposit exists, belongs to tenant, and is CONFIRMED
+  // Check deposit exists, belongs to tenant, and is ACCEPTED
   const deposit = await reviewRepository.findConfirmedDeposit(depositId, tenantId);
   if (!deposit) {
     throw new AppError(
       'DEPOSIT_NOT_ELIGIBLE',
-      'Bạn chỉ có thể review khi đã thanh toán cọc thành công.',
+      'Bạn chỉ có thể đánh giá phòng khi có đơn đặt cọc đã được chấp nhận.',
       403,
     );
   }
