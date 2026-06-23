@@ -107,8 +107,8 @@ function RoomsPageContent() {
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     if (!token) {
       window.dispatchEvent(
-        new CustomEvent('show-toast', {
-          detail: { message: 'Vui lòng đăng nhập để thêm phòng yêu thích.', type: 'error' }
+        new CustomEvent('show-login-prompt', {
+          detail: { redirectUrl: window.location.href }
         })
       );
       return;

@@ -230,10 +230,9 @@ export default function BookingCheckoutSection({
 
   const startBookingFlow = async () => {
     if (!user) {
-      window.dispatchEvent(new CustomEvent('show-toast', {
-        detail: { message: 'Vui lòng đăng nhập bằng tài khoản Người thuê để đặt cọc.', type: 'warning' }
+      window.dispatchEvent(new CustomEvent('show-login-prompt', {
+        detail: { redirectUrl: window.location.href }
       }));
-      window.location.href = `/auth/login?redirect=/rooms/${roomId}`;
       return;
     }
     if (user.role !== 'TENANT') {
@@ -596,10 +595,9 @@ export default function BookingCheckoutSection({
             type="button"
             onClick={async () => {
               if (!user) {
-                window.dispatchEvent(new CustomEvent('show-toast', {
-                  detail: { message: 'Vui lòng đăng nhập bằng tài khoản Người thuê để nhắn tin cho chủ nhà.', type: 'warning' }
+                window.dispatchEvent(new CustomEvent('show-login-prompt', {
+                  detail: { redirectUrl: window.location.href }
                 }));
-                window.location.href = `/auth/login?redirect=/rooms/${roomId}`;
                 return;
               }
               if (user.role !== 'TENANT') {
@@ -680,7 +678,7 @@ export default function BookingCheckoutSection({
                     <span className="font-extrabold text-[#004ac6] text-base">{deposit.toLocaleString('vi-VN')} đ</span>
                   </div>
                   <div className="flex justify-between items-center px-4 py-3">
-                    <span className="text-booking-muted font-medium">Nội dung chuyển khoản</span>
+                    <span className="text-booking-muted font-medium">Nội dung thanh toán</span>
                     <span className="font-medium text-booking-text max-w-[220px] text-right text-xs text-[#004ac6]">
                       Thanh toan dat coc cho phong: {roomTitle}
                     </span>
@@ -695,7 +693,7 @@ export default function BookingCheckoutSection({
               </div>
 
               <p className="text-[11px] text-booking-muted leading-relaxed">
-                Vui lòng xác nhận thông tin hóa đơn đặt cọc ở trên. Khi nhấn <strong>Chuyển khoản ngay</strong>, bạn sẽ được đưa tới Cổng thanh toán VNPAY Sandbox để hoàn tất giao dịch.
+                Vui lòng xác nhận thông tin hóa đơn đặt cọc ở trên. Khi nhấn <strong>Thanh toán ngay</strong>, bạn sẽ được đưa tới Cổng thanh toán VNPAY Sandbox để hoàn tất giao dịch.
               </p>
             </div>
 
@@ -728,7 +726,7 @@ export default function BookingCheckoutSection({
                 disabled={!paymentUrl || loading}
                 className="flex-1 py-3 px-4 bg-[#004ac6] hover:bg-[#003f9e] text-white font-bold rounded-xl transition text-sm flex items-center justify-center gap-1.5 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                💳 Chuyển khoản ngay
+                💳 Thanh toán ngay
               </button>
             </div>
           </div>

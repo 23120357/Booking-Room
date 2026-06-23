@@ -738,10 +738,23 @@ export default function RoomReviewsSection({ roomId }: RoomReviewsSectionProps) 
 
       {/* Write review form */}
       {!user ? (
-        <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-5 text-center">
+        <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-5 text-center flex flex-col items-center gap-3">
           <p className="text-sm font-semibold text-booking-muted">
             Vui lòng đăng nhập bằng tài khoản Người thuê để gửi đánh giá.
           </p>
+          <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(
+                new CustomEvent('show-login-prompt', {
+                  detail: { redirectUrl: window.location.href }
+                })
+              );
+            }}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#004ac6] px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#003f9e] transition active:scale-95"
+          >
+            Đăng nhập ngay
+          </button>
         </div>
       ) : hasAlreadyReviewed ? (
         <div className="bg-blue-50 border border-blue-100/50 rounded-2xl p-5 text-center">
