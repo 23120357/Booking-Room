@@ -144,6 +144,7 @@ async function processWebhook({ transaction_id, status, checksum }) {
     {
       deposit_id: transaction.deposit_id,
       room_id: transaction.room_id,
+      landlord_id: transaction.landlord_id,
     },
   );
 
@@ -264,6 +265,7 @@ async function processVnpayIpn(queryParams) {
     {
       deposit_id: transaction.deposit_id,
       room_id: transaction.room_id,
+      landlord_id: transaction.landlord_id,
     }
   );
 
@@ -321,6 +323,7 @@ async function processVnpayVerify(queryParams) {
       {
         deposit_id: transaction.deposit_id,
         room_id: transaction.room_id,
+        landlord_id: transaction.landlord_id,
       }
     );
 
@@ -342,6 +345,33 @@ async function processVnpayVerify(queryParams) {
   return updatedTransaction;
 }
 
+/**
+ * Admin giải ngân tiền cho chủ phòng.
+ *
+ * @param {object} user
+ * @param {string} transactionId
+ */
+async function disburseTransaction(user, transactionId) {
+  if (user.role !== 'ADMIN') {
+    throw new AppError('FORBIDDEN', 'Chỉ admin mới có quyền giải ngân', 403);
+  }
+
+  const COMMISSION_RATE = 10; // 10%
+  const result = await transactionRepository.processDisbursement(transactionId, user.userId, COMMISSION_RATE);
+  return result;
+}
+
+/**
+ * Lấy danh sách ví thu nhập của Admin
+ */
+async function listAdminIncomes(query) {
+  const page = parsePositiveInt(query.page, 1);
+  const limit = Math.min(parsePositiveInt(query.limit, 20), 100);
+  const status = query.status ? String(query.status).toUpperCase() : undefined;
+
+  return transactionRepository.findAdminIncomes({ status, page, limit });
+}
+
 module.exports = {
   createTransaction,
   processWebhook,
@@ -350,5 +380,7 @@ module.exports = {
   listAllTransactions,
   processVnpayIpn,
   processVnpayVerify,
+  disburseTransaction,
+  listAdminIncomes,
   VALID_PAYMENT_METHODS,
 };

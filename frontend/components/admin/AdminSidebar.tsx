@@ -11,7 +11,8 @@ import {
   AlertTriangle,
   MessageSquare,
   Settings,
-  LogOut
+  LogOut,
+  Wallet
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -22,6 +23,7 @@ const navItems = [
   { name: 'Giao dịch', href: '/admin/transactions', icon: CreditCard },
   { name: 'Khiếu nại', href: '/admin/complaints', icon: AlertTriangle },
   { name: 'Hỗ trợ', href: '/admin/support', icon: MessageSquare },
+  { name: 'Ví thu nhập', href: '/admin/incomes', icon: Wallet },
 ];
 
 const bottomNavItems = [

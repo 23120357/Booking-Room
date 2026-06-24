@@ -294,8 +294,8 @@ export default function BookingCheckoutSection({
       sessionStorage.setItem(`active_deposit_url_${roomId}`, payUrl);
       sessionStorage.setItem(`active_deposit_expire_${roomId}`, String(Date.now() + 900 * 1000));
 
-      // Redirect immediately to VNPAY Sandbox Gateway
-      window.location.href = payUrl;
+      // Open the modal instead of redirecting immediately
+      setIsModalOpen(true);
     } catch (err: any) {
       console.error('Lỗi đặt cọc:', err);
       setErrorMsg(err.message || 'Có lỗi xảy ra khi xử lý đơn cọc.');
@@ -380,12 +380,16 @@ export default function BookingCheckoutSection({
           <div className="border-t border-slate-200/50" />
           <div>
             <p className="text-[11px] font-bold text-booking-muted uppercase tracking-[0.02em]">Trạng thái</p>
-            <p className="mt-1 text-sm font-extrabold text-[#006a61]">Còn phòng</p>
+            {activeDepositStatus === 'CONFIRMED' ? (
+              <p className="mt-1 text-sm font-extrabold text-[#004ac6]">Đã đặt cọc</p>
+            ) : (
+              <p className="mt-1 text-sm font-extrabold text-[#006a61]">Còn phòng</p>
+            )}
           </div>
         </div>
 
         {/* Appointment Scheduler Panel */}
-        {!timerActive && (
+        {!timerActive && activeDepositStatus !== 'CONFIRMED' && (
           <div className="flex flex-col gap-3">
             {isPickerExpanded ? (
               <div className="border border-slate-200 rounded-2xl bg-slate-50 p-4 flex flex-col gap-3 shadow-inner animate-in slide-in-from-top-3 duration-200">
@@ -547,29 +551,39 @@ export default function BookingCheckoutSection({
 
         {/* CTA Buttons */}
         <div className="flex flex-col gap-2.5">
-          <button
-            disabled={loading || timerActive}
-            onClick={startBookingFlow}
-            className={`w-full rounded-xl text-white font-bold py-3.5 px-5 flex items-center justify-center gap-2 transition active:scale-[0.98] shadow-md ${timerActive
-              ? 'bg-slate-400 cursor-not-allowed shadow-none'
-              : 'bg-[#004ac6] hover:bg-[#003f9e] shadow-booking-primary/10'
-              }`}
-          >
-            {loading ? (
-              <span className="flex items-center gap-1">
-                <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Đang xử lý...
-              </span>
-            ) : (
-              <>
-                <WalletIcon className="h-5 w-5 text-white" />
-                Đặt cọc ngay
-              </>
-            )}
-          </button>
+          {activeDepositStatus === 'CONFIRMED' ? (
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 text-emerald-800 shadow-sm">
+              <span className="text-2xl">✅</span>
+              <div className="text-left">
+                <p className="text-sm font-extrabold">Đã đặt cọc thành công</p>
+                <p className="text-xs text-emerald-600 mt-0.5">Phòng đã được khóa để chờ chủ phòng duyệt đơn cọc.</p>
+              </div>
+            </div>
+          ) : (
+            <button
+              disabled={loading || timerActive}
+              onClick={startBookingFlow}
+              className={`w-full rounded-xl text-white font-bold py-3.5 px-5 flex items-center justify-center gap-2 transition active:scale-[0.98] shadow-md ${timerActive
+                ? 'bg-slate-400 cursor-not-allowed shadow-none'
+                : 'bg-[#004ac6] hover:bg-[#003f9e] shadow-booking-primary/10'
+                }`}
+            >
+              {loading ? (
+                <span className="flex items-center gap-1">
+                  <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Đang xử lý...
+                </span>
+              ) : (
+                <>
+                  <WalletIcon className="h-5 w-5 text-white" />
+                  Đặt cọc ngay
+                </>
+              )}
+            </button>
+          )}
 
           <button
             type="button"
@@ -616,7 +630,7 @@ export default function BookingCheckoutSection({
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
               <div>
-                <h3 className="font-extrabold text-booking-text text-base md:text-lg">Thanh toán đặt cọc phòng</h3>
+                <h3 className="font-extrabold text-booking-text text-base md:text-lg">Chi tiết đơn đặt cọc phòng</h3>
                 <p className="text-xs text-booking-muted mt-0.5 max-w-[320px] truncate">{roomTitle}</p>
               </div>
               <button
@@ -636,47 +650,59 @@ export default function BookingCheckoutSection({
                 Thời gian thanh toán còn lại: {formatTime(countdown)}
               </div>
 
-              {/* Price Row */}
-              <div className="w-full p-4 rounded-2xl bg-[#faf8ff] border border-slate-100 flex justify-between items-center text-left">
-                <div>
-                  <p className="text-[11px] font-bold text-booking-muted uppercase tracking-[0.02em]">Số tiền cọc</p>
-                  <p className="text-xl md:text-2xl font-extrabold text-booking-text mt-0.5">
-                    {deposit.toLocaleString('vi-VN')} đ
-                  </p>
+              {/* Price Details Box */}
+              <div className="w-full p-4 rounded-2xl bg-[#faf8ff] border border-slate-100 flex flex-col gap-3 text-left">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-[11px] font-bold text-booking-muted uppercase tracking-[0.02em]">Số tiền cọc</p>
+                    <p className="text-xl md:text-2xl font-extrabold text-booking-text mt-0.5 text-booking-primary">
+                      {deposit.toLocaleString('vi-VN')} đ
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[11px] font-bold text-booking-muted uppercase tracking-[0.02em]">Giá thuê/tháng</p>
+                    <p className="text-sm font-bold text-booking-text mt-0.5">
+                      {price.toLocaleString('vi-VN')} đ
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-[11px] font-bold text-booking-muted uppercase tracking-[0.02em]">Giá thuê/tháng</p>
-                  <p className="text-sm font-bold text-booking-text mt-0.5">
-                    {price.toLocaleString('vi-VN')} đ
-                  </p>
-                </div>
+
+                {appointmentTime && (
+                  <>
+                    <div className="border-t border-slate-200/50 my-1" />
+                    <div>
+                      <p className="text-[11px] font-bold text-booking-muted uppercase tracking-[0.02em]">Lịch hẹn xem phòng</p>
+                      <p className="text-sm font-extrabold text-booking-text mt-0.5 flex items-center gap-1.5">
+                        <span>📅</span> {formatDisplayDateTime(appointmentTime)}
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* VNPAY payment details */}
               <div className="w-full space-y-4">
-                <p className="text-xs font-semibold text-booking-muted uppercase tracking-[0.02em] text-left">
-                  Thanh toán qua cổng VNPAY
-                </p>
-
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center shadow-inner flex flex-col items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-booking-primary text-xl">
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-center shadow-inner flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-[#004ac6] text-xl">
                     💳
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-booking-text">Yêu cầu thanh toán đang được xử lý</p>
+                    <p className="text-sm font-bold text-booking-text">Xác nhận thanh toán qua VNPAY</p>
                     <p className="text-xs text-booking-muted mt-1 leading-relaxed">
-                      Bạn đang được chuyển hướng sang Cổng thanh toán VNPAY Sandbox để hoàn tất đặt cọc. Nếu trình duyệt không tự động chuyển hướng hoặc bạn đã lỡ đóng trang thanh toán, vui lòng nhấn nút dưới đây để tiếp tục.
+                      Hệ thống sẽ chuyển hướng bạn đến cổng thanh toán VNPAY Sandbox để tiến hành đặt cọc an toàn.
                     </p>
                   </div>
                   
-                  <a
-                    href={paymentUrl || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-booking-primary hover:bg-[#003f9e] text-white text-xs font-bold rounded-xl shadow-md transition active:scale-95"
+                  <button
+                    onClick={() => {
+                      if (paymentUrl) {
+                        window.location.href = paymentUrl;
+                      }
+                    }}
+                    className="mt-2 w-full py-3 bg-[#004ac6] hover:bg-[#003f9e] text-white text-sm font-extrabold rounded-xl shadow-md transition active:scale-95 flex items-center justify-center gap-2"
                   >
-                    Mở trang thanh toán VNPAY
-                  </a>
+                    <span>💳</span> Thanh toán ngay qua VNPAY
+                  </button>
                 </div>
               </div>
             </div>

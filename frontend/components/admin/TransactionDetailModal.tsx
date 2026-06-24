@@ -9,9 +9,11 @@ interface TransactionDetailModalProps {
   transaction: any;
   isOpen: boolean;
   onClose: () => void;
+  onDisburse?: (transactionId: string) => void;
+  isDisbursing?: boolean;
 }
 
-export default function TransactionDetailModal({ transaction, isOpen, onClose }: TransactionDetailModalProps) {
+export default function TransactionDetailModal({ transaction, isOpen, onClose, onDisburse, isDisbursing }: TransactionDetailModalProps) {
   if (!isOpen || !transaction) return null;
 
   return (
@@ -46,10 +48,17 @@ export default function TransactionDetailModal({ transaction, isOpen, onClose }:
              transaction.status === 'PENDING' ? <Clock size={24} /> :
              <XCircle size={24} />}
             <div>
-              <p className="font-bold">
+              <p className="font-bold flex items-center gap-2">
                 {transaction.status === 'SUCCESS' ? 'Giao dịch thành công' :
                  transaction.status === 'PENDING' ? 'Giao dịch đang xử lý' :
                  'Giao dịch thất bại'}
+                
+                {transaction.status === 'SUCCESS' && transaction.is_disbursed && (
+                  <span className="bg-emerald-100 text-emerald-800 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold">Đã giải ngân</span>
+                )}
+                {transaction.status === 'SUCCESS' && !transaction.is_disbursed && (
+                  <span className="bg-orange-100 text-orange-800 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold">Chờ giải ngân</span>
+                )}
               </p>
               <p className="text-sm opacity-80 mt-0.5">
                 Vào lúc {new Date(transaction.created_at).toLocaleString('vi-VN')}
@@ -127,6 +136,33 @@ export default function TransactionDetailModal({ transaction, isOpen, onClose }:
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="px-8 py-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 rounded-b-3xl mt-auto">
+          <button 
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-xl font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors"
+          >
+            Đóng
+          </button>
+          
+          {transaction.status === 'SUCCESS' && !transaction.is_disbursed && (
+            <button
+              onClick={() => onDisburse?.(transaction.transaction_id)}
+              disabled={isDisbursing}
+              className="px-5 py-2.5 rounded-xl font-medium text-white bg-booking-primary hover:bg-booking-primary-dark transition-colors flex items-center gap-2 disabled:opacity-70"
+            >
+              {isDisbursing ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : (
+                'Giải ngân cho chủ phòng'
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>

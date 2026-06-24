@@ -123,6 +123,43 @@ async function listAllTransactions(req, res, next) {
   }
 }
 
+async function disburseTransaction(req, res, next) {
+  try {
+    const result = await transactionService.disburseTransaction(req.user, req.params.id);
+    return sendSuccess(res, {
+      status: 200,
+      message: 'Giải ngân thành công.',
+      data: result,
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function listAdminIncomes(req, res, next) {
+  try {
+    const { items, total, totalReceived, totalAdminIncome } = await transactionService.listAdminIncomes(req.query);
+    return sendSuccess(res, {
+      status: 200,
+      message: 'Lấy danh sách ví thu nhập thành công.',
+      data: {
+        incomes: items,
+        totals: {
+          totalReceived,
+          totalAdminIncome
+        },
+        pagination: {
+          page: Number(req.query.page) || 1,
+          limit: Number(req.query.limit) || 20,
+          total,
+        },
+      },
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
 module.exports = {
   createTransaction,
   processWebhook,
@@ -131,4 +168,6 @@ module.exports = {
   getTransactionDetail,
   listMyTransactions,
   listAllTransactions,
+  disburseTransaction,
+  listAdminIncomes,
 };

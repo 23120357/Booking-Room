@@ -23,6 +23,15 @@ export interface TransactionListResponse {
   pagination: Pagination;
 }
 
+export interface IncomeListResponse {
+  items: any[];
+  totals: {
+    totalReceived: number;
+    totalAdminIncome: number;
+  };
+  pagination: Pagination;
+}
+
 export interface RoomListResponse {
   items: any[];
   pagination: Pagination;
@@ -124,6 +133,22 @@ export const adminService = {
     const response = await apiClient.get<{ data: { transactions: any[], pagination: Pagination } }>(`/admin/transactions?${queryString}`);
     return {
       items: response.data.transactions,
+      pagination: response.data.pagination,
+    };
+  },
+
+  disburseTransaction: async (transactionId: string): Promise<any> => {
+    const response = await apiClient.post<{ data: any }>(`/admin/transactions/${transactionId}/disburse`);
+    return response.data;
+  },
+
+  // Force recompile
+  getIncomes: async (params?: Record<string, any>): Promise<IncomeListResponse> => {
+    const queryString = buildQueryString(params);
+    const response = await apiClient.get<{ data: { incomes: any[], totals: any, pagination: Pagination } }>(`/admin/incomes?${queryString}`);
+    return {
+      items: response.data.incomes,
+      totals: response.data.totals,
       pagination: response.data.pagination,
     };
   },

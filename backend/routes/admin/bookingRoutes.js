@@ -21,6 +21,22 @@ router.get(
   transactionController.listAllTransactions,
 );
 
+// GET /api/admin/incomes — Admin xem ví thu nhập
+router.get(
+  '/incomes',
+  requireAuth,
+  authorizeRoles('ADMIN'),
+  transactionController.listAdminIncomes,
+);
+
+// POST /api/admin/transactions/:id/disburse — Admin giải ngân giao dịch
+router.post(
+  '/transactions/:id/disburse',
+  requireAuth,
+  authorizeRoles('ADMIN'),
+  transactionController.disburseTransaction,
+);
+
 // POST /api/admin/bookings/expire-deposits — Admin trigger expire thủ công
 router.post(
   '/expire-deposits',

@@ -27,6 +27,7 @@ export default function TransactionsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
   const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
+  const [isDisbursing, setIsDisbursing] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -74,6 +75,25 @@ export default function TransactionsPage() {
       'Trạng thái': t.status === 'SUCCESS' ? 'Thành công' : t.status === 'PENDING' ? 'Đang xử lý' : 'Từ chối',
     }));
     exportToCsv('danh_sach_giao_dich.csv', exportData);
+  };
+
+  const handleDisburse = async (transactionId: string) => {
+    try {
+      setIsDisbursing(true);
+      await adminService.disburseTransaction(transactionId);
+      showToast('Giải ngân thành công', 'success');
+      // Update local state without refetching immediately
+      setTransactions(prev => prev.map(t => 
+        t.transaction_id === transactionId ? { ...t, is_disbursed: true } : t
+      ));
+      if (selectedTransaction?.transaction_id === transactionId) {
+        setSelectedTransaction({ ...selectedTransaction, is_disbursed: true });
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi khi giải ngân', 'error');
+    } finally {
+      setIsDisbursing(false);
+    }
   };
 
   return (
@@ -234,7 +254,19 @@ export default function TransactionsPage() {
                         {new Date(txn.created_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <StatusBadge status={txn.status === 'SUCCESS' ? 'Thành công' : txn.status === 'PENDING' ? 'Đang xử lý' : 'Từ chối'} />
+                        {txn.status === 'SUCCESS' ? (
+                          <div className={`inline-flex items-center rounded-full border p-[3px] shadow-sm transition-colors ${txn.is_disbursed ? 'border-emerald-200 bg-emerald-50' : 'border-orange-200 bg-orange-50'}`}>
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-white shadow-sm text-emerald-700 border border-slate-100 flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              Thành công
+                            </span>
+                            <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${txn.is_disbursed ? 'text-emerald-700' : 'text-orange-700'}`}>
+                              {txn.is_disbursed ? 'Đã giải ngân' : 'Chờ giải ngân'}
+                            </span>
+                          </div>
+                        ) : (
+                          <StatusBadge status={txn.status === 'PENDING' ? 'Đang xử lý' : 'Từ chối'} />
+                        )}
                       </td>
                     </tr>
                   ))
@@ -275,6 +307,8 @@ export default function TransactionsPage() {
         transaction={selectedTransaction}
         isOpen={!!selectedTransaction}
         onClose={() => setSelectedTransaction(null)}
+        onDisburse={handleDisburse}
+        isDisbursing={isDisbursing}
       />
     </div>
   );

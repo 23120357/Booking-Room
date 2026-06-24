@@ -98,6 +98,26 @@ async function processWebhookUpdate(transactionId, newStatus, depositInfo) {
       await trx('rooms')
         .where({ room_id: depositInfo.room_id })
         .update({ status: 'LOCKED', updated_at: trx.fn.now() });
+
+      // Create income records for Admin (100%) and Host (0%)
+      await trx('admin_incomes').insert({
+        transaction_id: transactionId,
+        income: transaction.amount,
+        status: 'PENDING_DISBURSEMENT',
+        created_at: trx.fn.now(),
+        updated_at: trx.fn.now()
+      });
+
+      if (depositInfo.landlord_id) {
+        await trx('host_incomes').insert({
+          host_id: depositInfo.landlord_id,
+          transaction_id: transactionId,
+          income: 0,
+          status: 'PENDING',
+          created_at: trx.fn.now(),
+          updated_at: trx.fn.now()
+        });
+      }
     } else {
       // FAILED → cancel deposit, release phòng
       await trx('deposits')
@@ -205,6 +225,142 @@ async function findAllTransactions({ status, paymentMethod, keyword, page = 1, l
   return { items, total: Number(count) };
 }
 
+/**
+ * Xử lý giải ngân cho chủ phòng. Thực hiện cập nhật incomes và giao dịch trong cùng 1 DB transaction.
+ */
+async function processDisbursement(transactionId, adminId, commissionRate) {
+  return db.transaction(async (trx) => {
+    // 1. Kiểm tra log chống duplicate
+    const existingLog = await trx('disbursement_logs')
+      .where({ transaction_id: transactionId })
+      .first();
+    if (existingLog) {
+      const AppError = require('../../utils/AppError');
+      throw new AppError('ALREADY_DISBURSED', 'Transaction already disbursed', 400);
+    }
+
+    // 2. Lấy transaction và deposit
+    const transaction = await trx('transactions')
+      .where({ transaction_id: transactionId })
+      .first();
+
+    if (!transaction || transaction.status !== 'SUCCESS') {
+      const AppError = require('../../utils/AppError');
+      throw new AppError('INVALID_TRANSACTION', 'Giao dịch không tồn tại hoặc chưa thành công', 400);
+    }
+
+    if (transaction.is_disbursed) {
+      const AppError = require('../../utils/AppError');
+      throw new AppError('ALREADY_DISBURSED', 'Transaction already disbursed', 400);
+    }
+
+    const deposit = await trx('deposits')
+      .where({ deposit_id: transaction.deposit_id })
+      .first();
+      
+    if (!deposit) {
+      const AppError = require('../../utils/AppError');
+      throw new AppError('DEPOSIT_NOT_FOUND', 'Không tìm thấy đơn cọc liên kết', 404);
+    }
+
+    const hostId = deposit.landlord_id;
+    const totalAmount = parseFloat(transaction.amount);
+    const adminAmount = totalAmount * (commissionRate / 100);
+    const hostAmount = totalAmount - adminAmount;
+
+    // 3. Cập nhật admin_incomes
+    await trx('admin_incomes')
+      .where({ transaction_id: transactionId })
+      .update({
+        income: adminAmount,
+        status: 'DISBURSED',
+        updated_at: trx.fn.now()
+      });
+
+    // 4. Cập nhật host_incomes
+    await trx('host_incomes')
+      .where({ transaction_id: transactionId })
+      .update({
+        income: hostAmount,
+        status: 'RECEIVED',
+        updated_at: trx.fn.now()
+      });
+
+    // 5. Cập nhật transaction
+    await trx('transactions')
+      .where({ transaction_id: transactionId })
+      .update({
+        is_disbursed: true,
+        disbursed_at: trx.fn.now()
+      });
+
+    // 6. Insert log
+    await trx('disbursement_logs').insert({
+      admin_id: adminId,
+      host_id: hostId,
+      transaction_id: transactionId,
+      total_amount: totalAmount,
+      host_amount: hostAmount,
+      admin_amount: adminAmount,
+      commission_rate: commissionRate,
+      disbursed_at: trx.fn.now(),
+      created_at: trx.fn.now()
+    });
+
+    return { totalAmount, hostAmount, adminAmount };
+  });
+}
+
+/**
+ * Lấy lịch sử thu nhập của Admin (bảng admin_incomes).
+ */
+async function findAdminIncomes({ status, page = 1, limit = 20 } = {}) {
+  const offset = (page - 1) * limit;
+
+  const baseQuery = db('admin_incomes')
+    .join('transactions', 'admin_incomes.transaction_id', 'transactions.transaction_id')
+    .join('deposits', 'transactions.deposit_id', 'deposits.deposit_id')
+    .join('rooms', 'deposits.room_id', 'rooms.room_id')
+    .leftJoin('room_images', function() {
+      this.on('rooms.room_id', 'room_images.room_id').andOnVal('room_images.is_cover', '=', true);
+    });
+
+  // Tính tổng trên toàn bộ dữ liệu (không bị ảnh hưởng bởi filter status của bảng)
+  const sums = await baseQuery.clone()
+    .select(
+      db.raw('COALESCE(SUM(transactions.amount), 0) as total_received'),
+      db.raw("COALESCE(SUM(CASE WHEN admin_incomes.status = 'DISBURSED' THEN admin_incomes.income ELSE 0 END), 0) as total_admin_income")
+    )
+    .first();
+
+  const query = baseQuery.clone();
+  if (status) {
+    query.where('admin_incomes.status', status.toUpperCase());
+  }
+
+  const [{ count }] = await query.clone().count('admin_incomes.admin_income_id as count');
+
+  const items = await query
+    .orderBy('admin_incomes.created_at', 'desc')
+    .limit(limit)
+    .offset(offset)
+    .select(
+      'admin_incomes.*',
+      'transactions.amount as transaction_amount',
+      'transactions.payment_method',
+      'rooms.room_id',
+      'rooms.title as room_title',
+      'room_images.image_url as room_cover_image_url'
+    );
+
+  return { 
+    items, 
+    total: Number(count),
+    totalReceived: Number(sums?.total_received || 0),
+    totalAdminIncome: Number(sums?.total_admin_income || 0)
+  };
+}
+
 module.exports = {
   createTransaction,
   findTransactionById,
@@ -212,4 +368,6 @@ module.exports = {
   processWebhookUpdate,
   findTransactionsByTenant,
   findAllTransactions,
+  processDisbursement,
+  findAdminIncomes,
 };
