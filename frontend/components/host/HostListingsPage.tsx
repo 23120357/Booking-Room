@@ -9,20 +9,22 @@ import HostSidebar from '@/components/host/HostSidebar';
 import { hostRoomService, mapToHostListing } from '@/services/hostRoomService';
 import { getListingVisibilityMeta } from '@/services/hostRoomService';
 import type { HostListing, HostListingStatus } from '@/data/hostListings';
+import { useTranslation } from '@/context/LanguageContext';
 
 type ActiveFilter = 'all' | HostListingStatus;
 
 const PAGE_SIZE = 6;
 
-const FILTER_LABELS: Array<{ key: ActiveFilter; label: string }> = [
-  { key: 'all', label: 'Tất cả' },
-  { key: 'active', label: 'Đang hoạt động' },
-  { key: 'rented', label: 'Đã cho thuê' },
-  { key: 'pending', label: 'Chờ duyệt' },
-  { key: 'hidden', label: 'Đã ẩn' },
+const getFilterLabels = (t: any): Array<{ key: ActiveFilter; label: string }> => [
+  { key: 'all', label: t('host.listings.filterAll') },
+  { key: 'active', label: t('host.listings.filterActive') },
+  { key: 'rented', label: t('host.listings.filterRented') },
+  { key: 'pending', label: t('host.listings.filterPending') },
+  { key: 'hidden', label: t('host.listings.filterHidden') },
 ];
 
 export default function HostListingsPage() {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>('all');
@@ -45,7 +47,7 @@ export default function HostListingsPage() {
         setListings((res.data?.items || []).map(mapToHostListing));
       } catch (err: any) {
         if (cancelled) return;
-        setError(err?.message || 'Không tải được danh sách tin đăng.');
+        setError(err?.message || t('host.listings.loadFailed'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -58,11 +60,11 @@ export default function HostListingsPage() {
 
   const filters = useMemo(
     () =>
-      FILTER_LABELS.map((f) => ({
+      getFilterLabels(t).map((f) => ({
         ...f,
         count: f.key === 'all' ? listings.length : listings.filter((l) => l.status === f.key).length,
       })),
-    [listings],
+    [listings, t],
   );
 
   const filteredListings = useMemo(() => {
@@ -108,7 +110,7 @@ export default function HostListingsPage() {
     } catch (err: any) {
       // Revert on failure.
       setListings(previous);
-      alert(err?.message || 'Không thể cập nhật trạng thái hiển thị. Vui lòng thử lại.');
+      alert(err?.message || t('host.listings.updateVisibilityFail'));
     } finally {
       setTogglingId(null);
     }
@@ -129,7 +131,7 @@ export default function HostListingsPage() {
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-booking-teal">{user?.fullName || 'DPVinhIT'}</p>
               <p className="truncate text-[10px] font-bold uppercase tracking-[0.5px] text-booking-muted">
-                Chủ nhà
+                {t('host.listings.hostRole')}
               </p>
             </div>
           </div>
@@ -137,8 +139,8 @@ export default function HostListingsPage() {
           <div className="flex items-center gap-2 text-booking-muted">
             <button
               type="button"
-              aria-label="Thông báo"
-              title="Thông báo"
+              aria-label={t('host.listings.notifications')}
+              title={t('host.listings.notifications')}
               className="relative flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-white"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -149,8 +151,8 @@ export default function HostListingsPage() {
             </button>
             <button
               type="button"
-              aria-label="Trợ giúp"
-              title="Trợ giúp"
+              aria-label={t('host.listings.help')}
+              title={t('host.listings.help')}
               className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-white"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -166,10 +168,10 @@ export default function HostListingsPage() {
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-3xl font-bold leading-tight text-booking-text sm:text-[32px] sm:leading-[38px]">
-                Quản lý tin đăng
+                {t('host.listings.manageListingsTitle')}
               </h1>
               <p className="mt-2 text-base leading-6 text-booking-muted">
-                Quản lý tin đăng phòng của bạn một cách hiệu quả.
+                {t('host.listings.manageListingsDesc')}
               </p>
             </div>
             <Link
@@ -180,13 +182,13 @@ export default function HostListingsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
               </svg>
-              <span>Thêm tin mới</span>
+              <span>{t('host.listings.addNewListing')}</span>
             </Link>
           </div>
 
           <div className="flex flex-col gap-4 rounded-xl border border-booking-border/30 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:p-[17px]">
             <label className="relative min-w-0 flex-1">
-              <span className="sr-only">Tìm kiếm tin đăng</span>
+              <span className="sr-only">{t('host.listings.searchAria')}</span>
               <svg
                 className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-booking-muted"
                 fill="none"
@@ -200,7 +202,7 @@ export default function HostListingsPage() {
                 type="search"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Tìm kiếm theo tên, địa chỉ..."
+                placeholder={t('host.listings.searchPlaceholder')}
                 className="h-11 w-full rounded-lg border-0 bg-[#f3f3fe] px-10 text-base text-booking-text outline-none placeholder:text-[#6b7280] focus:ring-2 focus:ring-booking-primary/20"
               />
             </label>
@@ -228,7 +230,7 @@ export default function HostListingsPage() {
 
           {loading ? (
             <div className="rounded-xl border border-booking-border/30 bg-white px-6 py-16 text-center shadow-sm">
-              <p className="text-base font-semibold text-booking-text">Đang tải danh sách tin đăng...</p>
+              <p className="text-base font-semibold text-booking-text">{t('host.listings.loadingListings')}</p>
             </div>
           ) : error ? (
             <div className="rounded-xl border border-[#ffdad6] bg-[#fff8f7] px-6 py-16 text-center shadow-sm">
@@ -248,10 +250,10 @@ export default function HostListingsPage() {
           ) : (
             <div className="rounded-xl border border-booking-border/30 bg-white px-6 py-16 text-center shadow-sm">
               <p className="text-base font-semibold text-booking-text">
-                {listings.length === 0 ? 'Bạn chưa có tin đăng nào.' : 'Không tìm thấy tin đăng phù hợp.'}
+                {listings.length === 0 ? t('host.listings.noListingsYet') : t('host.listings.noMatchingListings')}
               </p>
               <p className="mt-2 text-sm text-booking-muted">
-                {listings.length === 0 ? 'Nhấn "Thêm tin mới" để đăng phòng đầu tiên.' : 'Hãy thử đổi từ khóa hoặc chọn lại trạng thái.'}
+                {listings.length === 0 ? t('host.listings.clickToAddFirst') : t('host.listings.tryDifferentKeywords')}
               </p>
             </div>
           )}
@@ -260,7 +262,7 @@ export default function HostListingsPage() {
             <div className="flex items-center justify-center gap-2">
               <button
                 type="button"
-                aria-label="Trang trước"
+                aria-label={t('host.listings.prevPage')}
                 disabled={currentPage === 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 className="flex h-10 w-10 items-center justify-center rounded-lg border border-booking-border text-booking-muted transition hover:bg-white disabled:opacity-50"
@@ -285,7 +287,7 @@ export default function HostListingsPage() {
               ))}
               <button
                 type="button"
-                aria-label="Trang sau"
+                aria-label={t('host.listings.nextPage')}
                 disabled={currentPage === totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 className="flex h-10 w-10 items-center justify-center rounded-lg border border-booking-border text-booking-text transition hover:bg-white disabled:opacity-50"

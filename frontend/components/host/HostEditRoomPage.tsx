@@ -7,7 +7,8 @@ import { useAuth } from '@/context/AuthContext';
 import HostSidebar from '@/components/host/HostSidebar';
 import GoogleAddressInput, { type SelectedPlace } from '@/components/host/GoogleAddressInput';
 import { hostRoomService, type HostRoom } from '@/services/hostRoomService';
-import { roomTypeOptions } from '@/data/hostCreateRoom';
+import { getRoomTypeOptions } from '@/data/hostCreateRoom';
+import { useTranslation } from '@/context/LanguageContext';
 
 interface UploadPreview {
   id: string;
@@ -82,16 +83,20 @@ function parseMoneyInput(value: string): string {
   return String(value ?? '').replace(/\D/g, '');
 }
 
-const statusMeta: Record<string, { label: string; dot: string; text: string; bg: string }> = {
-  AVAILABLE: { label: 'Đang hoạt động', dot: '#006A61', text: '#006A61', bg: 'rgba(0,106,97,0.1)' },
-  RENTED: { label: 'Đã cho thuê', dot: '#434655', text: '#434655', bg: 'rgba(67,70,85,0.1)' },
-  LOCKED: { label: 'Đang giữ chỗ', dot: '#943700', text: '#943700', bg: 'rgba(148,55,0,0.1)' },
-};
+const getStatusMeta = (t: any): Record<string, { label: string; dot: string; text: string; bg: string }> => ({
+  AVAILABLE: { label: t('host.editRoom.statusAvailable'), dot: '#006A61', text: '#006A61', bg: 'rgba(0,106,97,0.1)' },
+  RENTED: { label: t('host.editRoom.statusRented'), dot: '#434655', text: '#434655', bg: 'rgba(67,70,85,0.1)' },
+  LOCKED: { label: t('host.editRoom.statusLocked'), dot: '#943700', text: '#943700', bg: 'rgba(148,55,0,0.1)' },
+});
 
 export default function HostEditRoomPage({ listingId }: { listingId: string }) {
   const { user, logout } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
+
+  const roomTypeOptions = getRoomTypeOptions(t);
+  const statusMeta = getStatusMeta(t);
   // Mỗi lần mở trang chỉnh sửa, link truyền ?r=<timestamp> khác nhau ⇒ buộc
   // tải lại dữ liệu mới nhất (kể cả khi component được tái dùng từ Router Cache).
   const refreshKey = searchParams.get('r');
@@ -133,7 +138,7 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
         const found = await hostRoomService.getMyRoomById(listingId);
         if (cancelled) return;
         if (!found) {
-          setLoadError('Không tìm thấy phòng hoặc bạn không có quyền chỉnh sửa.');
+          setLoadError(t('host.editRoom.errorNotFound'));
           return;
         }
         setRoom(found);
@@ -156,7 +161,7 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
         setInternetCost(formatMoneyInput(found.internet_cost ?? ''));
         setServiceFee(formatMoneyInput(found.service_fee ?? ''));
       } catch (err: any) {
-        if (!cancelled) setLoadError(err?.message || 'Không tải được thông tin phòng.');
+        if (!cancelled) setLoadError(err?.message || t('host.editRoom.errorLoadFailed'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -229,11 +234,11 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
     const rentValue = parseMoneyInput(monthlyRent);
     const depositValue = parseMoneyInput(depositAmount);
 
-    if (!title.trim()) return setError('Vui lòng nhập tên phòng.');
-    if (!address.trim()) return setError('Vui lòng nhập địa chỉ.');
-    if (!rentValue || Number(rentValue) <= 0) return setError('Giá thuê hàng tháng phải lớn hơn 0.');
-    if (depositValue === '' || Number(depositValue) < 0) return setError('Tiền đặt cọc không hợp lệ.');
-    if (!capacity || Number(capacity) <= 0) return setError('Sức chứa phải lớn hơn 0.');
+    if (!title.trim()) return setError(t('host.editRoom.errorNameRequired'));
+    if (!address.trim()) return setError(t('host.editRoom.errorAddressRequired'));
+    if (!rentValue || Number(rentValue) <= 0) return setError(t('host.editRoom.errorRentInvalid'));
+    if (depositValue === '' || Number(depositValue) < 0) return setError(t('host.editRoom.errorDepositInvalid'));
+    if (!capacity || Number(capacity) <= 0) return setError(t('host.editRoom.errorCapacityInvalid'));
 
     const formData = new FormData();
     formData.append('title', title.trim());
@@ -264,7 +269,7 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
       router.push(`/host/listings/${room.room_id}`);
       router.refresh();
     } catch (err: any) {
-      setError(err?.message || 'Cập nhật thất bại. Vui lòng thử lại.');
+      setError(err?.message || t('host.editRoom.errorUpdateFailed'));
       setSubmitting(false);
     }
   };
@@ -274,7 +279,7 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
       <main className="min-h-screen bg-slate-50 font-sans text-slate-900">
         <HostSidebar user={user} onLogout={handleLogout} activePage="listings" />
         <section className="flex min-h-screen items-center justify-center lg:ml-64">
-          <p className="text-base font-semibold text-[#434655]">Đang tải thông tin phòng...</p>
+          <p className="text-base font-semibold text-[#434655]">{t('host.editRoom.loading')}</p>
         </section>
       </main>
     );
@@ -285,9 +290,9 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
       <main className="min-h-screen bg-slate-50 font-sans text-slate-900">
         <HostSidebar user={user} onLogout={handleLogout} activePage="listings" />
         <section className="flex min-h-screen flex-col items-center justify-center gap-4 lg:ml-64">
-          <p className="text-base font-semibold text-[#BA1A1A]">{loadError || 'Không tìm thấy phòng.'}</p>
+          <p className="text-base font-semibold text-[#BA1A1A]">{loadError || t('host.editRoom.notFound')}</p>
           <Link href="/host/listings" className="rounded-lg bg-[#004AC6] px-6 py-3 text-base text-white hover:bg-[#003f9e]">
-            Quay lại danh sách
+            {t('host.editRoom.backToList')}
           </Link>
         </section>
       </main>
@@ -305,16 +310,16 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
 
         <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-[1024px] flex-col gap-4 p-4 sm:p-6">
           <nav className="flex items-center gap-1 text-sm leading-[21px]" aria-label="Breadcrumb">
-            <Link href="/host" className="text-[#434655] hover:text-[#004AC6]">Dashboard</Link>
+            <Link href="/host" className="text-[#434655] hover:text-[#004AC6]">{t('host.editRoom.breadcrumbDashboard')}</Link>
             <span className="text-[#434655]">›</span>
-            <Link href="/host/listings" className="text-[#434655] hover:text-[#004AC6]">My Listings</Link>
+            <Link href="/host/listings" className="text-[#434655] hover:text-[#004AC6]">{t('host.editRoom.breadcrumbListings')}</Link>
             <span className="text-[#434655]">›</span>
-            <span className="font-semibold text-[#191B23]">Edit Room</span>
+            <span className="font-semibold text-[#191B23]">{t('host.editRoom.breadcrumbEdit')}</span>
           </nav>
 
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap items-center gap-4">
-              <h1 className="text-[32px] font-bold leading-[38px]">Chỉnh sửa thông tin phòng</h1>
+              <h1 className="text-[32px] font-bold leading-[38px]">{t('host.editRoom.title')}</h1>
               <span
                 className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-bold leading-3 tracking-[0.6px]"
                 style={{ background: badge.bg, color: badge.text }}
@@ -325,14 +330,14 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
             </div>
             <div className="flex gap-4">
               <Link href={`/host/listings/${room.room_id}`} className="flex h-[42px] items-center rounded-lg border border-[#737686] px-6 text-base leading-6 hover:bg-white">
-                Hủy bỏ
+                {t('host.editRoom.cancel')}
               </Link>
               <button
                 type="submit"
                 disabled={submitting}
                 className="flex h-[42px] items-center rounded-lg bg-[#004AC6] px-6 text-base leading-6 text-white shadow-[0_10px_15px_-3px_rgba(0,74,198,0.2)] hover:bg-[#003f9e] disabled:opacity-60"
               >
-                {submitting ? 'Đang lưu...' : 'Cập nhật thay đổi'}
+                {submitting ? t('host.editRoom.saving') : t('host.editRoom.saveChanges')}
               </button>
             </div>
           </div>
@@ -346,7 +351,7 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
           <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
             <div className="relative z-20 flex flex-col gap-6">
               <EditSection
-                title="Thông tin cơ bản"
+                title={t('host.editRoom.basicInfo')}
                 icon={
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="9" /><path d="M12 8h.01M11 12h1v4h1" />
@@ -356,12 +361,12 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="md:col-span-2">
                     <div className="flex flex-col gap-1">
-                      <Label htmlFor="edit-title">Tên phòng</Label>
+                      <Label htmlFor="edit-title">{t('host.editRoom.roomName')}</Label>
                       <input id="edit-title" value={title} onChange={(event) => setTitle(event.target.value)} className={inputClass} />
                     </div>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <Label htmlFor="edit-type">Loại phòng</Label>
+                    <Label htmlFor="edit-type">{t('host.editRoom.roomType')}</Label>
                     <div className="relative">
                       <select id="edit-type" value={roomType} onChange={(event) => setRoomType(event.target.value)} className={`${inputClass} w-full appearance-none pr-10`}>
                         {typeOptions.map((option) => (
@@ -376,12 +381,12 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
                     </div>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <Label htmlFor="edit-capacity">Sức chứa (Người)</Label>
+                    <Label htmlFor="edit-capacity">{t('host.editRoom.capacity')}</Label>
                     <input id="edit-capacity" type="number" min="1" value={capacity} onChange={(event) => setCapacity(event.target.value)} className={inputClass} />
                   </div>
                   <div className="md:col-span-2">
                     <div className="flex flex-col gap-1">
-                      <Label htmlFor="edit-description">Mô tả phòng</Label>
+                      <Label htmlFor="edit-description">{t('host.editRoom.description')}</Label>
                       <textarea id="edit-description" value={description} onChange={(event) => setDescription(event.target.value)} rows={4} className="rounded-lg border border-[#C3C6D7] bg-white px-4 py-3 text-base outline-none focus:ring-2 focus:ring-[#004AC6]/20" />
                     </div>
                   </div>
@@ -389,7 +394,7 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
               </EditSection>
 
               <EditSection
-                title="Giá & Chi phí"
+                title={t('host.editRoom.priceCosts')}
                 icon={
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
@@ -398,34 +403,34 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
               >
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="flex flex-col gap-1">
-                    <Label htmlFor="edit-rent">Giá thuê hàng tháng (đ)</Label>
+                    <Label htmlFor="edit-rent">{t('host.editRoom.monthlyRent')}</Label>
                     <input id="edit-rent" type="text" inputMode="numeric" placeholder="6.500.000" value={monthlyRent} onChange={(event) => setMonthlyRent(formatMoneyInput(event.target.value))} className={inputClass} />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <Label htmlFor="edit-deposit">Tiền đặt cọc (đ)</Label>
+                    <Label htmlFor="edit-deposit">{t('host.editRoom.deposit')}</Label>
                     <input id="edit-deposit" type="text" inputMode="numeric" placeholder="6.500.000" value={depositAmount} onChange={(event) => setDepositAmount(formatMoneyInput(event.target.value))} className={inputClass} />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <Label htmlFor="edit-electricity">Phí điện (đ/kWh)</Label>
+                    <Label htmlFor="edit-electricity">{t('host.editRoom.electricity')}</Label>
                     <input id="edit-electricity" type="text" inputMode="numeric" placeholder="0" value={electricityCost} onChange={(event) => setElectricityCost(formatMoneyInput(event.target.value))} className={inputClass} />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <Label htmlFor="edit-water">Phí nước (đ/khối)</Label>
+                    <Label htmlFor="edit-water">{t('host.editRoom.water')}</Label>
                     <input id="edit-water" type="text" inputMode="numeric" placeholder="0" value={waterCost} onChange={(event) => setWaterCost(formatMoneyInput(event.target.value))} className={inputClass} />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <Label htmlFor="edit-internet">Phí internet (đ/tháng)</Label>
+                    <Label htmlFor="edit-internet">{t('host.editRoom.internet')}</Label>
                     <input id="edit-internet" type="text" inputMode="numeric" placeholder="0" value={internetCost} onChange={(event) => setInternetCost(formatMoneyInput(event.target.value))} className={inputClass} />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <Label htmlFor="edit-service">Phí dịch vụ (đ/tháng)</Label>
+                    <Label htmlFor="edit-service">{t('host.editRoom.service')}</Label>
                     <input id="edit-service" type="text" inputMode="numeric" placeholder="0" value={serviceFee} onChange={(event) => setServiceFee(formatMoneyInput(event.target.value))} className={inputClass} />
                   </div>
                 </div>
               </EditSection>
 
               <EditSection
-                title="Vị trí"
+                title={t('host.editRoom.location')}
                 className="relative z-30"
                 icon={
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -435,7 +440,7 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
               >
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="flex flex-col gap-1 md:col-span-2">
-                    <Label htmlFor="edit-address">Địa chỉ</Label>
+                    <Label htmlFor="edit-address">{t('host.editRoom.address')}</Label>
                     <GoogleAddressInput
                       id="edit-address"
                       value={address}
@@ -447,16 +452,16 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
                         setLongitude('');
                       }}
                       onPlaceSelected={handlePlaceSelected}
-                      placeholder="Số nhà, tên đường, phường/xã, quận/huyện..."
+                      placeholder={t('host.editRoom.addressPlaceholder')}
                       inputClassName={inputClass}
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <Label htmlFor="edit-latitude">Vĩ độ</Label>
+                    <Label htmlFor="edit-latitude">{t('host.editRoom.latitude')}</Label>
                     <input id="edit-latitude" type="number" step="any" value={latitude} onChange={(event) => setLatitude(event.target.value)} className={inputClass} />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <Label htmlFor="edit-longitude">Kinh độ</Label>
+                    <Label htmlFor="edit-longitude">{t('host.editRoom.longitude')}</Label>
                     <input id="edit-longitude" type="number" step="any" value={longitude} onChange={(event) => setLongitude(event.target.value)} className={inputClass} />
                   </div>
                 </div>
@@ -470,16 +475,16 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
                   <svg className="h-5 w-5 text-[#004AC6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 5h16v14H4zM8 13l2-2 3 3 2-2 3 3" />
                   </svg>
-                  Hình ảnh
+                  {t('host.editRoom.imagesTitle')}
                 </h2>
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="rounded px-2 py-1 text-base text-[#004AC6] hover:bg-[#F3F3FE]">
-                  Thêm ảnh
+                  {t('host.editRoom.addMore')}
                 </button>
               </div>
 
               {newImages.length > 0 && (
                 <p className="mt-4 rounded-lg bg-[rgba(148,55,0,0.08)] px-3 py-2 text-xs font-semibold text-[#943700]">
-                  Lưu ý: tải ảnh mới sẽ thay thế toàn bộ ảnh hiện tại của phòng.
+                  {t('host.editRoom.imageWarning')}
                 </p>
               )}
 
@@ -506,7 +511,7 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
                   <>
                     <figure className="relative overflow-hidden rounded-lg border border-[#C3C6D7]">
                       <img src={existingImages[0].image_url} alt="Ảnh bìa" className="h-[194px] w-full object-cover" />
-                      <figcaption className="absolute bottom-2 left-2 rounded bg-[rgba(0,74,198,0.9)] px-2 py-1 text-[10px] font-bold text-white">ẢNH BÌA</figcaption>
+                      <figcaption className="absolute bottom-2 left-2 rounded bg-[rgba(0,74,198,0.9)] px-2 py-1 text-[10px] font-bold text-white">{t('host.editRoom.coverImage')}</figcaption>
                     </figure>
                     {existingImages.length > 1 && (
                       <div className="grid grid-cols-2 gap-4">
@@ -521,7 +526,7 @@ export default function HostEditRoomPage({ listingId }: { listingId: string }) {
                     <svg className="mb-1 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
                     </svg>
-                    Tải lên từ thiết bị
+                    {t('host.editRoom.uploadFromDevice')}
                   </button>
                 )}
               </div>

@@ -23,6 +23,8 @@ import UserProfileModal from '@/components/common/UserProfileModal';
 import ChangePasswordModal from '@/components/common/ChangePasswordModal';
 import SupportTicketModal from '@/components/common/SupportTicketModal';
 import ViolationReportModal from '@/components/common/ViolationReportModal';
+import { useTranslation } from '@/context/LanguageContext';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,12 +50,12 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-const navItems: NavItem[] = [
-  { key: 'overview', label: 'Tổng quan', href: '/host', icon: LayoutDashboard },
-  { key: 'listings', label: 'Tin đăng', href: '/host/listings', icon: FileText },
-  { key: 'transactions', label: 'Giao dịch', href: '/host/transactions', icon: CreditCard },
-  { key: 'revenue', label: 'Doanh thu', href: '/host/revenue', icon: TrendingUp },
-  { key: 'messages', label: 'Tin nhắn', href: '/host/messages', icon: MessageSquare },
+const getNavItems = (t: any): NavItem[] => [
+  { key: 'overview', label: t('host.sidebar.overview'), href: '/host', icon: LayoutDashboard },
+  { key: 'listings', label: t('host.sidebar.listings'), href: '/host/listings', icon: FileText },
+  { key: 'transactions', label: t('host.sidebar.transactions'), href: '/host/transactions', icon: CreditCard },
+  { key: 'revenue', label: t('host.sidebar.revenue'), href: '/host/revenue', icon: TrendingUp },
+  { key: 'messages', label: t('host.sidebar.messages'), href: '/host/messages', icon: MessageSquare },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -63,6 +65,7 @@ export default function HostSidebar({
   onLogout,
   activePage = 'overview',
 }: HostSidebarProps) {
+  const { t } = useTranslation();
   const displayName = user?.fullName || 'DPVinhIT';
   const avatarSrc = user?.avatarUrl || '/images/booking/host/host-avatar.jpg';
 
@@ -86,10 +89,10 @@ export default function HostSidebar({
   }, []);
 
   const menuItems = [
-    { label: 'Xem hồ sơ cá nhân', icon: UserIcon, onClick: () => setIsProfileOpen(true) },
-    { label: 'Đổi mật khẩu', icon: KeyRound, onClick: () => setIsChangePasswordOpen(true) },
-    { label: 'Đơn hỗ trợ', icon: LifeBuoy, onClick: () => setIsSupportOpen(true) },
-    { label: 'Đơn khiếu nại', icon: AlertTriangle, onClick: () => setIsViolationOpen(true) },
+    { label: t('header.profile'), icon: UserIcon, onClick: () => setIsProfileOpen(true) },
+    { label: t('header.changePassword'), icon: KeyRound, onClick: () => setIsChangePasswordOpen(true) },
+    { label: t('modals.support.title'), icon: LifeBuoy, onClick: () => setIsSupportOpen(true) },
+    { label: t('modals.violation.title'), icon: AlertTriangle, onClick: () => setIsViolationOpen(true) },
   ];
 
   return (
@@ -112,7 +115,7 @@ export default function HostSidebar({
             <p className="truncate text-base font-bold leading-tight text-booking-primary">
               {displayName}
             </p>
-            <p className="truncate text-xs text-slate-500">Tài khoản đã xác thực</p>
+            <p className="truncate text-xs text-slate-500">{t('host.sidebar.verifiedAccount')}</p>
           </div>
           <ChevronDown
             size={16}
@@ -147,20 +150,19 @@ export default function HostSidebar({
         )}
       </div>
 
-      {/* Add room CTA */}
       <div className="px-4 pt-6">
         <Link
           href="/host/listings/new"
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-booking-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-booking-primaryDark"
         >
           <Plus size={18} />
-          <span>Thêm phòng mới</span>
+          <span>{t('host.sidebar.addNewRoom')}</span>
         </Link>
       </div>
 
       {/* Main navigation */}
       <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-6">
-        {navItems.map((item) => {
+        {getNavItems(t).map((item) => {
           const isActive = activePage === item.key;
           const Icon = item.icon;
 
@@ -181,14 +183,17 @@ export default function HostSidebar({
         })}
       </nav>
 
-      {/* Bottom navigation */}
       <div className="space-y-1 border-t border-slate-200 p-4">
+        <div className="px-4 py-2 flex items-center justify-between border-b border-slate-100 mb-2 pb-3">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('header.selectLanguage')}</span>
+          <LanguageSwitcher dropdownPlacement="top" />
+        </div>
         <Link
           href="/host/settings"
           className="flex items-center gap-3 rounded-xl px-4 py-3 font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
         >
           <Settings size={20} className="text-slate-500" />
-          <span>Cài đặt</span>
+          <span>{t('host.sidebar.settings')}</span>
         </Link>
         <button
           type="button"
@@ -196,7 +201,7 @@ export default function HostSidebar({
           className="flex w-full items-center gap-3 rounded-xl px-4 py-3 font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600"
         >
           <LogOut size={20} className="text-slate-500" />
-          <span>Đăng xuất</span>
+          <span>{t('host.sidebar.logout')}</span>
         </button>
       </div>
 

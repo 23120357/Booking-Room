@@ -22,17 +22,18 @@ import {
 import { hostBookingService, mapToPendingRequest } from '@/services/hostBookingService';
 import { formatVND, type PendingRequest } from '@/data/hostDashboard';
 import type { HostListing } from '@/data/hostListings';
+import { useTranslation } from '@/context/LanguageContext';
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 /** Pill badge shown next to the pending-requests heading */
-function NewBadge({ count }: { count: number }) {
+function NewBadge({ count, t }: { count: number; t: any }) {
   return (
     <span
       className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold tracking-[0.6px]"
       style={{ background: '#FFDAD6', color: '#93000A' }}
     >
-      {count} Mới
+      {count} {t('host.dashboard.newBadge')}
     </span>
   );
 }
@@ -43,11 +44,13 @@ function PendingRequestRow({
   onApprove,
   onReject,
   disabled,
+  t,
 }: {
   request: PendingRequest;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
   disabled?: boolean;
+  t: any;
 }) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2">
@@ -61,7 +64,7 @@ function PendingRequestRow({
         <div>
           <p className="text-sm font-semibold leading-[21px] text-slate-900">{request.tenantName}</p>
           <p className="text-sm leading-[21px] text-slate-500">
-            {request.roomTitle}&nbsp;•&nbsp;Đặt cọc {formatVND(request.depositAmount)}
+            {request.roomTitle}&nbsp;•&nbsp;{t('host.dashboard.deposit')} {formatVND(request.depositAmount)}
           </p>
         </div>
       </div>
@@ -73,7 +76,7 @@ function PendingRequestRow({
           disabled={disabled}
           className="rounded-lg px-2 py-1 text-base leading-6 text-[#004AC6] transition hover:bg-[#EEF3FF] disabled:opacity-50"
         >
-          Duyệt
+          {t('host.dashboard.approve')}
         </button>
         <button
           type="button"
@@ -81,7 +84,7 @@ function PendingRequestRow({
           disabled={disabled}
           className="rounded-lg px-2 py-1 text-base leading-6 text-[#BA1A1A] transition hover:bg-[#FFDAD6] disabled:opacity-50"
         >
-          Từ chối
+          {t('host.dashboard.reject')}
         </button>
       </div>
     </div>
@@ -132,6 +135,7 @@ function RevenueSection({
   yearOptions,
   onYearChange,
   onMonthSelect,
+  t,
 }: {
   overview: HostOverview | null;
   loading: boolean;
@@ -140,6 +144,7 @@ function RevenueSection({
   yearOptions: number[];
   onYearChange: (year: number) => void;
   onMonthSelect: (month: number) => void;
+  t: any;
 }) {
   const monthly = overview?.revenue.monthly ?? [];
   const maxAmount = Math.max(1, ...monthly.map((m) => m.amount));
@@ -150,9 +155,9 @@ function RevenueSection({
     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-lg font-bold text-slate-900">Doanh thu theo tháng</p>
+          <p className="text-lg font-bold text-slate-900">{t('host.dashboard.monthlyRevenue')}</p>
           <p className="mt-1 text-sm text-slate-500">
-            Tháng {selectedMonth}/{year}
+            {t('host.dashboard.month')} {selectedMonth}/{year}
           </p>
           <p className="mt-1 text-2xl font-bold text-booking-primary">{formatVND(selectedAmount)}</p>
         </div>
@@ -166,7 +171,7 @@ function RevenueSection({
           >
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
               <option key={m} value={m}>
-                Tháng {m}
+                {t('host.dashboard.month')} {m}
               </option>
             ))}
           </select>
@@ -186,7 +191,7 @@ function RevenueSection({
       </div>
 
       <p className="mt-4 text-sm text-slate-500">
-        Tổng cả năm {year}:{' '}
+        {t('host.dashboard.totalYear')} {year}:{' '}
         <span className="font-semibold text-slate-900">{formatVND(overview?.revenue.totalRevenue ?? 0)}</span>
       </p>
 
@@ -227,6 +232,7 @@ const now = new Date();
 export default function HostDashboardPage() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [overview, setOverview] = useState<HostOverview | null>(null);
   const [loadingOverview, setLoadingOverview] = useState(true);
@@ -288,11 +294,11 @@ export default function HostDashboardPage() {
   const handleDecision = async (id: string, decision: 'ACCEPTED' | 'REJECTED') => {
     setProcessingId(id);
     try {
-      const reason = decision === 'REJECTED' ? 'Chủ nhà từ chối đơn đặt cọc' : undefined;
+      const reason = decision === 'REJECTED' ? t('host.dashboard.rejectReason') : undefined;
       await hostBookingService.updateDepositDecision(id, decision, reason);
       setRequests((prev) => prev.filter((r) => r.id !== id));
     } catch (err: any) {
-      alert(err?.message || 'Xử lý yêu cầu thất bại. Vui lòng thử lại.');
+      alert(err?.message || t('host.dashboard.processFail'));
     } finally {
       setProcessingId(null);
     }
@@ -309,7 +315,7 @@ export default function HostDashboardPage() {
       await hostRoomService.setVisibility(id, nextVisible);
     } catch (err: any) {
       setFeatured(previous);
-      alert(err?.message || 'Không thể cập nhật trạng thái hiển thị. Vui lòng thử lại.');
+      alert(err?.message || t('host.dashboard.updateVisibilityFail'));
     } finally {
       setTogglingId(null);
     }
@@ -330,9 +336,9 @@ export default function HostDashboardPage() {
       <section className="flex-1 bg-slate-50 lg:ml-64">
         <div className="mx-auto max-w-[1100px] px-8 pb-16 pt-8">
           <header className="mb-8">
-            <h1 className="text-2xl font-bold text-slate-900">Tổng quan kinh doanh</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{t('host.dashboard.overviewTitle')}</h1>
             <p className="mt-1 text-sm text-slate-500">
-              Theo dõi hiệu suất và quản lý danh sách phòng của bạn.
+              {t('host.dashboard.overviewDesc')}
             </p>
           </header>
 
@@ -352,9 +358,9 @@ export default function HostDashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 17a3 3 0 0 0 6 0" />
                 </svg>
                 <h2 id="pending-heading" className="text-lg font-bold text-slate-900">
-                  Yêu cầu cần duyệt
+                  {t('host.dashboard.pendingRequests')}
                 </h2>
-                <NewBadge count={requests.length} />
+                <NewBadge count={requests.length} t={t} />
               </div>
               <div className="mt-3 flex flex-col gap-2">
                 {requests.map((req) => (
@@ -364,6 +370,7 @@ export default function HostDashboardPage() {
                     onApprove={(id) => handleDecision(id, 'ACCEPTED')}
                     onReject={(id) => handleDecision(id, 'REJECTED')}
                     disabled={processingId === req.id}
+                    t={t}
                   />
                 ))}
               </div>
@@ -373,12 +380,12 @@ export default function HostDashboardPage() {
           {/* ── KPI Stats ─────────────────────────────────────────────── */}
           <section aria-label="Thống kê phòng" className="mb-8">
             <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-6">
-              <StatCard label="Tổng số phòng" value={stats?.total ?? 0} icon={LayoutGrid} iconBg="bg-blue-100" iconColor="text-blue-600" loading={loadingOverview} />
-              <StatCard label="Đã cho thuê" value={stats?.rented ?? 0} icon={KeyRound} iconBg="bg-emerald-100" iconColor="text-emerald-600" loading={loadingOverview} />
-              <StatCard label="Đang trống" value={stats?.available ?? 0} icon={DoorOpen} iconBg="bg-teal-100" iconColor="text-teal-600" loading={loadingOverview} />
-              <StatCard label="Chờ duyệt" value={stats?.pending ?? 0} icon={Clock} iconBg="bg-orange-100" iconColor="text-orange-600" loading={loadingOverview} />
-              <StatCard label="Đang ẩn" value={stats?.hidden ?? 0} icon={EyeOff} iconBg="bg-slate-200" iconColor="text-slate-600" loading={loadingOverview} />
-              <StatCard label="Đánh giá TB" value={avgRatingLabel} icon={Star} iconBg="bg-amber-100" iconColor="text-amber-500" loading={loadingOverview} />
+              <StatCard label={t('host.dashboard.totalRooms')} value={stats?.total ?? 0} icon={LayoutGrid} iconBg="bg-blue-100" iconColor="text-blue-600" loading={loadingOverview} />
+              <StatCard label={t('host.dashboard.rented')} value={stats?.rented ?? 0} icon={KeyRound} iconBg="bg-emerald-100" iconColor="text-emerald-600" loading={loadingOverview} />
+              <StatCard label={t('host.dashboard.available')} value={stats?.available ?? 0} icon={DoorOpen} iconBg="bg-teal-100" iconColor="text-teal-600" loading={loadingOverview} />
+              <StatCard label={t('host.dashboard.pending')} value={stats?.pending ?? 0} icon={Clock} iconBg="bg-orange-100" iconColor="text-orange-600" loading={loadingOverview} />
+              <StatCard label={t('host.dashboard.hidden')} value={stats?.hidden ?? 0} icon={EyeOff} iconBg="bg-slate-200" iconColor="text-slate-600" loading={loadingOverview} />
+              <StatCard label={t('host.dashboard.avgRating')} value={avgRatingLabel} icon={Star} iconBg="bg-amber-100" iconColor="text-amber-500" loading={loadingOverview} />
             </div>
           </section>
 
@@ -392,6 +399,7 @@ export default function HostDashboardPage() {
               yearOptions={yearOptions}
               onYearChange={setYear}
               onMonthSelect={setSelectedMonth}
+              t={t}
             />
           </section>
 
@@ -399,10 +407,10 @@ export default function HostDashboardPage() {
           <section aria-labelledby="featured-heading">
             <div className="mb-4 flex items-center justify-between">
               <h2 id="featured-heading" className="text-lg font-bold text-slate-900">
-                Phòng nổi bật
+                {t('host.dashboard.featuredRooms')}
               </h2>
               <a href="/host/listings" className="flex items-center gap-1 text-sm font-semibold text-booking-primary hover:underline">
-                Xem tất cả
+                {t('host.dashboard.viewAll')}
                 <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
@@ -428,9 +436,9 @@ export default function HostDashboardPage() {
               </div>
             ) : (
               <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
-                <p className="text-base font-semibold text-slate-900">Bạn chưa có phòng nào.</p>
+                <p className="text-base font-semibold text-slate-900">{t('host.dashboard.noRooms')}</p>
                 <a href="/host/listings/new" className="mt-2 inline-block text-sm font-semibold text-booking-primary hover:underline">
-                  Đăng phòng đầu tiên
+                  {t('host.dashboard.postFirstRoom')}
                 </a>
               </div>
             )}

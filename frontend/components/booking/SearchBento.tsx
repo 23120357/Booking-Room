@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { MapPinIcon, SearchIcon, WalletIcon } from './Icons';
 import { vietnamAdministrativeUnits } from '@/utils/vietnamAdministrativeUnits';
 import LocationPickerMap from '../guest/LocationPickerMap';
+import { useTranslation } from '@/context/LanguageContext';
 
 const roomTypes = ['Phòng trọ', 'Căn hộ', 'Ở ghép'];
 const budgetOptions = ['Dưới 3 triệu', '3 - 5 triệu', '5 - 10 triệu', 'Trên 10 triệu'];
@@ -79,6 +80,7 @@ function useAddressSearch(query: string) {
 function SearchBentoInner({ compact = false }: { compact?: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
 
   const [location, setLocation] = useState(''); // Chuỗi nhiều địa điểm cách nhau bởi |
   const [budget, setBudget] = useState('');
@@ -169,7 +171,7 @@ function SearchBentoInner({ compact = false }: { compact?: boolean }) {
                 {nearLat && nearLng ? `📍 Quanh ${location}` : location.split('|').join(', ')}
               </p>
             ) : (
-              <p className="truncate text-base text-booking-muted">Chọn khu vực tìm kiếm...</p>
+              <p className="truncate text-base text-booking-muted">{t('search.chooseArea')}</p>
             )}
           </div>
         </button>
@@ -182,7 +184,7 @@ function SearchBentoInner({ compact = false }: { compact?: boolean }) {
             onChange={(e) => setBudget(e.target.value)}
             className="w-full min-h-14 rounded-lg border border-booking-border bg-white pl-4 pr-10 text-base text-booking-text outline-none transition focus:border-booking-primary cursor-pointer appearance-none"
           >
-            <option value="">Giá phòng</option>
+            <option value="">{t('search.roomPrice')}</option>
             {budgetOptions.map((opt) => (
               <option key={opt} value={opt}>{opt}</option>
             ))}
@@ -202,7 +204,7 @@ function SearchBentoInner({ compact = false }: { compact?: boolean }) {
             onChange={(e) => setType(e.target.value)}
             className="w-full min-h-14 rounded-lg border border-booking-border bg-white pl-4 pr-10 text-base text-booking-text outline-none transition focus:border-booking-primary cursor-pointer appearance-none"
           >
-            <option value="">Loại phòng</option>
+            <option value="">{t('search.roomType')}</option>
             {roomTypes.map((roomType) => (
               <option key={roomType} value={roomType}>{roomType}</option>
             ))}
@@ -222,7 +224,7 @@ function SearchBentoInner({ compact = false }: { compact?: boolean }) {
           className="inline-flex min-h-14 items-center justify-center gap-2 rounded-lg bg-booking-primary px-6 text-sm font-bold text-white shadow-sm transition hover:bg-booking-primaryDark cursor-pointer"
         >
           <SearchIcon className="h-4 w-4" />
-          Tìm ngay
+          {t('search.searchNow')}
         </button>
 
       </div>
@@ -239,7 +241,7 @@ function SearchBentoInner({ compact = false }: { compact?: boolean }) {
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-booking-border bg-white">
-              <h3 className="text-xl font-bold text-booking-text">Chọn khu vực tìm kiếm</h3>
+              <h3 className="text-xl font-bold text-booking-text">{t('search.searchAreaTitle')}</h3>
               <button
                 type="button"
                 onClick={handleCancel}
@@ -261,7 +263,7 @@ function SearchBentoInner({ compact = false }: { compact?: boolean }) {
                     </span>
                     <input
                       type="text"
-                      placeholder="Tìm Tỉnh/Thành hoặc Quận/Huyện..."
+                      placeholder={t('search.searchProvince')}
                       value={adminSearchQuery}
                       onChange={(e) => setAdminSearchQuery(e.target.value)}
                       className="w-full pl-9 pr-4 py-2 text-sm border border-booking-border rounded-xl outline-none focus:border-booking-primary transition-all"
@@ -323,7 +325,7 @@ function SearchBentoInner({ compact = false }: { compact?: boolean }) {
                 disabled={draftAdmins.length === 0}
                 className="text-sm text-red-600 hover:text-red-800 font-bold disabled:opacity-50 transition"
               >
-                Xóa lựa chọn ({draftAdmins.length})
+                {t('search.clearSelection')} ({draftAdmins.length})
               </button>
               
               <div className="flex items-center gap-3">
@@ -332,14 +334,14 @@ function SearchBentoInner({ compact = false }: { compact?: boolean }) {
                   onClick={handleCancel}
                   className="px-4 py-2 text-sm font-bold rounded-xl border border-booking-border text-booking-text hover:bg-booking-surface transition-colors cursor-pointer"
                 >
-                  Hủy
+                  {t('search.cancel')}
                 </button>
                 <button
                   type="button"
                   onClick={handleConfirm}
                   className="px-5 py-2 text-sm font-extrabold rounded-xl bg-booking-primary text-white hover:bg-booking-primaryDark shadow transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Áp dụng
+                  {t('search.apply')}
                 </button>
               </div>
             </div>

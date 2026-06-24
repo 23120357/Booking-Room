@@ -11,6 +11,7 @@ import { Users, UserCheck, UserX, UserMinus, Search, Download, Eye, Lock, Unlock
 import { toast } from 'react-hot-toast';
 import UserDetailModal from '@/components/admin/UserDetailModal';
 import Avatar from '@/components/admin/Avatar';
+import { useTranslation } from '@/context/LanguageContext';
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<any[]>([]);
@@ -26,6 +27,7 @@ export default function UserManagementPage() {
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [statsLoading, setStatsLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -68,9 +70,7 @@ export default function UserManagementPage() {
       setPagination({ total: usersRes.pagination?.total || 0, totalPages: usersRes.pagination?.totalPages || 1 });
     } catch (err: any) {
       console.error('Failed to load user management data:', err);
-      // Giữ lại lỗi cũ nếu là lỗi hiển thị, tránh giật UI, hoặc có thể show toast thay vì error block
-      toast.error(err.message || 'Lỗi khi tải dữ liệu người dùng');
-      // Không setError để tránh layout shift
+      toast.error(err.message || t.admin.usersPage.loadError);
     } finally {
       setLoading(false);
     }
@@ -96,14 +96,14 @@ export default function UserManagementPage() {
       setActionLoading(userId);
       if (currentStatus === 'BANNED') {
         await adminService.unlockUser(userId);
-        toast.success('Đã mở khóa tài khoản');
+        toast.success(t.admin.usersPage.unlockSuccess);
       } else {
         await adminService.lockUser(userId);
-        toast.success('Đã khóa tài khoản');
+        toast.success(t.admin.usersPage.lockSuccess);
       }
       fetchUsers();
     } catch (err: any) {
-      toast.error(err.message || 'Lỗi khi thay đổi trạng thái');
+      toast.error(err.message || t.admin.usersPage.statusChangeError);
     } finally {
       setActionLoading(null);
     }
@@ -126,15 +126,15 @@ export default function UserManagementPage() {
   return (
     <div className="flex flex-col h-full bg-slate-50">
       <AdminHeader
-        title="Quản lý người dùng"
-        description="Kiểm tra, quản lý và xử lý trạng thái tài khoản trên hệ thống."
+        title={t.admin.usersPage.title}
+        description={t.admin.usersPage.description}
       />
 
       <div className="flex-1 p-8 overflow-y-auto">
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
-            title="Tổng tài khoản"
+            title={t.admin.usersPage.totalAccountsCard}
             value={stats.total}
             icon={Users}
             iconBgColor="bg-blue-100"
@@ -142,7 +142,7 @@ export default function UserManagementPage() {
             loading={statsLoading}
           />
           <StatCard
-            title="Tài khoản Host"
+            title={t.admin.usersPage.hostAccountsCard}
             value={stats.hostTotal}
             icon={UserCheck}
             iconBgColor="bg-emerald-100"
@@ -150,7 +150,7 @@ export default function UserManagementPage() {
             loading={statsLoading}
           />
           <StatCard
-            title="Tài khoản bị khóa"
+            title={t.admin.usersPage.lockedAccountsCard}
             value={stats.bannedTotal}
             icon={UserX}
             iconBgColor="bg-red-100"
@@ -158,7 +158,7 @@ export default function UserManagementPage() {
             loading={statsLoading}
           />
           <StatCard
-            title="Đang chờ xác thực"
+            title={t.admin.usersPage.pendingAccountsCard}
             value={stats.pendingTotal}
             icon={UserMinus}
             iconBgColor="bg-orange-100"
@@ -180,7 +180,7 @@ export default function UserManagementPage() {
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Tìm kiếm người dùng..."
+                    placeholder={t.admin.usersPage.searchPlaceholder}
                     className="w-full pl-10 pr-10 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-booking-primary/20 focus:border-booking-primary transition-all text-sm"
                   />
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -197,17 +197,17 @@ export default function UserManagementPage() {
                       onChange={(e) => setFilterStatus(e.target.value)}
                       className="appearance-none bg-white border border-slate-200 text-slate-700 py-2 pl-3 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-booking-primary/20 focus:border-booking-primary text-sm font-medium cursor-pointer"
                     >
-                      <option value="ALL">Tất cả trạng thái</option>
-                      <option value="ACTIVE">Hoạt động</option>
-                      <option value="BANNED">Bị khóa</option>
-                      <option value="INACTIVE">Chờ xác thực</option>
+                      <option value="ALL">{t.admin.usersPage.filterAll}</option>
+                      <option value="ACTIVE">{t.admin.usersPage.filterActive}</option>
+                      <option value="BANNED">{t.admin.usersPage.filterBanned}</option>
+                      <option value="INACTIVE">{t.admin.usersPage.filterInactive}</option>
                     </select>
                     <Filter size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   </div>
                   {/* Nút Xuất danh sách chuyển xuống đây */}
                   <button onClick={handleExport} className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors shadow-sm ml-2">
                     <Download size={18} className="text-slate-500" />
-                    <span>Xuất danh sách</span>
+                    <span>{t.admin.usersPage.exportBtn}</span>
                   </button>
                 </div>
               </div>
@@ -216,11 +216,11 @@ export default function UserManagementPage() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
-                      <th className="px-6 py-4 font-semibold">Người dùng</th>
-                      <th className="px-6 py-4 font-semibold">Liên hệ</th>
-                      <th className="px-6 py-4 font-semibold">Vai trò</th>
-                      <th className="px-6 py-4 font-semibold">Trạng thái</th>
-                      <th className="px-6 py-4 font-semibold">Thao tác</th>
+                      <th className="px-6 py-4 font-semibold">{t.admin.usersPage.thUser}</th>
+                      <th className="px-6 py-4 font-semibold">{t.admin.usersPage.thContact}</th>
+                      <th className="px-6 py-4 font-semibold">{t.admin.usersPage.thRole}</th>
+                      <th className="px-6 py-4 font-semibold">{t.admin.usersPage.thStatus}</th>
+                      <th className="px-6 py-4 font-semibold">{t.admin.usersPage.thActions}</th>
                     </tr>
                   </thead>
                   <tbody className={`text-sm divide-y divide-slate-100 transition-opacity duration-200 ${loading && users.length > 0 ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -229,14 +229,14 @@ export default function UserManagementPage() {
                         <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
                           <div className="flex flex-col items-center justify-center">
                             <span className="w-6 h-6 border-2 border-booking-primary border-t-transparent rounded-full animate-spin mb-2"></span>
-                            Đang tải danh sách...
+                            {t.admin.usersPage.loadingList}
                           </div>
                         </td>
                       </tr>
                     ) : !loading && users.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
-                          Không tìm thấy người dùng nào.
+                          {t.admin.usersPage.noUsersFound}
                         </td>
                       </tr>
                     ) : (
@@ -272,9 +272,9 @@ export default function UserManagementPage() {
                             <StatusBadge
                               status={
                                 user.status === 'ACTIVE'
-                                  ? (user.approvalStatus === 'PENDING' ? 'Chờ xác thực' : 'Hoạt động')
-                                  : user.status === 'BANNED' ? 'Bị khóa'
-                                  : user.status === 'INACTIVE' ? 'Chưa xác thực OTP' : 'Bị khóa'
+                                  ? (user.approvalStatus === 'PENDING' ? t.admin.status.pendingAuth : t.admin.status.active)
+                                  : user.status === 'BANNED' ? t.admin.status.locked
+                                  : user.status === 'INACTIVE' ? t.admin.status.unverifiedOtp : t.admin.status.locked
                               }
                             />
                           </td>
@@ -283,7 +283,7 @@ export default function UserManagementPage() {
                               <button 
                                 onClick={() => setViewingUserId(user.userId)}
                                 className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition-colors"
-                                title="Xem chi tiết"
+                                title={t.admin.usersPage.viewDetailTooltip}
                               >
                                 <Eye size={16} />
                               </button>
@@ -292,7 +292,7 @@ export default function UserManagementPage() {
                                   onClick={() => handleToggleLock(user.userId, user.status)}
                                   disabled={actionLoading === user.userId}
                                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 ${user.status === 'BANNED' ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
-                                  title={user.status === 'BANNED' ? 'Mở khóa' : 'Khóa tài khoản'}
+                                  title={user.status === 'BANNED' ? t.admin.usersPage.unlockTooltip : t.admin.usersPage.lockTooltip}
                                 >
                                   {actionLoading === user.userId ? (
                                     <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
@@ -314,24 +314,24 @@ export default function UserManagementPage() {
 
               {/* Pagination */}
               <div className="p-4 border-t border-slate-200 bg-white flex items-center justify-between text-sm text-slate-500">
-                <span>Hiển thị {users.length} trên tổng {pagination.total} người dùng</span>
+                <span>{t.admin.usersPage.showingCount.replace('{{count}}', users.length.toString()).replace('{{total}}', pagination.total.toString())}</span>
                 <div className="flex items-center gap-2">
                   <button
                     disabled={page <= 1}
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     className="px-3 py-1 border border-slate-200 rounded hover:bg-slate-50 disabled:opacity-50"
                   >
-                    Trước
+                    {t.admin.usersPage.prevPage}
                   </button>
                   <span className="px-2 font-medium text-slate-900">
-                    Trang {page} / {pagination.totalPages}
+                    {t.admin.usersPage.pageText.replace('{{page}}', page.toString()).replace('{{totalPages}}', pagination.totalPages.toString())}
                   </span>
                   <button
                     disabled={page >= pagination.totalPages}
                     onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
                     className="px-3 py-1 border border-slate-200 rounded hover:bg-slate-50 disabled:opacity-50"
                   >
-                    Sau
+                    {t.admin.usersPage.nextPage}
                   </button>
                 </div>
               </div>
@@ -349,3 +349,4 @@ export default function UserManagementPage() {
     </div>
   );
 }
+

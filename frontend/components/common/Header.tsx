@@ -9,14 +9,17 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from '@/context/LanguageContext';
 import UserProfileModal from './UserProfileModal';
 import ChangePasswordModal from './ChangePasswordModal';
 import MyDepositsModal from './MyDepositsModal';
 import SupportTicketModal from './SupportTicketModal';
 import ViolationReportModal from './ViolationReportModal';
+import LanguageSwitcher from './LanguageSwitcher';
 
 export default function Header() {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const isLoggedIn = !!user;
   // Trạng thái mở/đóng dropdown của Avatar
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -54,11 +57,7 @@ export default function Header() {
 
       {/* 2. Menu Navigation & Auth Options */}
       <div className="flex items-center gap-4 lg:gap-6 text-sm font-medium">
-        <button className="text-[#6B778C] hover:text-[#172B4D] transition-colors p-1.5 rounded-full hover:bg-gray-50" title="Chọn ngôn ngữ">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9h18" />
-          </svg>
-        </button>
+        <LanguageSwitcher />
 
         {isLoggedIn && user ? (
           /* TRẠNG THÁI: ĐÃ ĐĂNG NHẬP (Hiển thị Avatar Dropdown) */
@@ -104,7 +103,7 @@ export default function Header() {
                     <svg className="w-4 h-4 text-[#6B778C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
-                    <span>Xem hồ sơ cá nhân</span>
+                    <span>{t('header.viewProfile')}</span>
                   </button>
 
                   <button
@@ -117,7 +116,7 @@ export default function Header() {
                     <svg className="w-4 h-4 text-[#6B778C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
-                    <span>Đổi mật khẩu</span>
+                    <span>{t('header.changePassword')}</span>
                   </button>
 
                   {user.role === 'TENANT' && (
@@ -132,7 +131,7 @@ export default function Header() {
                         <svg className="w-4 h-4 text-[#6B778C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
-                        <span>Đơn đặt cọc</span>
+                        <span>{t('header.deposits')}</span>
                       </button>
 
                       <button
@@ -145,7 +144,7 @@ export default function Header() {
                         <svg className="w-4 h-4 text-[#6B778C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
                         </svg>
-                        <span>Đơn hỗ trợ</span>
+                        <span>{t('header.supportTicket')}</span>
                       </button>
 
                       <button
@@ -158,7 +157,7 @@ export default function Header() {
                         <svg className="w-4 h-4 text-[#6B778C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
-                        <span>Đơn khiếu nại</span>
+                        <span>{t('header.violationReport')}</span>
                       </button>
                     </>
                   )}
@@ -172,7 +171,7 @@ export default function Header() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    <span>Cài đặt tài khoản</span>
+                    <span>{t('header.accountSettings')}</span>
                   </Link>
                 </div>
 
@@ -187,7 +186,7 @@ export default function Header() {
                     <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
-                    <span>Đăng xuất</span>
+                    <span>{t('header.logout')}</span>
                   </button>
                 </div>
               </div>
@@ -200,13 +199,13 @@ export default function Header() {
               href="/auth/login"
               className="text-[#172B4D] hover:text-[#0052CC] transition-colors font-semibold px-2 py-1.5"
             >
-              Đăng nhập
+              {t('header.login')}
             </Link>
             <Link
               href="/auth/register"
               className="bg-[#0052CC] hover:bg-[#0043A8] text-white px-4 py-2 rounded-md font-semibold transition-colors shadow-sm"
             >
-              Đăng ký
+              {t('header.register')}
             </Link>
           </>
         )}

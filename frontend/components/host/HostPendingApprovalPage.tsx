@@ -9,35 +9,38 @@ import {
   pendingApprovalNotes,
 } from '@/data/hostPendingApproval';
 import { hostProfileService } from '@/services/hostProfileService';
-
-const lockedNavItems = [
-  {
-    label: 'Tin đăng',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 11h18M5 11V8a2 2 0 0 1 2-2h3v5m9 0V8a2 2 0 0 0-2-2h-3v5M5 11v6m14-6v6M4 17h16" />
-    ),
-  },
-  {
-    label: 'Giao dịch',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h10M7 12h10M7 17h6M5 3h14a1 1 0 0 1 1 1v16l-3-2-3 2-3-2-3 2-3-2-3 2V4a1 1 0 0 1 1-1z" />
-    ),
-  },
-  {
-    label: 'Doanh thu',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 19h16M7 16V9m5 7V5m5 11v-4" />
-    ),
-  },
-  {
-    label: 'Tin nhắn',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a8 8 0 0 1-8 8H7l-4 3v-6.5A8 8 0 1 1 21 12z" />
-    ),
-  },
-] as const;
+import { useTranslation } from '@/context/LanguageContext';
 
 type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
+
+function getNavItems(t: any) {
+  return [
+    {
+      label: t('host.pendingApproval.navListings'),
+      icon: (
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 11h18M5 11V8a2 2 0 0 1 2-2h3v5m9 0V8a2 2 0 0 0-2-2h-3v5M5 11v6m14-6v6M4 17h16" />
+      ),
+    },
+    {
+      label: t('host.pendingApproval.navTransactions'),
+      icon: (
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h10M7 12h10M7 17h6M5 3h14a1 1 0 0 1 1 1v16l-3-2-3 2-3-2-3 2-3-2-3 2V4a1 1 0 0 1 1-1z" />
+      ),
+    },
+    {
+      label: t('host.pendingApproval.navRevenue'),
+      icon: (
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 19h16M7 16V9m5 7V5m5 11v-4" />
+      ),
+    },
+    {
+      label: t('host.pendingApproval.navMessages'),
+      icon: (
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a8 8 0 0 1-8 8H7l-4 3v-6.5A8 8 0 1 1 21 12z" />
+      ),
+    },
+  ];
+}
 
 function LockIcon() {
   return (
@@ -85,7 +88,8 @@ function CameraPlusIcon() {
 export default function HostPendingApprovalPage() {
   const { user, logout, refreshProfile } = useAuth();
   const router = useRouter();
-  const displayName = user?.fullName || 'Quản lý chủ nhà';
+  const { t } = useTranslation();
+  const displayName = user?.fullName || t('host.pendingApproval.defaultHostName');
   const avatarSrc = user?.avatarUrl || '/images/booking/host/host-avatar.jpg';
   const [frontFile, setFrontFile] = useState<File | null>(null);
   const [backFile, setBackFile] = useState<File | null>(null);
@@ -126,18 +130,18 @@ export default function HostPendingApprovalPage() {
     }
 
     setUploadStatus('uploading');
-    setUploadMessage('Đang gửi ảnh CCCD...');
+    setUploadMessage(t('host.pendingApproval.sendingIdCard'));
     try {
       await hostProfileService.submitHostVerification({
         idCardFront: nextFront,
         idCardBack: nextBack,
       });
       setUploadStatus('success');
-      setUploadMessage('Đã gửi hồ sơ CCCD. Quản trị viên sẽ kiểm tra trong 12-24 giờ làm việc.');
+      setUploadMessage(t('host.pendingApproval.sendIdSuccess'));
       await refreshProfile();
     } catch (error: any) {
       setUploadStatus('error');
-      setUploadMessage(error?.message || 'Không thể gửi hồ sơ CCCD. Vui lòng thử lại.');
+      setUploadMessage(error?.message || t('host.pendingApproval.sendIdError'));
     }
   };
 
@@ -150,7 +154,7 @@ export default function HostPendingApprovalPage() {
       const isAllowedSize = selected.size <= 5 * 1024 * 1024;
       if (!isAllowedType || !isAllowedSize) {
         setUploadStatus('error');
-        setUploadMessage('Ảnh CCCD chỉ hỗ trợ JPG, PNG và tối đa 5MB.');
+        setUploadMessage(t('host.pendingApproval.invalidIdImage'));
         event.target.value = '';
         return;
       }
@@ -164,18 +168,20 @@ export default function HostPendingApprovalPage() {
       }
 
       setUploadStatus('idle');
-      setUploadMessage('Chọn đủ hai mặt CCCD để hệ thống tự gửi hồ sơ.');
+      setUploadMessage(t('host.pendingApproval.promptBothSides'));
       await submitWhenReady(nextFront, nextBack);
     };
 
   // Sau khi gửi đủ 2 ảnh CCCD: bước "cung cấp CCCD" hoàn tất, chuyển sang chờ Admin duyệt.
   const idCardSubmitted = uploadStatus === 'success';
   const approvalSteps: { id: string; label: string; state: 'complete' | 'current' | 'locked' }[] = [
-    { id: 'registered', label: 'Đăng ký thành công', state: 'complete' },
-    { id: 'idcard', label: 'Đang chờ cung cấp CCCD', state: idCardSubmitted ? 'complete' : 'current' },
-    { id: 'review', label: 'Đang chờ Quản trị viên phê duyệt', state: idCardSubmitted ? 'current' : 'locked' },
-    { id: 'verified', label: 'Hoàn tất xác thực', state: 'locked' },
+    { id: 'registered', label: t('host.pendingApproval.step1'), state: 'complete' },
+    { id: 'idcard', label: t('host.pendingApproval.step2'), state: idCardSubmitted ? 'complete' : 'current' },
+    { id: 'review', label: t('host.pendingApproval.step3'), state: idCardSubmitted ? 'current' : 'locked' },
+    { id: 'verified', label: t('host.pendingApproval.step4'), state: 'locked' },
   ];
+  
+  const lockedNavItems = getNavItems(t);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#FFF8F7] text-[#1E1B1B]">
@@ -199,7 +205,7 @@ export default function HostPendingApprovalPage() {
             <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" />
             </svg>
-            Tổng quan
+            {t('host.pendingApproval.overview')}
           </div>
 
           {lockedNavItems.map((item) => (
@@ -228,7 +234,7 @@ export default function HostPendingApprovalPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.3 4.3a1.8 1.8 0 0 1 3.4 0 1.8 1.8 0 0 0 2.7 1.1 1.8 1.8 0 0 1 2.4 2.4 1.8 1.8 0 0 0 1.1 2.7 1.8 1.8 0 0 1 0 3.4 1.8 1.8 0 0 0-1.1 2.7 1.8 1.8 0 0 1-2.4 2.4 1.8 1.8 0 0 0-2.7 1.1 1.8 1.8 0 0 1-3.4 0 1.8 1.8 0 0 0-2.7-1.1 1.8 1.8 0 0 1-2.4-2.4 1.8 1.8 0 0 0-1.1-2.7 1.8 1.8 0 0 1 0-3.4 1.8 1.8 0 0 0 1.1-2.7 1.8 1.8 0 0 1 2.4-2.4 1.8 1.8 0 0 0 2.7-1.1z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
             </svg>
-            Cài đặt
+            {t('host.pendingApproval.settings')}
           </Link>
           <button
             type="button"
@@ -238,7 +244,7 @@ export default function HostPendingApprovalPage() {
             <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 17l5-5-5-5M20 12H9M12 21H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h7" />
             </svg>
-            Đăng xuất
+            {t('host.pendingApproval.logout')}
           </button>
         </div>
       </aside>
@@ -267,7 +273,7 @@ export default function HostPendingApprovalPage() {
               </div>
 
               <h1 className="mb-4 text-base font-normal leading-6 text-[#003F87]">
-                Tài khoản đang chờ phê duyệt
+                {t('host.pendingApproval.pageTitle')}
               </h1>
 
               <div className="relative mt-16 w-full max-w-[768px] pb-14">
@@ -312,16 +318,17 @@ export default function HostPendingApprovalPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 7h14v13H5zM9 12h6M12 9v6" />
                   </svg>
-                  Hoàn thiện hồ sơ định danh
+                  {t('host.pendingApproval.completeIdentity')}
                 </h2>
 
                 <div className="mt-6 grid gap-6 md:grid-cols-2">
                   {idCardUploadFields.map((field) => {
                     const file = field.id === 'front' ? frontFile : backFile;
                     const preview = field.id === 'front' ? frontPreview : backPreview;
+                    const label = field.id === 'front' ? t('host.pendingApproval.idFront') : t('host.pendingApproval.idBack');
                     return (
                       <div key={field.id} className="space-y-3">
-                        <p className="text-base font-semibold leading-6 text-[#1E1B1B]">{field.label}</p>
+                        <p className="text-base font-semibold leading-6 text-[#1E1B1B]">{label}</p>
                         <label className="flex h-[137px] cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border-2 border-dashed border-[#C2C6D4] bg-white/50 p-3 text-center transition hover:border-[#0056B3] hover:bg-white">
                           <input
                             type="file"
@@ -334,19 +341,19 @@ export default function HostPendingApprovalPage() {
                             <>
                               <img
                                 src={preview}
-                                alt={field.label}
+                                alt={label}
                                 className="h-[88px] w-full rounded-lg object-contain"
                               />
-                              <span className="text-base font-bold leading-6 text-[#003F87]">Đổi ảnh</span>
+                              <span className="text-base font-bold leading-6 text-[#003F87]">{t('host.pendingApproval.changeImage')}</span>
                             </>
                           ) : (
                             <>
                               <CameraPlusIcon />
                               <span className="text-base font-bold leading-6 text-[#003F87]">
-                                {file ? 'Đổi ảnh' : 'Tải lên'}
+                                {file ? t('host.pendingApproval.changeImage') : t('host.pendingApproval.uploadImage')}
                               </span>
                               <span className="max-w-full truncate text-xs leading-[18px] text-[#424752]">
-                                {file ? file.name : 'Định dạng: JPG, PNG. Tối đa 5MB.'}
+                                {file ? file.name : t('host.pendingApproval.imageFormatHint')}
                               </span>
                             </>
                           )}
@@ -397,9 +404,11 @@ export default function HostPendingApprovalPage() {
                           </>
                         )}
                       </svg>
-                      {note.title}
+                      {note.id === 'notice' ? t('host.pendingApproval.note1Title') : t('host.pendingApproval.note2Title')}
                     </h2>
-                    <p className="mt-2 text-base leading-6 text-[#424752]">{note.body}</p>
+                    <p className="mt-2 text-base leading-6 text-[#424752]">
+                      {note.id === 'notice' ? t('host.pendingApproval.note1Body') : t('host.pendingApproval.note2Body')}
+                    </p>
                   </article>
                 ))}
               </div>

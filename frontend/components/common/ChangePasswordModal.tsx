@@ -2,6 +2,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import { authService } from '@/services/authService';
+import { useTranslation } from '@/context/LanguageContext';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -9,6 +10,7 @@ interface ChangePasswordModalProps {
 }
 
 export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
+  const { t } = useTranslation();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -90,7 +92,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
               </svg>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Đổi mật khẩu</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t('modals.changePassword.title')}</h2>
               <p className="text-xs text-gray-500 mt-1">Vui lòng nhập thông tin để thay đổi mật khẩu của bạn</p>
             </div>
           </div>
@@ -129,7 +131,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
             {/* Mật khẩu hiện tại */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                Mật khẩu hiện tại <span className="text-red-500">*</span>
+                {t('modals.changePassword.currentPass')} <span className="text-red-500">*</span>
               </label>
               <div className="relative flex min-h-11 items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 focus-within:border-[#0052CC] focus-within:ring-1 focus-within:ring-[#0052CC] transition-all">
                 <svg className="h-5 w-5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,7 +167,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
             {/* Mật khẩu mới */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                Mật khẩu mới <span className="text-red-500">*</span>
+                {t('modals.changePassword.newPass')} <span className="text-red-500">*</span>
               </label>
               <div className="relative flex min-h-11 items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 focus-within:border-[#0052CC] focus-within:ring-1 focus-within:ring-[#0052CC] transition-all">
                 <svg className="h-5 w-5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,7 +203,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
             {/* Xác nhận mật khẩu mới */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                Xác nhận mật khẩu mới <span className="text-red-500">*</span>
+                {t('modals.changePassword.confirmPass')} <span className="text-red-500">*</span>
               </label>
               <div className="relative flex min-h-11 items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 focus-within:border-[#0052CC] focus-within:ring-1 focus-within:ring-[#0052CC] transition-all">
                 <svg className="h-5 w-5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -244,14 +246,14 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
             disabled={loading}
             className="px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Hủy bỏ
+            {t('modals.changePassword.cancel')}
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
             className="px-6 py-2.5 text-sm font-semibold text-white bg-[#0052CC] hover:bg-[#0043A8] rounded-lg transition-colors flex items-center gap-2 disabled:opacity-75 disabled:cursor-wait shadow-sm"
           >
-            {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
+            {loading ? t('modals.changePassword.saving') : t('modals.changePassword.saveChanges')}
           </button>
         </div>
       </div>

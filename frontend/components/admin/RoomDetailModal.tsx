@@ -7,6 +7,7 @@ import { formatCurrency } from '@/utils/formatCurrency';
 import { getRoomFallbackImage } from '@/utils/imageFallback';
 import { adminService } from '@/services/adminService';
 import Avatar from './Avatar';
+import { useTranslation } from '@/context/LanguageContext';
 
 interface RoomDetailModalProps {
   roomId: string;
@@ -23,6 +24,7 @@ export default function RoomDetailModal({ roomId, isOpen, onClose, onApprove, on
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState<string>('');
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (isOpen && roomId) {
@@ -39,7 +41,6 @@ export default function RoomDetailModal({ roomId, isOpen, onClose, onApprove, on
       setRoom(roomData);
       
       if (roomData?.images?.length > 0) {
-        // Set cover image or first image
         const cover = roomData.images.find((img: any) => img.isCover);
         setActiveImage(cover ? cover.imageUrl : roomData.images[0].imageUrl);
       } else if (roomData?.coverImageUrl) {
@@ -48,7 +49,7 @@ export default function RoomDetailModal({ roomId, isOpen, onClose, onApprove, on
         setActiveImage(getRoomFallbackImage(roomId));
       }
     } catch (err: any) {
-      setError(err.message || 'Lỗi khi tải chi tiết phòng');
+      setError(err.message || t.admin.roomDetailModal.errorDefault);
     } finally {
       setLoading(false);
     }
@@ -62,7 +63,7 @@ export default function RoomDetailModal({ roomId, isOpen, onClose, onApprove, on
         
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-white z-10">
-          <h2 className="text-xl font-bold text-slate-900">Chi tiết bài đăng</h2>
+          <h2 className="text-xl font-bold text-slate-900">{t.admin.roomDetailModal.title}</h2>
           <button 
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-500 transition-colors"
@@ -76,13 +77,13 @@ export default function RoomDetailModal({ roomId, isOpen, onClose, onApprove, on
           {loading ? (
             <div className="flex flex-col items-center justify-center h-64 text-slate-500">
               <div className="w-8 h-8 border-4 border-booking-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-              <p>Đang tải thông tin chi tiết...</p>
+              <p>{t.admin.roomDetailModal.loading}</p>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center h-64 text-red-500 bg-red-50 rounded-xl">
               <AlertCircle size={48} className="mb-4 opacity-50" />
               <p className="font-medium">{error}</p>
-              <button onClick={fetchRoomDetail} className="mt-4 px-4 py-2 bg-white rounded-lg shadow-sm border border-red-200 text-red-600 font-medium">Thử lại</button>
+              <button onClick={fetchRoomDetail} className="mt-4 px-4 py-2 bg-white rounded-lg shadow-sm border border-red-200 text-red-600 font-medium">{t.admin.roomDetailModal.retry}</button>
             </div>
           ) : room ? (
             <div className="flex flex-col md:flex-row gap-8">
@@ -122,7 +123,7 @@ export default function RoomDetailModal({ roomId, isOpen, onClose, onApprove, on
                 
                 {/* Host Info */}
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 mt-6">
-                  <h3 className="text-sm font-semibold text-slate-500 uppercase mb-3">Thông tin người đăng</h3>
+                  <h3 className="text-sm font-semibold text-slate-500 uppercase mb-3">{t.admin.roomDetailModal.hostInfo}</h3>
                   <div className="flex items-center gap-4">
                     <Avatar
                       src={room.host?.avatarUrl}
@@ -132,7 +133,7 @@ export default function RoomDetailModal({ roomId, isOpen, onClose, onApprove, on
                     />
                     <div>
                       <p className="font-bold text-slate-900">{room.host?.fullName || 'N/A'}</p>
-                      <p className="text-sm text-slate-500">{room.host?.phoneNumber || 'Chưa cung cấp SĐT'}</p>
+                      <p className="text-sm text-slate-500">{room.host?.phoneNumber || t.admin.roomDetailModal.noPhone}</p>
                     </div>
                   </div>
                 </div>
@@ -142,7 +143,7 @@ export default function RoomDetailModal({ roomId, isOpen, onClose, onApprove, on
               <div className="w-full md:w-1/2 space-y-6">
                 <div>
                   <div className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-booking-teal/10 text-booking-teal mb-3">
-                    {room.roomType === 'APARTMENT' ? 'Căn hộ chung cư' : room.roomType === 'ROOM' ? 'Phòng trọ' : 'Nhà nguyên căn'}
+                    {room.roomType === 'APARTMENT' ? t.admin.roomDetailModal.apartment : room.roomType === 'ROOM' ? t.admin.roomDetailModal.room : t.admin.roomDetailModal.house}
                   </div>
                   <h1 className="text-2xl font-bold text-slate-900 leading-tight mb-2">{room.title}</h1>
                   <p className="flex items-start gap-2 text-slate-500 text-sm">
@@ -153,11 +154,11 @@ export default function RoomDetailModal({ roomId, isOpen, onClose, onApprove, on
 
                 <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
                   <div>
-                    <p className="text-sm text-slate-500 mb-1">Giá thuê</p>
-                    <p className="text-xl font-bold text-booking-primary">{formatCurrency(room.monthlyRent as any)}<span className="text-xs text-slate-500 font-normal">/tháng</span></p>
+                    <p className="text-sm text-slate-500 mb-1">{t.admin.roomDetailModal.rentPrice}</p>
+                    <p className="text-xl font-bold text-booking-primary">{formatCurrency(room.monthlyRent as any)}<span className="text-xs text-slate-500 font-normal">{t.admin.roomDetailModal.perMonth}</span></p>
                   </div>
                   <div>
-                    <p className="text-sm text-slate-500 mb-1">Tiền cọc</p>
+                    <p className="text-sm text-slate-500 mb-1">{t.admin.roomDetailModal.deposit}</p>
                     <p className="text-lg font-semibold text-slate-700">{formatCurrency(room.depositAmount as any)}</p>
                   </div>
                 </div>
@@ -168,38 +169,38 @@ export default function RoomDetailModal({ roomId, isOpen, onClose, onApprove, on
                       <Maximize size={18} />
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500">Sức chứa tối đa</p>
-                      <p className="font-semibold text-slate-900">{room.maxCapacity} người</p>
+                      <p className="text-xs text-slate-500">{t.admin.roomDetailModal.maxCapacity}</p>
+                      <p className="font-semibold text-slate-900">{room.maxCapacity} {t.admin.roomDetailModal.people}</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-3 pt-4 border-t border-slate-100">
-                  <h3 className="font-semibold text-slate-900">Chi phí khác</h3>
+                  <h3 className="font-semibold text-slate-900">{t.admin.roomDetailModal.otherCosts}</h3>
                   <div className="grid grid-cols-2 gap-y-2 text-sm">
                     <div className="flex justify-between pr-4">
-                      <span className="text-slate-500">Tiền điện:</span>
+                      <span className="text-slate-500">{t.admin.roomDetailModal.electricity}</span>
                       <span className="font-medium text-slate-900">{formatCurrency(room.electricityCost as any)}</span>
                     </div>
                     <div className="flex justify-between pl-4 border-l border-slate-200">
-                      <span className="text-slate-500">Tiền nước:</span>
+                      <span className="text-slate-500">{t.admin.roomDetailModal.water}</span>
                       <span className="font-medium text-slate-900">{formatCurrency(room.waterCost as any)}</span>
                     </div>
                     <div className="flex justify-between pr-4">
-                      <span className="text-slate-500">Internet:</span>
+                      <span className="text-slate-500">{t.admin.roomDetailModal.internet}</span>
                       <span className="font-medium text-slate-900">{formatCurrency(room.internetCost as any)}</span>
                     </div>
                     <div className="flex justify-between pl-4 border-l border-slate-200">
-                      <span className="text-slate-500">Dịch vụ:</span>
+                      <span className="text-slate-500">{t.admin.roomDetailModal.service}</span>
                       <span className="font-medium text-slate-900">{formatCurrency(room.serviceFee as any)}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="pt-4 border-t border-slate-100">
-                  <h3 className="font-semibold text-slate-900 mb-2">Mô tả</h3>
+                  <h3 className="font-semibold text-slate-900 mb-2">{t.admin.roomDetailModal.description}</h3>
                   <div className="text-sm text-slate-600 whitespace-pre-wrap max-h-48 overflow-y-auto custom-scrollbar pr-2">
-                    {room.roomDescription || 'Không có mô tả chi tiết.'}
+                    {room.roomDescription || t.admin.roomDetailModal.noDescription}
                   </div>
                 </div>
               </div>
@@ -215,7 +216,7 @@ export default function RoomDetailModal({ roomId, isOpen, onClose, onApprove, on
               disabled={actionLoading === roomId}
               className="px-6 py-2.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 font-medium rounded-xl transition-colors disabled:opacity-50"
             >
-              Từ chối bài đăng
+              {t.admin.roomDetailModal.rejectBtn}
             </button>
             <button 
               onClick={() => onApprove(roomId)}
@@ -223,7 +224,7 @@ export default function RoomDetailModal({ roomId, isOpen, onClose, onApprove, on
               className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm shadow-emerald-200"
             >
               <Check size={18} />
-              <span>Phê duyệt ngay</span>
+              <span>{t.admin.roomDetailModal.approveBtn}</span>
             </button>
           </div>
         )}

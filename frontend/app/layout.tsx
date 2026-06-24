@@ -16,6 +16,7 @@ import LoginPromptModal from '@/components/common/LoginPromptModal';
 import { TenantChatProvider } from '@/context/TenantChatContext';
 import TenantChatContainer from '@/components/booking/TenantChatContainer';
 import { SocketProvider } from '@/context/SocketContext';
+import { LanguageProvider } from '@/context/LanguageContext';
 
 export default function RootLayout({
   children,
@@ -25,16 +26,18 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <AuthProvider>
-          <SocketProvider>
-            <TenantChatProvider>
-              {children}
-              <TenantChatContainer />
-            </TenantChatProvider>
-          </SocketProvider>
-          <ToastContainer />
-          <LoginPromptModal />
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <SocketProvider>
+              <TenantChatProvider>
+                {children}
+                <TenantChatContainer />
+              </TenantChatProvider>
+            </SocketProvider>
+            <ToastContainer />
+            <LoginPromptModal />
+          </AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

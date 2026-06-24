@@ -37,7 +37,7 @@ export default function StatCard({
             className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
               trend.isPositive
                 ? 'bg-emerald-100 text-emerald-700'
-                : trend.value === 'Chờ xử lý' 
+                : (trend.value === 'Chờ xử lý' || trend.value === 'Pending')
                   ? 'bg-slate-200 text-slate-700'
                   : 'bg-orange-100 text-orange-700'
             }`}

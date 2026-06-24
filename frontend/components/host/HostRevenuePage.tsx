@@ -16,6 +16,7 @@ import {
   hostRevenueService,
   type RevenueSettlementItem,
 } from '@/services/hostRevenueService';
+import { useTranslation } from '@/context/LanguageContext';
 
 const REVENUE_ITEMS_PER_PAGE = 8;
 
@@ -89,23 +90,23 @@ function MoneyValue({ amount }: { amount: number }) {
   );
 }
 
-function RevenueTrendChart({ trend }: { trend: RevenueTrendPoint[] }) {
+function RevenueTrendChart({ trend, t }: { trend: RevenueTrendPoint[]; t: any }) {
   const maxRevenue = Math.max(1, ...trend.map((point) => point.revenue));
 
   return (
     <section className="rounded-xl border border-[#C3C6D7] bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-semibold leading-7 text-[#191B23]">
-          Doanh thu theo tháng (VNĐ)
+          {t('host.revenue.monthlyRevVND')}
         </h2>
         <div className="flex items-center gap-4 text-sm leading-[21px] text-[#191B23]">
           <span className="inline-flex items-center gap-1">
             <span className="h-3 w-3 rounded-full bg-[#004AC6]" />
-            Doanh thu
+            {t('host.revenue.revenue')}
           </span>
           <span className="inline-flex items-center gap-1">
             <span className="h-3 w-3 rounded-full bg-[#006A61]" />
-            Lợi nhuận
+            {t('host.revenue.profit')}
           </span>
         </div>
       </div>
@@ -129,7 +130,7 @@ function RevenueTrendChart({ trend }: { trend: RevenueTrendPoint[] }) {
                   <div
                     className="absolute bottom-0 w-2 rounded-t-sm bg-[#006A61] opacity-0 transition group-hover:opacity-100"
                     style={{ height: profitHeight, right: 'calc(50% - 30px)' }}
-                    title={`Lợi nhuận: ${formatRevenueVND(point.profit)}`}
+                    title={`${t('host.revenue.profit')}: ${formatRevenueVND(point.profit)}`}
                   />
                 </div>
                 <span className="mt-4 text-sm font-bold leading-[21px] text-[#737686]">
@@ -142,14 +143,14 @@ function RevenueTrendChart({ trend }: { trend: RevenueTrendPoint[] }) {
       </div>
 
       <p className="mt-5 text-center text-sm italic leading-[21px] text-[#737686]">
-        Biểu đồ thể hiện doanh thu biến động qua 6 tháng gần nhất.
+        {t('host.revenue.chartDesc')}
       </p>
     </section>
   );
 }
 
 // Line chart — growth trend over the last 6 months (hand-built SVG, no deps).
-function RevenueLineChart({ trend }: { trend: RevenueTrendPoint[] }) {
+function RevenueLineChart({ trend, t }: { trend: RevenueTrendPoint[]; t: any }) {
   const W = 600;
   const H = 260;
   const padX = 36;
@@ -167,13 +168,13 @@ function RevenueLineChart({ trend }: { trend: RevenueTrendPoint[] }) {
   return (
     <section className="rounded-xl border border-[#C3C6D7] bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
       <div className="flex flex-col gap-1">
-        <h2 className="text-xl font-semibold leading-7 text-[#191B23]">Xu hướng tăng trưởng</h2>
-        <p className="text-sm leading-[21px] text-[#737686]">Doanh thu 6 tháng gần nhất (VNĐ)</p>
+        <h2 className="text-xl font-semibold leading-7 text-[#191B23]">{t('host.revenue.growthTrend')}</h2>
+        <p className="text-sm leading-[21px] text-[#737686]">{t('host.revenue.last6MonthsVND')}</p>
       </div>
 
       <div className="mt-6">
         {trend.length === 0 ? (
-          <p className="py-16 text-center text-sm text-[#737686]">Chưa có dữ liệu doanh thu.</p>
+          <p className="py-16 text-center text-sm text-[#737686]">{t('host.revenue.noData')}</p>
         ) : (
           <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Biểu đồ đường xu hướng doanh thu">
             <defs>
@@ -208,8 +209,67 @@ function RevenueLineChart({ trend }: { trend: RevenueTrendPoint[] }) {
   );
 }
 
-function SettlementStatusBadge({ status }: { status: RevenueSettlement['status'] }) {
-  const label = status === 'completed' ? 'Đã hoàn tất' : 'Đang đối soát';
+// Donut chart — share of deposits by outcome (completed / processing / failed).
+function StatusPieChart({ breakdown, t }: { breakdown: RevenueSummary['statusBreakdown']; t: any }) {
+  const slices = [
+    { key: 'completed', label: t('host.revenue.success'), value: breakdown.completed, color: '#006A61' },
+    { key: 'processing', label: t('host.revenue.processing'), value: breakdown.processing, color: '#943700' },
+    { key: 'failed', label: t('host.revenue.failed'), value: breakdown.failed, color: '#BA1A1A' },
+  ];
+  const total = slices.reduce((sum, s) => sum + s.value, 0);
+
+  // Build the conic-gradient stops only when there is data.
+  let acc = 0;
+  const stops = slices
+    .map((s) => {
+      const start = total > 0 ? (acc / total) * 100 : 0;
+      acc += s.value;
+      const end = total > 0 ? (acc / total) * 100 : 0;
+      return `${s.color} ${start}% ${end}%`;
+    })
+    .join(', ');
+
+  return (
+    <section className="rounded-xl border border-[#C3C6D7] bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-xl font-semibold leading-7 text-[#191B23]">{t('host.revenue.txRatio')}</h2>
+        <p className="text-sm leading-[21px] text-[#737686]">{t('host.revenue.bySelectedPeriod')}</p>
+      </div>
+
+      <div className="mt-6 flex flex-col items-center gap-6">
+        <div
+          className="relative h-44 w-44 shrink-0 rounded-full"
+          style={{ background: total > 0 ? `conic-gradient(${stops})` : '#E2E8F0' }}
+        >
+          <div className="absolute inset-[22%] flex flex-col items-center justify-center rounded-full bg-white shadow-inner">
+            <span className="text-2xl font-bold leading-7 text-[#191B23]">{total}</span>
+            <span className="text-xs text-[#737686]">{t('host.revenue.transactionsLabel')}</span>
+          </div>
+        </div>
+
+        <ul className="w-full space-y-2">
+          {slices.map((s) => {
+            const pct = total > 0 ? Math.round((s.value / total) * 100) : 0;
+            return (
+              <li key={s.key} className="flex items-center justify-between text-sm leading-5">
+                <span className="inline-flex items-center gap-2 text-[#434655]">
+                  <span className="h-3 w-3 rounded-full" style={{ background: s.color }} />
+                  {s.label}
+                </span>
+                <span className="font-semibold text-[#191B23]">
+                  {s.value} <span className="text-[#737686]">({pct}%)</span>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function SettlementStatusBadge({ status, t }: { status: RevenueSettlement['status']; t: any }) {
+  const label = status === 'completed' ? t('host.revenue.statusCompleted') : t('host.revenue.statusPending');
   const className =
     status === 'completed'
       ? 'bg-[rgba(134,242,228,0.2)] text-[#006A61]'
@@ -229,6 +289,7 @@ function SettlementTable({
   totalPages,
   loading,
   onPageChange,
+  t,
 }: {
   items: RevenueSettlementItem[];
   total: number;
@@ -236,6 +297,7 @@ function SettlementTable({
   totalPages: number;
   loading: boolean;
   onPageChange: (page: number) => void;
+  t: any;
 }) {
   const router = useRouter();
 
@@ -252,10 +314,10 @@ function SettlementTable({
       <div className="flex items-center justify-between px-6 py-5">
         <div>
           <h2 className="text-2xl font-semibold leading-8 text-[#191B23]">
-            Giao dịch đã thành công
+            {t('host.revenue.successTxTitle')}
           </h2>
           <p className="mt-1 text-sm leading-[21px] text-[#737686]">
-            Nhấn vào một dòng để xem chi tiết giao dịch.
+            {t('host.revenue.clickRowDesc')}
           </p>
         </div>
       </div>
@@ -265,22 +327,22 @@ function SettlementTable({
           <thead>
             <tr className="border-y border-[#C3C6D7] bg-[#F3F3FE]">
               <th className="px-6 py-4 text-left text-xs font-bold tracking-[0.6px] text-[#434655]">
-                Tên phòng
+                {t('host.revenue.roomName')}
               </th>
               <th className="px-6 py-4 text-left text-xs font-bold tracking-[0.6px] text-[#434655]">
-                Khách hàng
+                {t('host.revenue.customer')}
               </th>
               <th className="px-6 py-4 text-right text-xs font-bold tracking-[0.6px] text-[#434655]">
-                Tổng tiền thanh toán
+                {t('host.revenue.totalPaid')}
               </th>
               <th className="px-6 py-4 text-right text-xs font-bold tracking-[0.6px] text-[#434655]">
-                Thực nhận
+                {t('host.revenue.netReceived')}
               </th>
               <th className="px-6 py-4 text-right text-xs font-bold tracking-[0.6px] text-[#434655]">
-                Phí & Hoa hồng
+                {t('host.revenue.feesCommission')}
               </th>
               <th className="px-6 py-4 text-right text-xs font-bold tracking-[0.6px] text-[#434655]">
-                Trạng thái
+                {t('host.revenue.status')}
               </th>
             </tr>
           </thead>
@@ -324,7 +386,7 @@ function SettlementTable({
                   {formatRevenueVND(transaction.platformFee)}
                 </td>
                 <td className="px-6 py-6 text-right">
-                  <SettlementStatusBadge status={transaction.status} />
+                  <SettlementStatusBadge status={transaction.status} t={t} />
                 </td>
               </tr>
             ))}
@@ -332,7 +394,7 @@ function SettlementTable({
             {items.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-6 py-16 text-center text-base text-[#434655]">
-                  {loading ? 'Đang tải giao dịch...' : 'Chưa có giao dịch thành công nào.'}
+                  {loading ? t('host.revenue.loadingTx') : t('host.revenue.noSuccessTxYet')}
                 </td>
               </tr>
             )}
@@ -343,8 +405,11 @@ function SettlementTable({
       <div className="flex flex-col gap-4 bg-[rgba(243,243,254,0.3)] px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm leading-[21px] text-[#434655]">
           {total === 0
-            ? 'Không có giao dịch'
-            : `Hiển thị ${(currentPage - 1) * REVENUE_ITEMS_PER_PAGE + 1} - ${Math.min(currentPage * REVENUE_ITEMS_PER_PAGE, total)} trên tổng số ${total} giao dịch`}
+            ? t('host.revenue.noTx')
+            : t('host.revenue.showingTx')
+                .replace('{start}', String((currentPage - 1) * REVENUE_ITEMS_PER_PAGE + 1))
+                .replace('{end}', String(Math.min(currentPage * REVENUE_ITEMS_PER_PAGE, total)))
+                .replace('{total}', String(total))}
         </p>
 
         <div className="flex items-center gap-2">
@@ -395,6 +460,7 @@ function SettlementTable({
 export default function HostRevenuePage() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
   const [range, setRange] = useState<RevenueRange>('month');
   const [search, setSearch] = useState('');
 
@@ -410,8 +476,8 @@ export default function HostRevenuePage() {
   const [settlementLoading, setSettlementLoading] = useState(true);
 
   const activeRangeLabel = useMemo(
-    () => rangeOptions.find((option) => option.value === range)?.label ?? 'Tháng này',
-    [range],
+    () => rangeOptions.find((option) => option.value === range)?.label ?? t('host.revenue.thisMonth'),
+    [range, t],
   );
 
   // Fetch overview whenever the range changes.
@@ -487,7 +553,7 @@ export default function HostRevenuePage() {
       await hostRevenueService.exportCsv(search.trim() || undefined);
     } catch (err: any) {
       window.dispatchEvent(new CustomEvent('show-toast', {
-        detail: { message: err?.message || 'Không xuất được báo cáo.', type: 'error' },
+        detail: { message: err?.message || t('host.revenue.exportFail'), type: 'error' },
       }));
     } finally {
       setExporting(false);
@@ -514,7 +580,7 @@ export default function HostRevenuePage() {
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Tìm kiếm giao dịch, tên khách hàng..."
+              placeholder={t('host.revenue.searchPlaceholder')}
               className="h-[39px] w-full rounded-full border border-[#C3C6D7] bg-[#F3F3FE] pl-10 pr-4 text-sm text-[#191B23] placeholder:text-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#004AC6]/20"
             />
           </div>
@@ -554,7 +620,7 @@ export default function HostRevenuePage() {
                 <span className="font-semibold text-[#004AC6]">Revenue Statistics</span>
               </nav>
               <h1 className="text-[32px] font-bold leading-[38px] text-[#191B23]">
-                Thống kê doanh thu
+                {t('host.revenue.statsTitle')}
               </h1>
             </div>
 
@@ -586,16 +652,16 @@ export default function HostRevenuePage() {
                 <svg className="h-5 w-5 text-[#004AC6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
                 </svg>
-                {exporting ? 'Đang xuất...' : 'Xuất báo cáo'}
+                {exporting ? t('host.revenue.exportingBtn') : t('host.revenue.exportBtn')}
               </button>
             </div>
           </section>
 
           <section aria-label={`Chỉ số doanh thu ${activeRangeLabel}`} className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
             <KpiCard
-              label="Tổng doanh thu"
+              label={t('host.revenue.totalRev')}
               value={<MoneyValue amount={summary.totalRevenue} />}
-              description="Tổng giao dịch đã được admin phân phối"
+              description={t('host.revenue.totalRevDesc')}
               iconBg="rgba(0,106,97,0.1)"
               tone="neutral"
               icon={
@@ -606,9 +672,9 @@ export default function HostRevenuePage() {
               }
             />
             <KpiCard
-              label={`Doanh thu thực nhận (${activeRangeLabel})`}
+              label={`${t('host.revenue.netRev')} (${activeRangeLabel})`}
               value={<MoneyValue amount={summary.paidRevenue} />}
-              description="Đã được thanh toán vào tài khoản"
+              description={t('host.revenue.netRevDesc')}
               iconBg="rgba(37,99,235,0.1)"
               badge={`+${summary.growthRate}%`}
               tone="primary"
@@ -620,9 +686,9 @@ export default function HostRevenuePage() {
               }
             />
             <KpiCard
-              label="Doanh thu đang đối soát"
+              label={t('host.revenue.pendingRev')}
               value={<MoneyValue amount={summary.pendingSettlement} />}
-              description="Đang chờ quản trị viên phê duyệt"
+              description={t('host.revenue.pendingRevDesc')}
               iconBg="rgba(188,72,0,0.1)"
               tone="warning"
               icon={
@@ -633,9 +699,9 @@ export default function HostRevenuePage() {
               }
             />
             <KpiCard
-              label="Số lượng đơn hoàn tất"
+              label={t('host.revenue.completedOrders')}
               value={summary.completedOrders}
-              description="Trong kỳ thống kê hiện tại"
+              description={t('host.revenue.completedOrdersDesc')}
               iconBg="rgba(134,242,228,0.1)"
               icon={
                 <svg className="h-5 w-5 text-[#006A61]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -646,9 +712,12 @@ export default function HostRevenuePage() {
             />
           </section>
 
-          <RevenueTrendChart trend={trend} />
+          <RevenueTrendChart trend={trend} t={t} />
 
-          <RevenueLineChart trend={trend} />
+          <section className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
+            <RevenueLineChart trend={trend} t={t} />
+            <StatusPieChart breakdown={summary.statusBreakdown} t={t} />
+          </section>
 
           <SettlementTable
             items={settlements}
@@ -657,6 +726,7 @@ export default function HostRevenuePage() {
             totalPages={settlementPages}
             loading={settlementLoading}
             onPageChange={setSettlementPage}
+            t={t}
           />
         </div>
       </div>

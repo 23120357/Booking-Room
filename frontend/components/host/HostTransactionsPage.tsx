@@ -14,29 +14,38 @@ import {
   hostTransactionService,
   type HostTransactionItem,
 } from '@/services/hostTransactionService';
+import { useTranslation } from '@/context/LanguageContext';
 
 const ITEMS_PER_PAGE = 8;
 
 /** Map the month dropdown selection to an ISO `dateFrom` (or undefined). */
-function dateFromForRange(label: string): string | undefined {
+function dateFromForRange(key: string): string | undefined {
   const now = new Date();
-  if (label.startsWith('Tháng này')) return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  if (label.startsWith('Tháng trước')) return new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
-  if (label.startsWith('3 tháng')) return new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString();
-  if (label.startsWith('6 tháng')) return new Date(now.getFullYear(), now.getMonth() - 6, 1).toISOString();
-  if (label.startsWith('Năm nay')) return new Date(now.getFullYear(), 0, 1).toISOString();
+  if (key === 'thisMonth') return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  if (key === 'lastMonth') return new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+  if (key === 'last3Months') return new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString();
+  if (key === 'last6Months') return new Date(now.getFullYear(), now.getMonth() - 6, 1).toISOString();
+  if (key === 'thisYear') return new Date(now.getFullYear(), 0, 1).toISOString();
   return undefined;
 }
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 
-function StatusBadge({ status }: { status: TransactionStatus }) {
+function StatusBadge({ status, t }: { status: TransactionStatus; t: any }) {
   const cfg = statusConfig[status];
+  
+  // Use translations
+  let label = cfg.label;
+  if (status === 'completed') label = t('host.transactions.statusCompleted');
+  else if (status === 'cancelled') label = t('host.transactions.statusCancelled');
+  else if (status === 'pending') label = t('host.transactions.statusPending');
+  else if (status === 'processing') label = t('host.transactions.statusProcessing');
+
   return (
     <span
       className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold leading-4 ${cfg.bgClass} ${cfg.textClass} ${cfg.uppercase ? 'uppercase tracking-[-0.55px]' : ''}`}
     >
-      {cfg.label}
+      {label}
     </span>
   );
 }
@@ -46,12 +55,13 @@ function StatusBadge({ status }: { status: TransactionStatus }) {
 export default function HostTransactionsPage() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
 
   // ── Filter state ─────────────────────────────────────────────────────────────
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<TransactionStatus | 'all'>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedMonth, setSelectedMonth] = useState('Tất cả thời gian');
+  const [selectedMonth, setSelectedMonth] = useState('all');
 
   // ── Data from API ──────────────────────────────────────────────────────────
   const [items, setItems] = useState<HostTransactionItem[]>([]);
@@ -77,7 +87,7 @@ export default function HostTransactionsPage() {
       });
     } catch (err: any) {
       window.dispatchEvent(new CustomEvent('show-toast', {
-        detail: { message: err?.message || 'Không xuất được báo cáo.', type: 'error' },
+        detail: { message: err?.message || t('host.revenue.exportFail'), type: 'error' },
       }));
     } finally {
       setExporting(false);
@@ -167,7 +177,7 @@ export default function HostTransactionsPage() {
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm kiếm giao dịch, tên khách hàng..."
+              placeholder={t('host.revenue.searchPlaceholder')}
               className="h-[39px] w-full rounded-full border border-[#C3C6D7] bg-[#F3F3FE] pl-10 pr-4 text-sm text-[#191B23] placeholder:text-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#004AC6]/20"
             />
           </div>
@@ -198,10 +208,10 @@ export default function HostTransactionsPage() {
           <div className="flex items-end justify-between">
             <div className="flex flex-col gap-1">
               <h1 className="text-[32px] font-bold leading-[38px] text-[#191B23]">
-                Lịch sử giao dịch và Cho thuê phòng
+                {t('host.transactions.pageTitle')}
               </h1>
               <p className="text-base leading-6 text-[#434655]">
-                Quản lý và theo dõi dòng tiền từ các lượt đặt phòng của bạn.
+                {t('host.transactions.pageDesc')}
               </p>
             </div>
 
@@ -216,9 +226,66 @@ export default function HostTransactionsPage() {
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1M12 12V4M8 8l4-4 4 4" />
                 </svg>
-                {exporting ? 'Đang xuất...' : 'Xuất báo cáo'}
+                {exporting ? t('host.revenue.exportingBtn') : t('host.revenue.exportBtn')}
               </button>
             </div>
+          </div>
+
+          {/* ── Summary Cards ─────────────────────────────────────────── */}
+          <div className="flex gap-6">
+            <SummaryCard
+              label={t('host.transactions.totalTx')}
+              value={formatVND(summary?.totalRevenue ?? 0)}
+              sub={
+                <>
+                  <svg className="h-3 w-3 text-[#006A61]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                  </svg>
+                  <span className="text-[#006A61]">
+                    {(summary?.totalRevenueChange ?? 0) >= 0 ? '+' : ''}{summary?.totalRevenueChange ?? 0}% {t('host.transactions.comparedToLastMonth')}
+                  </span>
+                </>
+              }
+              iconBg="rgba(0,74,198,0.1)"
+              icon={
+                <svg className="h-6 w-6 text-[#004AC6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="5" width="20" height="14" rx="2" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2 10h20" />
+                </svg>
+              }
+            />
+            <SummaryCard
+              label={t('host.transactions.pendingProcessing')}
+              value={formatVND(summary?.processingAmount ?? 0)}
+              sub={
+                <span className="text-[#434655]">
+                  {String(summary?.processingCount ?? 0).padStart(2, '0')} {t('host.transactions.txPendingApproval')}
+                </span>
+              }
+              iconBg="rgba(148,55,0,0.1)"
+              icon={
+                <svg className="h-6 w-6 text-[#943700]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+                  <rect x="9" y="3" width="6" height="4" rx="1" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6M9 16h4" />
+                </svg>
+              }
+            />
+            <SummaryCard
+              label={t('host.transactions.successTx')}
+              value={formatVND(summary?.completedAmount ?? 0)}
+              sub={
+                <span className="text-[#006A61]">
+                  {summary?.completionRate ?? 0}% {t('host.transactions.completionRate')}
+                </span>
+              }
+              iconBg="rgba(0,106,97,0.1)"
+              icon={
+                <svg className="h-6 w-6 text-[#006A61]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+                </svg>
+              }
+            />
           </div>
 
           {/* ── Filter Bar ────────────────────────────────────────────── */}
@@ -236,12 +303,12 @@ export default function HostTransactionsPage() {
                   onChange={(e) => setSelectedMonth(e.target.value)}
                   className="appearance-none rounded-lg border border-[#C3C6D7] bg-white py-1.5 pl-3 pr-8 text-sm font-semibold text-[#191B23] focus:outline-none"
                 >
-                  <option>Tất cả thời gian</option>
-                  <option>Tháng này</option>
-                  <option>Tháng trước</option>
-                  <option>3 tháng gần đây</option>
-                  <option>6 tháng gần đây</option>
-                  <option>Năm nay</option>
+                  <option value="all">{t('host.transactions.filterAllTime')}</option>
+                  <option value="thisMonth">{t('host.transactions.filterThisMonth')}</option>
+                  <option value="lastMonth">{t('host.transactions.filterLastMonth')}</option>
+                  <option value="last3Months">{t('host.transactions.filterLast3Months')}</option>
+                  <option value="last6Months">{t('host.transactions.filterLast6Months')}</option>
+                  <option value="thisYear">{t('host.transactions.filterThisYear')}</option>
                 </select>
                 <svg className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -254,7 +321,7 @@ export default function HostTransactionsPage() {
 
             {/* Status filter */}
             <div className="flex items-center gap-2">
-              <span className="shrink-0 text-sm text-[#434655]">Trạng thái:</span>
+              <span className="shrink-0 text-sm text-[#434655]">{t('host.transactions.statusLabel')}</span>
               <div className="relative">
                 <select
                   aria-label="Lọc theo trạng thái"
@@ -262,9 +329,11 @@ export default function HostTransactionsPage() {
                   onChange={(e) => setStatusFilter(e.target.value as TransactionStatus | 'all')}
                   className="appearance-none rounded-full border border-[#C3C6D7] bg-white py-1 pl-3 pr-7 text-sm text-[#191B23] focus:outline-none"
                 >
-                  {statusFilterOptions.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
+                  <option value="all">{t('host.transactions.filterStatusAll')}</option>
+                  <option value="completed">{t('host.transactions.filterStatusCompleted')}</option>
+                  <option value="pending">{t('host.transactions.filterStatusPending')}</option>
+                  <option value="cancelled">{t('host.transactions.filterStatusCancelled')}</option>
+                  <option value="processing">{t('host.transactions.filterStatusProcessing')}</option>
                 </select>
                 <svg className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -279,7 +348,7 @@ export default function HostTransactionsPage() {
                 onClick={handleClearFilters}
                 className="shrink-0 text-base font-semibold text-[#004AC6] hover:underline"
               >
-                Xóa bộ lọc
+                {t('host.transactions.clearFilters')}
               </button>
             )}
           </div>
@@ -292,16 +361,16 @@ export default function HostTransactionsPage() {
                 <thead>
                   <tr className="border-b border-[#C3C6D7] bg-[#F3F3FE]">
                     <th className="px-4 py-4 text-left text-xs font-bold tracking-[0.6px] text-[#434655]">
-                      KHÁCH HÀNG
+                      {t('host.transactions.thCustomer')}
                     </th>
                     <th className="px-4 py-4 text-left text-xs font-bold tracking-[0.6px] text-[#434655]">
-                      TÊN PHÒNG
+                      {t('host.transactions.thRoomName')}
                     </th>
                     <th className="px-4 py-4 text-right text-xs font-bold tracking-[0.6px] text-[#434655]">
-                      TỔNG TIỀN
+                      {t('host.transactions.thTotalAmount')}
                     </th>
                     <th className="px-4 py-4 text-left text-xs font-bold tracking-[0.6px] text-[#434655]">
-                      TRẠNG THÁI
+                      {t('host.transactions.thStatus')}
                     </th>
                   </tr>
                 </thead>
@@ -344,7 +413,7 @@ export default function HostTransactionsPage() {
 
                       {/* Status */}
                       <td className="px-4 py-6">
-                        <StatusBadge status={txn.status} />
+                        <StatusBadge status={txn.status} t={t} />
                       </td>
                     </tr>
                   ))}
@@ -353,7 +422,7 @@ export default function HostTransactionsPage() {
                   {paginated.length === 0 && (
                     <tr>
                       <td colSpan={4} className="px-4 py-16 text-center text-base text-[#434655]">
-                        {loading ? 'Đang tải giao dịch...' : 'Không tìm thấy giao dịch phù hợp.'}
+                        {loading ? t('host.revenue.loadingTx') : t('host.transactions.noMatchingTx')}
                       </td>
                     </tr>
                   )}
@@ -365,8 +434,11 @@ export default function HostTransactionsPage() {
             <div className="flex items-center justify-between border-t border-[#C3C6D7] px-4 py-3">
               <p className="text-sm text-[#434655]">
                 {total === 0
-                  ? 'Không có giao dịch'
-                  : `Hiển thị ${(currentPage - 1) * ITEMS_PER_PAGE + 1} - ${Math.min(currentPage * ITEMS_PER_PAGE, total)} trong tổng số ${total} giao dịch`}
+                  ? t('host.revenue.noTx')
+                  : t('host.revenue.showingTx')
+                      .replace('{start}', String((currentPage - 1) * ITEMS_PER_PAGE + 1))
+                      .replace('{end}', String(Math.min(currentPage * ITEMS_PER_PAGE, total)))
+                      .replace('{total}', String(total))}
               </p>
 
               <div className="flex items-center gap-1">

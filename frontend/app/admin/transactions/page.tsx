@@ -9,6 +9,7 @@ import { getRoomFallbackImage } from '@/utils/imageFallback';
 import { exportToCsv } from '@/utils/exportCsv';
 import { Search, Filter, AlertCircle, FileText, Download, Copy } from 'lucide-react';
 import TransactionDetailModal from '@/components/admin/TransactionDetailModal';
+import { useTranslation } from '@/context/LanguageContext';
 
 const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
   if (typeof window !== 'undefined') {
@@ -28,6 +29,7 @@ export default function TransactionsPage() {
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
   const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
   const [isDisbursing, setIsDisbursing] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -52,7 +54,7 @@ export default function TransactionsPage() {
       setPagination({ total: res.pagination?.total || 0, totalPages: res.pagination?.totalPages || Math.ceil((res.pagination?.total || 0) / limit) || 1 });
       setError(null);
     } catch (err: any) {
-      setError(err.message || 'Lỗi khi tải danh sách giao dịch');
+      setError(err.message || t.admin.transactionsPage.loadError);
     } finally {
       setLoading(false);
     }
@@ -68,15 +70,15 @@ export default function TransactionsPage() {
 
   const handleExport = () => {
     if (!transactions.length) return;
-    const exportData = transactions.map(t => ({
-      'Mã GD': t.transaction_id,
-      'Người dùng': t.tenant_name,
-      'Email': t.tenant_email,
-      'Phòng': t.room_title,
-      'Số tiền': t.amount,
-      'Phương thức': t.payment_method,
-      'Thời gian': new Date(t.created_at).toLocaleString('vi-VN'),
-      'Trạng thái': t.status === 'SUCCESS' ? 'Thành công' : t.status === 'PENDING' ? 'Đang xử lý' : 'Từ chối',
+    const exportData = transactions.map(txn => ({
+      'Mã GD': txn.transaction_id,
+      'Người dùng': txn.tenant_name,
+      'Email': txn.tenant_email,
+      'Phòng': txn.room_title,
+      'Số tiền': txn.amount,
+      'Phương thức': txn.payment_method,
+      'Thời gian': new Date(txn.created_at).toLocaleString('vi-VN'),
+      'Trạng thái': txn.status === 'SUCCESS' ? 'Thành công' : txn.status === 'PENDING' ? 'Đang xử lý' : 'Từ chối',
     }));
     exportToCsv('danh_sach_giao_dich.csv', exportData);
   };
@@ -85,16 +87,16 @@ export default function TransactionsPage() {
     try {
       setIsDisbursing(true);
       await adminService.disburseTransaction(transactionId);
-      showToast('Giải ngân thành công', 'success');
+      showToast(t.admin.transactionsPage.disburseSuccess, 'success');
       // Update local state without refetching immediately
-      setTransactions(prev => prev.map(t => 
-        t.transaction_id === transactionId ? { ...t, is_disbursed: true } : t
+      setTransactions(prev => prev.map(txn => 
+        txn.transaction_id === transactionId ? { ...txn, is_disbursed: true } : txn
       ));
       if (selectedTransaction?.transaction_id === transactionId) {
         setSelectedTransaction({ ...selectedTransaction, is_disbursed: true });
       }
     } catch (err: any) {
-      showToast(err.message || 'Lỗi khi giải ngân', 'error');
+      showToast(err.message || t.admin.transactionsPage.disburseError, 'error');
     } finally {
       setIsDisbursing(false);
     }
@@ -103,8 +105,8 @@ export default function TransactionsPage() {
   return (
     <div className="flex flex-col h-full bg-slate-50">
       <AdminHeader
-        title="Quản lý giao dịch"
-        description="Theo dõi và tra cứu tất cả các giao dịch thanh toán trên hệ thống."
+        title={t.admin.transactionsPage.title}
+        description={t.admin.transactionsPage.description}
       />
 
       <div className="flex-1 p-8 overflow-y-auto">
@@ -122,7 +124,7 @@ export default function TransactionsPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Mã GD, tên người dùng..."
+              placeholder={t.admin.transactionsPage.searchPlaceholder}
               className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-booking-primary/20 focus:border-booking-primary transition-all text-sm shadow-sm"
             />
             <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -139,31 +141,31 @@ export default function TransactionsPage() {
                 onClick={() => setFilterStatus('ALL')}
                 className={`px-4 py-1.5 font-medium rounded-md text-sm transition-colors ${filterStatus === 'ALL' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                Tất cả
+                {t.admin.transactionsPage.filterAll}
               </button>
               <button
                 onClick={() => setFilterStatus('SUCCESS')}
                 className={`px-4 py-1.5 font-medium rounded-md text-sm transition-colors ${filterStatus === 'SUCCESS' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                Thành công
+                {t.admin.transactionsPage.filterSuccess}
               </button>
               <button
                 onClick={() => setFilterStatus('PENDING')}
                 className={`px-4 py-1.5 font-medium rounded-md text-sm transition-colors ${filterStatus === 'PENDING' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                Đang xử lý
+                {t.admin.transactionsPage.filterPending}
               </button>
               <button
                 onClick={() => setFilterStatus('FAILED')}
                 className={`px-4 py-1.5 font-medium rounded-md text-sm transition-colors ${filterStatus === 'FAILED' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                Từ chối
+                {t.admin.transactionsPage.filterFailed}
               </button>
             </div>
             
             <button onClick={handleExport} className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-lg font-medium transition-colors shadow-sm text-sm ml-2">
               <Download size={18} className="text-slate-500" />
-              <span>Xuất báo cáo</span>
+              <span>{t.admin.transactionsPage.exportBtn}</span>
             </button>
           </div>
         </div>
@@ -174,13 +176,13 @@ export default function TransactionsPage() {
             <table className="w-full text-left border-collapse min-w-[1000px]">
               <thead>
                 <tr className="border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
-                  <th className="px-6 py-4 font-semibold">Mã giao dịch</th>
-                  <th className="px-6 py-4 font-semibold">Người dùng</th>
-                  <th className="px-6 py-4 font-semibold">Phòng / Dịch vụ</th>
-                  <th className="px-6 py-4 font-semibold">Số tiền</th>
-                  <th className="px-6 py-4 font-semibold">Phương thức</th>
-                  <th className="px-6 py-4 font-semibold">Thời gian</th>
-                  <th className="px-6 py-4 font-semibold text-center">Trạng thái</th>
+                  <th className="px-6 py-4 font-semibold">{t.admin.transactionsPage.thCode}</th>
+                  <th className="px-6 py-4 font-semibold">{t.admin.transactionsPage.thUser}</th>
+                  <th className="px-6 py-4 font-semibold">{t.admin.transactionsPage.thRoom}</th>
+                  <th className="px-6 py-4 font-semibold">{t.admin.transactionsPage.thAmount}</th>
+                  <th className="px-6 py-4 font-semibold">{t.admin.transactionsPage.thMethod}</th>
+                  <th className="px-6 py-4 font-semibold">{t.admin.transactionsPage.thTime}</th>
+                  <th className="px-6 py-4 font-semibold text-center">{t.admin.transactionsPage.thStatus}</th>
                 </tr>
               </thead>
               <tbody className={`divide-y divide-slate-100 text-sm transition-opacity duration-200 ${loading && transactions.length > 0 ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -188,13 +190,13 @@ export default function TransactionsPage() {
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                       <div className="flex justify-center mb-2"><div className="w-6 h-6 border-2 border-booking-primary border-t-transparent rounded-full animate-spin"></div></div>
-                      Đang tải dữ liệu...
+                      {t.admin.transactionsPage.loadingList}
                     </td>
                   </tr>
                 ) : !loading && transactions.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
-                      Không tìm thấy giao dịch nào.
+                      {t.admin.transactionsPage.noTransactionsFound}
                     </td>
                   </tr>
                 ) : (
@@ -216,10 +218,10 @@ export default function TransactionsPage() {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   navigator.clipboard.writeText(txn.transaction_id);
-                                  showToast('Đã sao chép mã giao dịch', 'success');
+                                  showToast(t.admin.transactionsPage.copied, 'success');
                                 }}
                                 className="text-slate-400 hover:text-blue-600 transition-colors"
-                                title="Sao chép mã"
+                                title={t.admin.transactionsPage.copyTooltip}
                               >
                                 <Copy size={14} />
                               </button>
@@ -242,7 +244,7 @@ export default function TransactionsPage() {
                           </div>
                           <div>
                             <p className="font-medium text-slate-700 line-clamp-1 text-sm max-w-[200px]" title={txn.room_title}>{txn.room_title || 'N/A'}</p>
-                            <p className="text-xs text-slate-500 mt-0.5">Đặt cọc giữ phòng</p>
+                            <p className="text-xs text-slate-500 mt-0.5">{t.admin.transactionsPage.roomDeposit}</p>
                           </div>
                         </div>
                       </td>
@@ -251,7 +253,7 @@ export default function TransactionsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                          {txn.payment_method === 'VNPAY' ? 'VNPay' : txn.payment_method === 'MOMO' ? 'MoMo' : txn.payment_method === 'BANK_TRANSFER' ? 'Chuyển khoản' : txn.payment_method || 'N/A'}
+                          {txn.payment_method === 'VNPAY' ? 'VNPay' : txn.payment_method === 'MOMO' ? 'MoMo' : txn.payment_method === 'BANK_TRANSFER' ? t.admin.transactionsPage.bankTransfer : txn.payment_method || 'N/A'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-slate-600">
@@ -262,14 +264,14 @@ export default function TransactionsPage() {
                           <div className={`inline-flex items-center rounded-full border p-[3px] shadow-sm transition-colors ${txn.is_disbursed ? 'border-emerald-200 bg-emerald-50' : 'border-orange-200 bg-orange-50'}`}>
                             <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-white shadow-sm text-emerald-700 border border-slate-100 flex items-center gap-1.5">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                              Thành công
+                              {t.admin.transactionsPage.successStatus}
                             </span>
                             <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${txn.is_disbursed ? 'text-emerald-700' : 'text-orange-700'}`}>
-                              {txn.is_disbursed ? 'Đã giải ngân' : 'Chờ giải ngân'}
+                              {txn.is_disbursed ? t.admin.transactionsPage.disbursed : t.admin.transactionsPage.pendingDisbursement}
                             </span>
                           </div>
                         ) : (
-                          <StatusBadge status={txn.status === 'PENDING' ? 'Đang xử lý' : 'Từ chối'} />
+                          <StatusBadge status={txn.status === 'PENDING' ? t.admin.transactionsPage.pendingStatus : t.admin.transactionsPage.failedStatus} />
                         )}
                       </td>
                     </tr>
@@ -282,24 +284,24 @@ export default function TransactionsPage() {
           {/* Pagination */}
           {!loading && transactions.length > 0 && (
             <div className="px-6 py-4 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between text-sm">
-              <span className="text-slate-500">Hiển thị {transactions.length} trên tổng <span className="font-medium text-slate-900">{pagination.total}</span> giao dịch</span>
+              <span className="text-slate-500">{t.admin.transactionsPage.showingCount.replace('{{count}}', transactions.length.toString()).replace('{{total}}', pagination.total.toString())}</span>
               <div className="flex gap-1 items-center">
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   className="px-3 py-1 border border-slate-200 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                 >
-                  Trước
+                  {t.admin.transactionsPage.prevPage}
                 </button>
                 <span className="px-2 font-medium text-slate-900">
-                  Trang {page} / {pagination.totalPages}
+                  {t.admin.transactionsPage.pageText.replace('{{page}}', page.toString()).replace('{{totalPages}}', pagination.totalPages.toString())}
                 </span>
                 <button
                   disabled={page >= pagination.totalPages}
                   onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
                   className="px-3 py-1 border border-slate-200 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                 >
-                  Sau
+                  {t.admin.transactionsPage.nextPage}
                 </button>
               </div>
             </div>
@@ -317,3 +319,4 @@ export default function TransactionsPage() {
     </div>
   );
 }
+

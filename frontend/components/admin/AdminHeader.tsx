@@ -1,5 +1,5 @@
 import React from 'react';
-
+import LanguageSwitcher from '@/components/common/LanguageSwitcher';
 
 interface AdminHeaderProps {
   title?: string;
@@ -16,12 +16,11 @@ export default function AdminHeader({ title, description, action }: AdminHeaderP
         {description && <p className="text-sm text-slate-500">{description}</p>}
       </div>
 
-      {/* Right side: Actions */}
-      {action && (
-        <div className="flex items-center gap-4">
-          <div>{action}</div>
-        </div>
-      )}
+      {/* Right side: Actions & Language Switcher */}
+      <div className="flex items-center gap-4">
+        <LanguageSwitcher />
+        {action && <div>{action}</div>}
+      </div>
     </div>
   );
 }

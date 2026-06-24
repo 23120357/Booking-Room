@@ -7,6 +7,7 @@ import { adminService } from '@/services/adminService';
 import { getRoomFallbackImage } from '@/utils/imageFallback';
 import { Check, X, Building, Search, Filter, AlertCircle, AlertTriangle, CheckCircle, Eye, ShieldCheck, XCircle, ChevronRight, MessageSquare } from 'lucide-react';
 import RoomDetailModal from '@/components/admin/RoomDetailModal';
+import { useTranslation } from '@/context/LanguageContext';
 
 const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
   if (typeof window !== 'undefined') {
@@ -28,6 +29,7 @@ export default function ComplaintsPage() {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [adminResponsesTenant, setAdminResponsesTenant] = useState<Record<string, string>>({});
   const [adminResponsesLandlord, setAdminResponsesLandlord] = useState<Record<string, string>>({});
+  const { t } = useTranslation();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -52,7 +54,7 @@ export default function ComplaintsPage() {
       setPagination({ total: res.pagination?.total || 0, totalPages: res.pagination?.totalPages || Math.ceil((res.pagination?.total || 0) / limit) || 1 });
       setError(null);
     } catch (err: any) {
-      setError(err.message || 'Lỗi khi tải danh sách khiếu nại');
+      setError(err.message || t.admin.complaintsPage.loadError);
     } finally {
       setLoading(false);
     }
@@ -72,12 +74,12 @@ export default function ComplaintsPage() {
       const tenantResp = adminResponsesTenant[reportId] || '';
       const landlordResp = adminResponsesLandlord[reportId] || '';
       await adminService.updateViolationReportStatus(reportId, status, tenantResp || undefined, landlordResp || undefined);
-      showToast('Cập nhật trạng thái thành công', 'success');
+      showToast(t.admin.complaintsPage.updateSuccess, 'success');
       setAdminResponsesTenant(prev => { const copy = { ...prev }; delete copy[reportId]; return copy; });
       setAdminResponsesLandlord(prev => { const copy = { ...prev }; delete copy[reportId]; return copy; });
       fetchReports();
     } catch (err: any) {
-      showToast(err.message || 'Lỗi khi cập nhật trạng thái', 'error');
+      showToast(err.message || t.admin.complaintsPage.updateError, 'error');
     } finally {
       setActionLoading(null);
     }
@@ -85,10 +87,10 @@ export default function ComplaintsPage() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'PENDING': return 'Chờ xử lý';
-      case 'PROCESSING': return 'Đang xử lý';
-      case 'RESOLVED': return 'Đã giải quyết';
-      case 'DISMISSED': return 'Từ chối';
+      case 'PENDING': return t.admin.complaintsPage.statusPending;
+      case 'PROCESSING': return t.admin.complaintsPage.statusProcessing;
+      case 'RESOLVED': return t.admin.complaintsPage.statusResolved;
+      case 'DISMISSED': return t.admin.complaintsPage.statusDismissed;
       default: return status;
     }
   };
@@ -96,8 +98,8 @@ export default function ComplaintsPage() {
   return (
     <div className="flex flex-col h-full bg-slate-50">
       <AdminHeader
-        title="Quản lý Khiếu nại"
-        description="Xử lý các báo cáo vi phạm từ người dùng về phòng trọ hoặc chủ nhà."
+        title={t.admin.complaintsPage.title}
+        description={t.admin.complaintsPage.description}
       />
 
       <div className="flex-1 p-8 overflow-y-auto">
@@ -115,7 +117,7 @@ export default function ComplaintsPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Lý do, tên người dùng..."
+              placeholder={t.admin.complaintsPage.searchPlaceholder}
               className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-booking-primary/20 focus:border-booking-primary transition-all text-sm shadow-sm"
             />
             <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -132,31 +134,31 @@ export default function ComplaintsPage() {
                 onClick={() => setFilterStatus('ALL')}
                 className={`px-4 py-1.5 font-medium rounded-md text-sm transition-colors ${filterStatus === 'ALL' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                Tất cả
+                {t.admin.complaintsPage.filterAll}
               </button>
               <button
                 onClick={() => setFilterStatus('PENDING')}
                 className={`px-4 py-1.5 font-medium rounded-md text-sm transition-colors ${filterStatus === 'PENDING' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                Chờ xử lý
+                {t.admin.complaintsPage.filterPending}
               </button>
               <button
                 onClick={() => setFilterStatus('PROCESSING')}
                 className={`px-4 py-1.5 font-medium rounded-md text-sm transition-colors ${filterStatus === 'PROCESSING' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                Đang xử lý
+                {t.admin.complaintsPage.filterProcessing}
               </button>
               <button
                 onClick={() => setFilterStatus('RESOLVED')}
                 className={`px-4 py-1.5 font-medium rounded-md text-sm transition-colors ${filterStatus === 'RESOLVED' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                Đã giải quyết
+                {t.admin.complaintsPage.filterResolved}
               </button>
               <button
                 onClick={() => setFilterStatus('DISMISSED')}
                 className={`px-4 py-1.5 font-medium rounded-md text-sm transition-colors ${filterStatus === 'DISMISSED' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                Bị bác bỏ
+                {t.admin.complaintsPage.filterDismissed}
               </button>
             </div>
           </div>
@@ -167,12 +169,12 @@ export default function ComplaintsPage() {
           {loading && reports.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center text-slate-500">
               <div className="flex justify-center mb-2"><div className="w-6 h-6 border-2 border-booking-teal border-t-transparent rounded-full animate-spin"></div></div>
-              Đang tải dữ liệu...
+              {t.admin.complaintsPage.loadingData}
             </div>
           ) : reports.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center text-slate-500">
               <div className="flex justify-center mb-3"><AlertTriangle size={32} className="text-slate-300" /></div>
-              Không có báo cáo vi phạm nào.
+              {t.admin.complaintsPage.noReportsFound}
             </div>
           ) : (
             reports.map((report) => (
@@ -185,13 +187,13 @@ export default function ComplaintsPage() {
                       <>
                         <img src={report.evidenceImageUrl} alt="Bằng chứng" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <span className="text-white text-xs font-semibold">Xem ảnh</span>
+                          <span className="text-white text-xs font-semibold">{t.admin.complaintsPage.viewImage}</span>
                         </div>
                       </>
                     ) : (
                       <div className="text-slate-400 flex flex-col items-center">
                         <AlertTriangle size={24} className="mb-1" />
-                        <span className="text-xs">Không có ảnh</span>
+                        <span className="text-xs">{t.admin.complaintsPage.noImage}</span>
                       </div>
                     )}
                   </div>
@@ -227,52 +229,52 @@ export default function ComplaintsPage() {
                           <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-[10px]">
                             {report.reporter?.fullName?.charAt(0).toUpperCase() || 'U'}
                           </div>
-                          <span className="text-sm text-slate-500">Bởi: <span className="font-medium text-slate-700">{report.reporter?.fullName || 'N/A'}</span></span>
+                          <span className="text-sm text-slate-500">{t.admin.complaintsPage.byReporter}<span className="font-medium text-slate-700">{report.reporter?.fullName || 'N/A'}</span></span>
                         </div>
                         {report.reportedLandlord && (
                           <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-[10px]">
                               {report.reportedLandlord?.fullName?.charAt(0).toUpperCase() || 'H'}
                             </div>
-                            <span className="text-sm text-slate-500">Tố cáo Host: <span className="font-medium text-slate-700">{report.reportedLandlord?.fullName || 'N/A'}</span></span>
+                            <span className="text-sm text-slate-500">{t.admin.complaintsPage.reportedHost}<span className="font-medium text-slate-700">{report.reportedLandlord?.fullName || 'N/A'}</span></span>
                           </div>
                         )}
                       </div>
                     </div>
                     <div className="mt-4 text-xs text-slate-400 flex items-center gap-2">
-                      <span>Mã: #{report.reportId.substring(0, 8)}</span>
+                      <span>{t.admin.complaintsPage.reportCodePrefix.replace('{{code}}', report.reportId.substring(0, 8))}</span>
                       <span>•</span>
-                      <span>Gửi lúc: {new Date(report.createdAt).toLocaleString('vi-VN')}</span>
+                      <span>{t.admin.complaintsPage.sentAtPrefix.replace('{{time}}', new Date(report.createdAt).toLocaleString('vi-VN'))}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Right side: Actions */}
                 <div className="p-6 w-full md:w-72 bg-slate-50 flex flex-col justify-center gap-3">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Hành động xử lý</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">{t.admin.complaintsPage.actionHandling}</p>
 
                   {['PENDING', 'PROCESSING'].includes(report.resolutionStatus) && (
                     <div className="space-y-2 bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
                       <div>
                         <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                          Phản hồi cho Tenant
+                          {t.admin.complaintsPage.tenantFeedbackLabel}
                         </label>
                         <textarea
                           value={adminResponsesTenant[report.reportId] || ''}
                           onChange={(e) => setAdminResponsesTenant(prev => ({ ...prev, [report.reportId]: e.target.value }))}
-                          placeholder="Gửi người báo cáo..."
+                          placeholder={t.admin.complaintsPage.tenantFeedbackPlaceholder}
                           rows={1}
                           className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-booking-primary/20 focus:border-booking-primary transition-all text-xs resize-none h-11"
                         />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                          Phản hồi cho Host
+                          {t.admin.complaintsPage.hostFeedbackLabel}
                         </label>
                         <textarea
                           value={adminResponsesLandlord[report.reportId] || ''}
                           onChange={(e) => setAdminResponsesLandlord(prev => ({ ...prev, [report.reportId]: e.target.value }))}
-                          placeholder="Gửi người bị báo cáo..."
+                          placeholder={t.admin.complaintsPage.hostFeedbackPlaceholder}
                           rows={1}
                           className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-booking-primary/20 focus:border-booking-primary transition-all text-xs resize-none h-11"
                         />
@@ -286,7 +288,7 @@ export default function ComplaintsPage() {
                       disabled={actionLoading === report.reportId}
                       className="w-full flex items-center justify-between px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors text-sm font-medium disabled:opacity-70"
                     >
-                      <span>Tiếp nhận xử lý</span>
+                      <span>{t.admin.complaintsPage.btnProcess}</span>
                       <ChevronRight size={16} />
                     </button>
                   )}
@@ -299,7 +301,7 @@ export default function ComplaintsPage() {
                         className="w-full flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl transition-colors text-sm font-medium disabled:opacity-70"
                       >
                         <ShieldCheck size={16} />
-                        <span>Đánh dấu đã giải quyết</span>
+                        <span>{t.admin.complaintsPage.btnResolve}</span>
                       </button>
 
                       <button
@@ -308,14 +310,14 @@ export default function ComplaintsPage() {
                         className="w-full flex items-center gap-2 px-4 py-2 bg-white hover:bg-red-50 text-red-600 border border-slate-200 hover:border-red-200 rounded-xl transition-colors text-sm font-medium disabled:opacity-70"
                       >
                         <XCircle size={16} />
-                        <span>Bác bỏ khiếu nại</span>
+                        <span>{t.admin.complaintsPage.btnDismiss}</span>
                       </button>
                     </>
                   )}
 
                   {['RESOLVED', 'DISMISSED'].includes(report.resolutionStatus) && (
                     <div className="text-center py-2 text-sm text-slate-500">
-                      Báo cáo này đã đóng.
+                      {t.admin.complaintsPage.reportClosed}
                     </div>
                   )}
                 </div>
@@ -328,24 +330,24 @@ export default function ComplaintsPage() {
         {/* Pagination */}
         {!loading && reports.length > 0 && (
           <div className="mt-6 px-6 py-4 border border-slate-200 rounded-2xl bg-white flex items-center justify-between text-sm">
-            <span className="text-slate-500">Hiển thị {reports.length} trên tổng <span className="font-medium text-slate-900">{pagination.total}</span> báo cáo</span>
+            <span className="text-slate-500">{t.admin.complaintsPage.showingCount.replace('{{count}}', reports.length.toString()).replace('{{total}}', pagination.total.toString())}</span>
             <div className="flex gap-1 items-center">
               <button
                 disabled={page <= 1}
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 className="px-3 py-1 border border-slate-200 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50"
               >
-                Trước
+                {t.admin.complaintsPage.prevPage}
               </button>
               <span className="px-2 font-medium text-slate-900">
-                Trang {page} / {pagination.totalPages}
+                {t.admin.complaintsPage.pageText.replace('{{page}}', page.toString()).replace('{{totalPages}}', pagination.totalPages.toString())}
               </span>
               <button
                 disabled={page >= pagination.totalPages}
                 onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
                 className="px-3 py-1 border border-slate-200 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50"
               >
-                Sau
+                {t.admin.complaintsPage.nextPage}
               </button>
             </div>
           </div>
@@ -366,3 +368,4 @@ export default function ComplaintsPage() {
     </div>
   );
 }
+

@@ -20,11 +20,11 @@ export interface UploadedRoomImage {
   alt?: string;
 }
 
-export const roomTypeOptions: RoomTypeOption[] = [
-  { value: 'single-room', label: 'Phòng đơn (Room)' },
-  { value: 'studio', label: 'Căn hộ Studio' },
-  { value: 'one-bedroom', label: 'Căn hộ 1 phòng ngủ' },
-  { value: 'shared-room', label: 'Phòng ở ghép' },
+export const getRoomTypeOptions = (t: any): RoomTypeOption[] => [
+  { value: 'single-room', label: t('host.createRoom.typeSingle') },
+  { value: 'studio', label: t('host.createRoom.typeStudio') },
+  { value: 'one-bedroom', label: t('host.createRoom.typeOneBed') },
+  { value: 'shared-room', label: t('host.createRoom.typeShared') },
 ];
 
 export const cityOptions: CityOption[] = [
@@ -34,15 +34,15 @@ export const cityOptions: CityOption[] = [
   { value: 'can-tho', label: 'Cần Thơ' },
 ];
 
-export const amenityOptions: AmenityOption[] = [
-  { key: 'air-conditioner', label: 'Điều hòa' },
-  { key: 'fridge', label: 'Tủ lạnh' },
-  { key: 'washing-machine', label: 'Máy giặt' },
-  { key: 'parking', label: 'Bãi đậu xe' },
-  { key: 'elevator', label: 'Thang máy' },
-  { key: 'free-hours', label: 'Giờ tự do' },
-  { key: 'pets', label: 'Thú cưng' },
-  { key: 'other', label: 'Khác' },
+export const getAmenityOptions = (t: any): AmenityOption[] => [
+  { key: 'air-conditioner', label: t('host.createRoom.amenityAirCon') },
+  { key: 'fridge', label: t('host.createRoom.amenityFridge') },
+  { key: 'washing-machine', label: t('host.createRoom.amenityWashing') },
+  { key: 'parking', label: t('host.createRoom.amenityParking') },
+  { key: 'elevator', label: t('host.createRoom.amenityElevator') },
+  { key: 'free-hours', label: t('host.createRoom.amenityFreeHours') },
+  { key: 'pets', label: t('host.createRoom.amenityPets') },
+  { key: 'other', label: t('host.createRoom.amenityOther') },
 ];
 
 export const uploadedRoomImages: UploadedRoomImage[] = [

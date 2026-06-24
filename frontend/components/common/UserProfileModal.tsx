@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, FormEvent } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { authService } from '@/services/authService';
+import { useTranslation } from '@/context/LanguageContext';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface UserProfileModalProps {
 
 export default function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
   const { user, refreshProfile } = useAuth();
+  const { t } = useTranslation();
   
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -195,9 +197,9 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
             />
 
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Thông tin cá nhân</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t('modals.profile.title')}</h2>
               <p className="text-xs font-semibold text-[#0052CC] bg-[#0052CC]/10 px-2 py-0.5 rounded-full inline-block mt-1">
-                {user.role === 'ADMIN' ? 'Quản trị viên' : (user.role === 'HOST' || user.role === 'LANDLORD') ? 'Chủ nhà' : 'Người thuê phòng'}
+                {user.role === 'ADMIN' ? t('modals.profile.roleAdmin') : (user.role === 'HOST' || user.role === 'LANDLORD') ? t('modals.profile.roleHost') : t('modals.profile.roleTenant')}
               </p>
               {!shouldRemoveAvatar && (previewUrl || user.avatarUrl) && (
                 <button
@@ -211,7 +213,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
-                  <span>Xóa ảnh đại diện</span>
+                  <span>{t('modals.profile.removeAvatar')}</span>
                 </button>
               )}
             </div>
@@ -251,7 +253,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
             {/* Full Name */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                Họ và tên <span className="text-red-500">*</span>
+                {t('modals.profile.fullName')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -266,8 +268,8 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
             {/* Email (Read-only) */}
             <div>
               <label className="flex text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 items-center justify-between">
-                <span>Địa chỉ Email</span>
-                <span className="text-[10px] text-gray-400 font-normal normal-case">Không thể chỉnh sửa</span>
+                <span>{t('modals.profile.email')}</span>
+                <span className="text-[10px] text-gray-400 font-normal normal-case">{t('modals.profile.cannotEdit')}</span>
               </label>
               <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-gray-150 bg-gray-50 text-gray-500 text-sm select-none">
                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -280,8 +282,8 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
             {/* Username (Read-only) */}
             <div>
               <label className="flex text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 items-center justify-between">
-                <span>Tên đăng nhập</span>
-                <span className="text-[10px] text-gray-400 font-normal normal-case">Không thể chỉnh sửa</span>
+                <span>{t('modals.profile.username')}</span>
+                <span className="text-[10px] text-gray-400 font-normal normal-case">{t('modals.profile.cannotEdit')}</span>
               </label>
               <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-gray-150 bg-gray-50 text-gray-500 text-sm select-none">
                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -294,7 +296,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
             {/* Phone Number */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                Số điện thoại
+                {t('modals.profile.phone')}
               </label>
               <input
                 type="tel"
@@ -308,23 +310,23 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
             {/* Gender */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                Giới tính
+                {t('modals.profile.gender')}
               </label>
               <select
                 value={gender}
                 onChange={(e) => setGender(e.target.value as any)}
                 className="w-full px-3 py-2.5 rounded-lg border border-gray-200 focus:border-[#0052CC] focus:ring-1 focus:ring-[#0052CC] outline-none text-gray-800 text-sm bg-white cursor-pointer transition-all"
               >
-                <option value="MALE">Nam</option>
-                <option value="FEMALE">Nữ</option>
-                <option value="OTHER">Khác</option>
+                <option value="MALE">{t('modals.profile.male')}</option>
+                <option value="FEMALE">{t('modals.profile.female')}</option>
+                <option value="OTHER">{t('modals.profile.other')}</option>
               </select>
             </div>
 
             {/* Date of Birth */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                Ngày sinh
+                {t('modals.profile.dob')}
               </label>
               <input
                 type="date"
@@ -338,7 +340,7 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
           {/* Address */}
           <div>
             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-              Địa chỉ liên hệ
+              {t('modals.profile.address')}
             </label>
             <textarea
               value={address}
@@ -358,14 +360,14 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
             disabled={loading}
             className="px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Hủy bỏ
+            {t('modals.profile.cancel')}
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
             className="px-6 py-2.5 text-sm font-semibold text-white bg-[#0052CC] hover:bg-[#0043A8] rounded-lg transition-colors flex items-center gap-2 disabled:opacity-75 disabled:cursor-wait shadow-sm"
           >
-            {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
+            {loading ? t('modals.profile.saving') : t('modals.profile.saveChanges')}
           </button>
         </div>
       </div>
