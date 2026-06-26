@@ -169,7 +169,7 @@ export const statusConfig: Record<TransactionStatus, StatusConfig> = {
     textClass: 'text-[#943700]',
   },
   processing: {
-    label: 'Đang xử lý',
+    label: 'Đang thanh toán',
     bgClass: 'bg-[rgba(103,80,164,0.1)]',
     textClass: 'text-[#6750A4]',
   },

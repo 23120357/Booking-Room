@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, X } from 'lucide-react';
+import { useTranslation } from '@/context/LanguageContext';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -17,13 +18,17 @@ export default function ConfirmModal({
   isOpen,
   title,
   message,
-  confirmText = 'Xác nhận',
-  cancelText = 'Hủy',
+  confirmText,
+  cancelText,
   onConfirm,
   onCancel,
   isLoading = false,
   type = 'warning'
 }: ConfirmModalProps) {
+  const { t } = useTranslation();
+  const actualConfirmText = confirmText || t.admin.confirmModal.confirm;
+  const actualCancelText = cancelText || t.admin.confirmModal.cancel;
+
   if (!isOpen) return null;
 
   const getColors = () => {
@@ -43,7 +48,7 @@ export default function ConfirmModal({
       case 'warning':
       default:
         return {
-          iconBg: 'bg-emerald-100', // Used emerald for positive confirmation like "Approve"
+          iconBg: 'bg-emerald-100',
           iconText: 'text-emerald-600',
           btnConfirm: 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500'
         };
@@ -72,7 +77,7 @@ export default function ConfirmModal({
             disabled={isLoading}
             className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 rounded-xl transition-colors disabled:opacity-50"
           >
-            {cancelText}
+            {actualCancelText}
           </button>
           <button
             onClick={onConfirm}
@@ -80,7 +85,7 @@ export default function ConfirmModal({
             className={`px-4 py-2 text-sm font-medium text-white rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 flex items-center gap-2 ${colors.btnConfirm}`}
           >
             {isLoading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
-            {confirmText}
+            {actualConfirmText}
           </button>
         </div>
       </div>

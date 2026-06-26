@@ -5,6 +5,7 @@ import AdminHeader from '@/components/admin/AdminHeader';
 import StatusBadge from '@/components/admin/StatusBadge';
 import { adminService } from '@/services/adminService';
 import { Search, Filter, AlertCircle, MessageSquare, Tag, Clock, ChevronDown, MessageCircle, Send } from 'lucide-react';
+import { useTranslation } from '@/context/LanguageContext';
 
 const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
   if (typeof window !== 'undefined') {
@@ -26,6 +27,7 @@ export default function SupportPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
   const [adminResponses, setAdminResponses] = useState<Record<string, string>>({});
+  const { t } = useTranslation();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -51,7 +53,7 @@ export default function SupportPage() {
       setPagination({ total: res.pagination?.total || 0, totalPages: res.pagination?.totalPages || Math.ceil((res.pagination?.total || 0)/limit) || 1 });
       setError(null);
     } catch (err: any) {
-      setError(err.message || 'Lỗi khi tải danh sách yêu cầu hỗ trợ');
+      setError(err.message || t.admin.supportPage.loadError);
     } finally {
       setLoading(false);
     }
@@ -70,11 +72,11 @@ export default function SupportPage() {
       setActionLoading(ticketId);
       const response = adminResponses[ticketId] || '';
       await adminService.updateSupportTicketStatus(ticketId, status, response || undefined);
-      showToast('Cập nhật trạng thái thành công', 'success');
+      showToast(t.admin.supportPage.updateSuccess, 'success');
       setAdminResponses(prev => { const copy = {...prev}; delete copy[ticketId]; return copy; });
       fetchTickets();
     } catch (err: any) {
-      showToast(err.message || 'Lỗi khi cập nhật trạng thái', 'error');
+      showToast(err.message || t.admin.supportPage.updateError, 'error');
     } finally {
       setActionLoading(null);
     }
@@ -82,19 +84,19 @@ export default function SupportPage() {
 
   const getStatusText = (status: string) => {
     switch(status) {
-      case 'OPEN': return 'Chờ xử lý';
-      case 'IN_PROGRESS': return 'Đang xử lý';
-      case 'CLOSED': return 'Đã giải quyết';
+      case 'OPEN': return t.admin.supportPage.statusOpen;
+      case 'IN_PROGRESS': return t.admin.supportPage.statusInProgress;
+      case 'CLOSED': return t.admin.supportPage.statusClosed;
       default: return status;
     }
   };
 
   const getCategoryText = (category: string) => {
     switch(category) {
-      case 'APP_FAULT': return 'Lỗi hệ thống';
-      case 'ACCOUNT': return 'Tài khoản';
-      case 'PAYMENT': return 'Thanh toán';
-      case 'OTHER': return 'Khác';
+      case 'APP_FAULT': return t.admin.supportPage.catAppFault;
+      case 'ACCOUNT': return t.admin.supportPage.catAccount;
+      case 'PAYMENT': return t.admin.supportPage.catPayment;
+      case 'OTHER': return t.admin.supportPage.catOther;
       default: return category;
     }
   };
@@ -102,8 +104,8 @@ export default function SupportPage() {
   return (
     <div className="flex flex-col h-full bg-slate-50">
       <AdminHeader 
-        title="Hỗ trợ người dùng" 
-        description="Giải quyết các vấn đề kỹ thuật và thắc mắc từ người dùng."
+        title={t.admin.supportPage.title} 
+        description={t.admin.supportPage.description}
       />
 
       <div className="flex-1 p-8 overflow-y-auto">
@@ -121,7 +123,7 @@ export default function SupportPage() {
               type="text" 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tiêu đề, email..." 
+              placeholder={t.admin.supportPage.searchPlaceholder} 
               className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-booking-primary/20 focus:border-booking-primary transition-all text-sm shadow-sm"
             />
             <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -138,19 +140,19 @@ export default function SupportPage() {
                 onClick={() => setFilterStatus('ALL')}
                 className={`px-4 py-1.5 font-medium rounded-md text-sm transition-colors ${filterStatus === 'ALL' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                Tất cả
+                {t.admin.supportPage.filterAll}
               </button>
               <button 
                 onClick={() => setFilterStatus('OPEN')}
                 className={`px-4 py-1.5 font-medium rounded-md text-sm transition-colors ${filterStatus === 'OPEN' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                Chờ xử lý
+                {t.admin.supportPage.filterOpen}
               </button>
               <button 
                 onClick={() => setFilterStatus('IN_PROGRESS')}
                 className={`px-4 py-1.5 font-medium rounded-md text-sm transition-colors ${filterStatus === 'IN_PROGRESS' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                Đang xử lý
+                {t.admin.supportPage.filterInProgress}
               </button>
             </div>
             <div className="relative">
@@ -159,11 +161,11 @@ export default function SupportPage() {
                 onChange={(e) => setFilterCategory(e.target.value)}
                 className="appearance-none flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 font-medium hover:bg-slate-50 transition-colors shadow-sm text-sm pr-10 focus:outline-none focus:ring-2 focus:ring-booking-primary/20 focus:border-booking-primary"
               >
-                <option value="ALL">Tất cả danh mục</option>
-                <option value="APP_FAULT">Lỗi hệ thống</option>
-                <option value="ACCOUNT">Tài khoản</option>
-                <option value="PAYMENT">Thanh toán</option>
-                <option value="OTHER">Khác</option>
+                <option value="ALL">{t.admin.supportPage.filterAllCat}</option>
+                <option value="APP_FAULT">{t.admin.supportPage.catAppFault}</option>
+                <option value="ACCOUNT">{t.admin.supportPage.catAccount}</option>
+                <option value="PAYMENT">{t.admin.supportPage.catPayment}</option>
+                <option value="OTHER">{t.admin.supportPage.catOther}</option>
               </select>
               <Filter size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
@@ -175,12 +177,12 @@ export default function SupportPage() {
           {loading && tickets.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center text-slate-500">
               <div className="flex justify-center mb-2"><div className="w-6 h-6 border-2 border-booking-teal border-t-transparent rounded-full animate-spin"></div></div>
-              Đang tải dữ liệu...
+              {t.admin.supportPage.loadingData}
             </div>
           ) : !loading && tickets.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center text-slate-500">
               <div className="flex justify-center mb-3"><MessageCircle size={32} className="text-slate-300" /></div>
-              Không tìm thấy yêu cầu nào.
+              {t.admin.supportPage.noTicketsFound}
             </div>
           ) : (
             tickets.map((ticket) => {
@@ -210,10 +212,10 @@ export default function SupportPage() {
                             <div className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-bold">
                               {ticket.user?.fullName?.charAt(0).toUpperCase() || 'U'}
                             </div>
-                            {ticket.user?.fullName || 'N/A'} ({ticket.user?.role || 'Khách'})
+                            {ticket.user?.fullName || 'N/A'} ({ticket.user?.role || t.admin.supportPage.guestRole})
                           </span>
                           <span className="flex items-center gap-1"><Clock size={14} /> {new Date(ticket.createdAt).toLocaleString('vi-VN')}</span>
-                          <span>Mã yêu cầu: #{ticket.ticketId.substring(0, 8)}</span>
+                          <span>{t.admin.supportPage.ticketCodePrefix.replace('{{code}}', ticket.ticketId.substring(0, 8))}</span>
                         </div>
                       </div>
                     </div>
@@ -226,14 +228,14 @@ export default function SupportPage() {
                   {isExpanded && (
                     <div className="border-t border-slate-100 p-6 bg-slate-50/50 flex flex-col md:flex-row gap-8">
                       <div className="flex-1">
-                        <h4 className="text-sm font-semibold text-slate-900 mb-2">Mô tả chi tiết vấn đề:</h4>
+                        <h4 className="text-sm font-semibold text-slate-900 mb-2">{t.admin.supportPage.descLabel}</h4>
                         <div className="bg-white border border-slate-200 p-4 rounded-xl text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
-                          {ticket.detailedDescription || 'Không có mô tả chi tiết.'}
+                          {ticket.detailedDescription || t.admin.supportPage.noDesc}
                         </div>
                         
                         {ticket.evidenceImageUrl && (
                           <div className="mt-4">
-                            <h4 className="text-sm font-semibold text-slate-900 mb-2">Hình ảnh đính kèm:</h4>
+                            <h4 className="text-sm font-semibold text-slate-900 mb-2">{t.admin.supportPage.attachedImage}</h4>
                             <div className="w-48 h-32 rounded-lg border border-slate-200 overflow-hidden cursor-pointer hover:opacity-90 transition-opacity">
                               <img src={ticket.evidenceImageUrl} alt="Đính kèm" className="w-full h-full object-cover" />
                             </div>
@@ -242,18 +244,18 @@ export default function SupportPage() {
                       </div>
                       
                       <div className="w-full md:w-64 bg-white border border-slate-200 rounded-xl p-5 shadow-sm h-fit">
-                        <h4 className="text-sm font-bold text-slate-900 mb-4 border-b border-slate-100 pb-2">Cập nhật trạng thái</h4>
+                        <h4 className="text-sm font-bold text-slate-900 mb-4 border-b border-slate-100 pb-2">{t.admin.supportPage.updateStatusTitle}</h4>
 
                         {ticket.status !== 'CLOSED' && (
                           <div className="mb-4">
                             <label className="text-xs font-medium text-slate-600 mb-1 flex items-center gap-1">
                               <Send size={12} />
-                              Phản hồi của Admin (tùy chọn)
+                              {t.admin.supportPage.adminReplyLabel}
                             </label>
                             <textarea
                               value={adminResponses[ticket.ticketId] || ''}
                               onChange={(e) => setAdminResponses(prev => ({...prev, [ticket.ticketId]: e.target.value}))}
-                              placeholder="Nhập phản hồi gửi đến người dùng..."
+                              placeholder={t.admin.supportPage.adminReplyPlaceholder}
                               rows={2}
                               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-booking-primary/20 focus:border-booking-primary transition-all text-sm resize-none mt-1"
                             />
@@ -267,7 +269,7 @@ export default function SupportPage() {
                             className={`w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-colors ${ticket.status === 'OPEN' ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'hover:bg-slate-50 text-slate-600 border border-transparent hover:border-slate-200'}`}
                           >
                             <div className="flex justify-between items-center">
-                              <span>Chờ xử lý</span>
+                              <span>{t.admin.supportPage.statusOpen}</span>
                               {ticket.status === 'OPEN' && <span className="w-2 h-2 rounded-full bg-orange-500"></span>}
                             </div>
                           </button>
@@ -278,7 +280,7 @@ export default function SupportPage() {
                             className={`w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-colors ${ticket.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'hover:bg-slate-50 text-slate-600 border border-transparent hover:border-slate-200'}`}
                           >
                             <div className="flex justify-between items-center">
-                              <span>Đang xử lý</span>
+                              <span>{t.admin.supportPage.statusInProgress}</span>
                               {ticket.status === 'IN_PROGRESS' && <span className="w-2 h-2 rounded-full bg-blue-500"></span>}
                             </div>
                           </button>
@@ -289,7 +291,7 @@ export default function SupportPage() {
                             className={`w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-colors ${ticket.status === 'CLOSED' ? 'bg-slate-100 text-slate-700 border border-slate-300' : 'hover:bg-slate-50 text-slate-600 border border-transparent hover:border-slate-200'}`}
                           >
                             <div className="flex justify-between items-center">
-                              <span>Đã giải quyết</span>
+                              <span>{t.admin.supportPage.statusClosed}</span>
                               {ticket.status === 'CLOSED' && <span className="w-2 h-2 rounded-full bg-slate-500"></span>}
                             </div>
                           </button>
@@ -306,24 +308,24 @@ export default function SupportPage() {
         {/* Pagination */}
         {!loading && tickets.length > 0 && (
           <div className="mt-6 px-6 py-4 border border-slate-200 rounded-2xl bg-white flex items-center justify-between text-sm">
-            <span className="text-slate-500">Hiển thị {tickets.length} trên tổng <span className="font-medium text-slate-900">{pagination.total}</span> yêu cầu</span>
+            <span className="text-slate-500">{t.admin.supportPage.showingCount.replace('{{count}}', tickets.length.toString()).replace('{{total}}', pagination.total.toString())}</span>
             <div className="flex gap-1 items-center">
               <button 
                 disabled={page <= 1}
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 className="px-3 py-1 border border-slate-200 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50"
               >
-                Trước
+                {t.admin.supportPage.prevPage}
               </button>
               <span className="px-2 font-medium text-slate-900">
-                Trang {page} / {pagination.totalPages}
+                {t.admin.supportPage.pageText.replace('{{page}}', page.toString()).replace('{{totalPages}}', pagination.totalPages.toString())}
               </span>
               <button 
                 disabled={page >= pagination.totalPages}
                 onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
                 className="px-3 py-1 border border-slate-200 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50"
               >
-                Sau
+                {t.admin.supportPage.nextPage}
               </button>
             </div>
           </div>
@@ -332,3 +334,4 @@ export default function SupportPage() {
     </div>
   );
 }
+

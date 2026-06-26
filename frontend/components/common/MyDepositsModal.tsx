@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { roomService } from '@/services/roomService';
 import { bookingService, DepositResponse } from '@/services/bookingService';
 import ConfirmModal from './ConfirmModal';
+import { useTranslation } from '@/context/LanguageContext';
 
 interface MyDepositsModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ interface ExtendedDeposit extends DepositResponse {
 
 export default function MyDepositsModal({ isOpen, onClose }: MyDepositsModalProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [checkingRoomId, setCheckingRoomId] = useState<string | null>(null);
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
@@ -94,15 +96,15 @@ export default function MyDepositsModal({ isOpen, onClose }: MyDepositsModalProp
     if (!cancelTargetId) return;
     setCancelLoading(true);
     try {
-      await bookingService.cancelDeposit(cancelTargetId, 'Người dùng chủ động hủy');
+      await bookingService.cancelDeposit(cancelTargetId, t('modals.deposits.userCancel'));
       window.dispatchEvent(new CustomEvent('show-toast', {
-        detail: { message: 'Đã hủy giao dịch đặt cọc thành công!', type: 'success' }
+        detail: { message: t('modals.deposits.cancelSuccess'), type: 'success' }
       }));
       window.dispatchEvent(new Event('deposit-updated'));
       fetchDeposits();
     } catch (err: any) {
       window.dispatchEvent(new CustomEvent('show-toast', {
-        detail: { message: err.message || 'Hủy giao dịch thất bại.', type: 'error' }
+        detail: { message: err.message || t('modals.deposits.cancelFail'), type: 'error' }
       }));
     } finally {
       setCancelLoading(false);
@@ -131,42 +133,42 @@ export default function MyDepositsModal({ isOpen, onClose }: MyDepositsModalProp
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-            Đang xử lý (Chờ TT)
+            {t('modals.deposits.statusProcessing')}
           </span>
         );
       case 'CONFIRMED':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#EEF4FF] text-[#0052CC] border border-blue-200">
             <span className="w-1.5 h-1.5 rounded-full bg-[#0052CC]" />
-            Đã thanh toán thành công
+            {t('modals.deposits.statusConfirmed')}
           </span>
         );
       case 'ACCEPTED':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            Chủ nhà đã duyệt
+            {t('modals.deposits.statusAccepted')}
           </span>
         );
       case 'REJECTED':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-            Chủ nhà từ chối
+            {t('modals.deposits.statusRejected')}
           </span>
         );
       case 'EXPIRED':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gray-50 text-gray-600 border border-gray-200">
             <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-            Đã quá hạn (15p)
+            {t('modals.deposits.statusExpired')}
           </span>
         );
       case 'CANCELLED':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600 border border-gray-300">
             <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
-            Đã hủy giao dịch
+            {t('modals.deposits.statusCancelled')}
           </span>
         );
       default:
@@ -187,8 +189,8 @@ export default function MyDepositsModal({ isOpen, onClose }: MyDepositsModalProp
         {/* Header */}
         <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Đơn đặt cọc</h2>
-            <p className="text-xs text-gray-500 mt-1">Lịch sử đặt cọc của bạn và trạng thái thanh toán</p>
+            <h2 className="text-2xl font-bold text-gray-900">{t('modals.deposits.title')}</h2>
+            <p className="text-xs text-gray-500 mt-1">{t('modals.deposits.subtitle')}</p>
           </div>
           <div className="flex items-center gap-4">
             <select
@@ -199,18 +201,18 @@ export default function MyDepositsModal({ isOpen, onClose }: MyDepositsModalProp
               }}
               className="px-3 py-1.5 border border-gray-200 bg-white rounded-xl text-sm font-semibold text-gray-800 outline-none shadow-sm focus:border-[#0052CC]"
             >
-              <option value="ALL">Tất cả trạng thái</option>
-              <option value="PROCESSING">Chờ thanh toán</option>
-              <option value="CONFIRMED">Đã thanh toán</option>
-              <option value="ACCEPTED">Đã duyệt</option>
-              <option value="REJECTED">Bị từ chối</option>
-              <option value="CANCELLED">Đã hủy</option>
-              <option value="EXPIRED">Đã hết hạn</option>
+              <option value="ALL">{t('modals.deposits.filterAll')}</option>
+              <option value="PROCESSING">{t('modals.deposits.filterProcessing')}</option>
+              <option value="CONFIRMED">{t('modals.deposits.filterConfirmed')}</option>
+              <option value="ACCEPTED">{t('modals.deposits.filterAccepted')}</option>
+              <option value="REJECTED">{t('modals.deposits.filterRejected')}</option>
+              <option value="CANCELLED">{t('modals.deposits.filterCancelled')}</option>
+              <option value="EXPIRED">{t('modals.deposits.filterExpired')}</option>
             </select>
             <button
               onClick={onClose}
               className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-              aria-label="Đóng"
+              aria-label={t('modals.deposits.close')}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -233,7 +235,7 @@ export default function MyDepositsModal({ isOpen, onClose }: MyDepositsModalProp
           {loading ? (
             <div className="py-24 text-center">
               <div className="w-10 h-10 border-4 border-[#0052CC] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-booking-muted text-sm">Đang tải lịch sử đặt cọc...</p>
+              <p className="text-booking-muted text-sm">{t('modals.deposits.loading')}</p>
             </div>
           ) : deposits.length > 0 ? (
             <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl bg-white overflow-hidden">
@@ -242,32 +244,32 @@ export default function MyDepositsModal({ isOpen, onClose }: MyDepositsModalProp
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                     <div className="space-y-1.5 flex-1">
                       <div className="flex flex-wrap items-center gap-3">
-                        <h3 className="font-bold text-base text-[#172B4D]">{dep.room_title || 'Phòng cho thuê'}</h3>
+                        <h3 className="font-bold text-base text-[#172B4D]">{dep.room_title || t('modals.deposits.roomTitleDefault')}</h3>
                         {renderStatusBadge(dep.status)}
                       </div>
-                      <p className="text-sm text-booking-muted">{dep.room_address || 'Địa chỉ đang được cập nhật...'}</p>
+                      <p className="text-sm text-booking-muted">{dep.room_address || t('modals.deposits.roomAddressDefault')}</p>
                       
                       {/* Meta Info */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-2 gap-x-6 pt-3 text-xs text-gray-500">
                         <div>
-                          <span className="font-semibold text-gray-400 block">Số tiền đặt cọc</span>
+                          <span className="font-semibold text-gray-400 block">{t('modals.deposits.depositAmount')}</span>
                           <span className="text-sm font-bold text-gray-800">{formatCurrency(dep.deposit_amount)}</span>
                         </div>
                         <div>
-                          <span className="font-semibold text-gray-400 block">Thời gian hẹn</span>
+                          <span className="font-semibold text-gray-400 block">{t('modals.deposits.appointmentTime')}</span>
                           <span className="text-sm font-semibold text-gray-800">
-                            {dep.appointment_time ? formatDate(dep.appointment_time) : 'Không đặt lịch'}
+                            {dep.appointment_time ? formatDate(dep.appointment_time) : t('modals.deposits.noAppointment')}
                           </span>
                         </div>
                         <div>
-                          <span className="font-semibold text-gray-400 block">Ngày giao dịch</span>
+                          <span className="font-semibold text-gray-400 block">{t('modals.deposits.transactionDate')}</span>
                           <span className="text-sm font-semibold text-gray-800">{formatDate(dep.created_at)}</span>
                         </div>
                       </div>
 
                       {dep.cancellation_reason && (
                         <div className="mt-3 p-3 bg-red-50/50 border border-red-100 rounded-lg text-xs text-red-700">
-                          <span className="font-bold block">Lý do hủy/thất bại:</span>
+                          <span className="font-bold block">{t('modals.deposits.cancelReason')}</span>
                           <span className="mt-0.5 block">{dep.cancellation_reason}</span>
                         </div>
                       )}
@@ -282,13 +284,13 @@ export default function MyDepositsModal({ isOpen, onClose }: MyDepositsModalProp
                             disabled={checkingRoomId !== null}
                             className="px-4 py-2 text-xs font-bold text-white bg-[#0052CC] hover:bg-[#0043A8] rounded-lg transition-all shadow-sm text-center disabled:opacity-50"
                           >
-                            {checkingRoomId === dep.room_id ? 'Đang kiểm tra...' : 'Tiếp tục thanh toán'}
+                            {checkingRoomId === dep.room_id ? t('modals.deposits.btnChecking') : t('modals.deposits.btnContinuePay')}
                           </button>
                           <button
                             onClick={() => triggerCancelDeposit(dep.deposit_id)}
                             className="px-4 py-2 text-xs font-bold text-red-600 hover:text-white bg-red-50 hover:bg-red-500 border border-red-200 hover:border-red-500 rounded-lg transition-all shadow-sm"
                           >
-                            Hủy giao dịch
+                            {t('modals.deposits.btnCancel')}
                           </button>
                         </>
                       )}
@@ -298,7 +300,7 @@ export default function MyDepositsModal({ isOpen, onClose }: MyDepositsModalProp
                           disabled={checkingRoomId !== null}
                           className="px-4 py-2 text-xs font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-all text-center disabled:opacity-50"
                         >
-                          {checkingRoomId === dep.room_id ? 'Đang kiểm tra...' : 'Xem chi tiết phòng'}
+                          {checkingRoomId === dep.room_id ? t('modals.deposits.btnChecking') : t('modals.deposits.btnViewRoom')}
                         </button>
                       )}
                     </div>
@@ -311,7 +313,7 @@ export default function MyDepositsModal({ isOpen, onClose }: MyDepositsModalProp
               <svg className="w-16 h-16 mx-auto text-gray-200 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
-              <p className="text-sm font-semibold">Không tìm thấy đơn đặt cọc nào phù hợp.</p>
+              <p className="text-sm font-semibold">{t('modals.deposits.noData')}</p>
             </div>
           )}
         </div>
@@ -320,7 +322,7 @@ export default function MyDepositsModal({ isOpen, onClose }: MyDepositsModalProp
         {totalPages > 1 && (
           <div className="px-8 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
             <span className="text-xs text-booking-muted">
-              Hiển thị trang {page}/{totalPages} (Tổng cộng {totalItems} kết quả)
+              {t('modals.deposits.pageInfo').replace('{{page}}', String(page)).replace('{{totalPages}}', String(totalPages)).replace('{{total}}', String(totalItems))}
             </span>
             <div className="flex gap-2">
               <button
@@ -328,14 +330,14 @@ export default function MyDepositsModal({ isOpen, onClose }: MyDepositsModalProp
                 disabled={page === 1 || loading}
                 className="px-3.5 py-1.5 text-xs font-semibold bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
-                Trước
+                {t('modals.deposits.prev')}
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
                 disabled={page === totalPages || loading}
                 className="px-3.5 py-1.5 text-xs font-semibold bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
-                Sau
+                {t('modals.deposits.next')}
               </button>
             </div>
           </div>

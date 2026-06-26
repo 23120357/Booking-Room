@@ -2,7 +2,6 @@
 
 import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import BookingChatFab from '@/components/booking/BookingChatFab';
 import BookingFooter from '@/components/booking/BookingFooter';
 import BookingHeader from '@/components/booking/BookingHeader';
@@ -10,18 +9,12 @@ import RoomCard from '@/components/booking/RoomCard';
 import SearchBento from '@/components/booking/SearchBento';
 import { roomService, mapBackendRoomToBookingRoom } from '@/services/roomService';
 import { favoriteService } from '@/services/favoriteService';
+import { useTranslation } from '@/context/LanguageContext';
 import type { BookingRoom } from '@/data/bookingRooms';
-
-// Lazy-load RoomMap để tránh SSR error (Leaflet cần window object)
-const RoomMap = dynamic(() => import('@/components/guest/RoomMap'), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full rounded-2xl border border-booking-border bg-booking-surface animate-pulse" style={{ height: 520 }} />
-  ),
-});
 
 function SearchCriteriaSummary() {
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
   const q = searchParams.get('q') || '';
   const budget = searchParams.get('budget') || '';
   const type = searchParams.get('type') || '';
@@ -32,10 +25,10 @@ function SearchCriteriaSummary() {
 
   return (
     <div className="mt-3 p-3 rounded-xl bg-booking-surface border border-booking-border/60 text-xs sm:text-sm text-booking-muted font-medium flex flex-wrap gap-x-4 gap-y-1.5 items-center">
-      <span className="font-bold text-booking-primary">Kết quả tìm kiếm cho:</span>
+      <span className="font-bold text-booking-primary">{t('rooms.searchResultFor')}</span>
       {q && !nearLat && (
         <span className="flex items-center gap-1 flex-wrap">
-          <strong>Khu vực:</strong> 
+          <strong>{t('rooms.area')}</strong> 
           {q.split('|').map((loc, idx) => (
             <span key={idx} className="bg-white border border-booking-border px-2 py-0.5 rounded-md text-booking-text font-semibold">
               {loc}
@@ -45,17 +38,17 @@ function SearchCriteriaSummary() {
       )}
       {nearLat && nearLng && (
         <span className="flex items-center gap-1">
-          <strong>📍 Bán kính:</strong> <span className="bg-white border border-booking-border px-2 py-0.5 rounded-md text-booking-text font-semibold">5km quanh vị trí đã chọn</span>
+          <strong>{t('rooms.radius')}</strong> <span className="bg-white border border-booking-border px-2 py-0.5 rounded-md text-booking-text font-semibold">{t('rooms.radiusDesc')}</span>
         </span>
       )}
       {budget && (
         <span className="flex items-center gap-1">
-          <strong>Giá:</strong> <span className="bg-white border border-booking-border px-2 py-0.5 rounded-md text-booking-text font-semibold">{budget}</span>
+          <strong>{t('rooms.price')}</strong> <span className="bg-white border border-booking-border px-2 py-0.5 rounded-md text-booking-text font-semibold">{budget}</span>
         </span>
       )}
       {type && (
         <span className="flex items-center gap-1">
-          <strong>Loại:</strong> <span className="bg-white border border-booking-border px-2 py-0.5 rounded-md text-booking-text font-semibold">{type}</span>
+          <strong>{t('rooms.type')}</strong> <span className="bg-white border border-booking-border px-2 py-0.5 rounded-md text-booking-text font-semibold">{type}</span>
         </span>
       )}
     </div>
@@ -64,10 +57,10 @@ function SearchCriteriaSummary() {
 
 function RoomsPageContent() {
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
   const [rooms, setRooms] = useState<BookingRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [currentPage, setCurrentPage] = useState(1);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
@@ -217,14 +210,14 @@ function RoomsPageContent() {
       <section className="rounded-2xl border border-booking-border bg-white p-4 shadow-sm sm:p-6">
         <div className="mb-5 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.08em] text-booking-primary">Tìm kiếm phòng</p>
-            <h1 className="mt-2 text-2xl font-bold sm:text-3xl">Không gian phù hợp với nhịp sống của bạn</h1>
+            <p className="text-sm font-bold uppercase tracking-[0.08em] text-booking-primary">{t('rooms.searchRoom')}</p>
+            <h1 className="mt-2 text-2xl font-bold sm:text-3xl">{t('rooms.subtitle')}</h1>
             <Suspense fallback={null}>
               <SearchCriteriaSummary />
             </Suspense>
           </div>
           <p className="max-w-xl text-sm leading-6 text-booking-muted">
-            Lọc nhanh theo khu vực và loại phòng.
+            {t('rooms.filterDesc')}
           </p>
         </div>
         <SearchBento compact />
@@ -234,46 +227,12 @@ function RoomsPageContent() {
         {/* Header: số phòng + toggle List/Map */}
         <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
           <h2 className="text-xl font-bold">
-            {loading ? 'Đang tìm kiếm...' : `${rooms.length} phòng phù hợp`}
+            {loading ? t('rooms.searching') : t('rooms.roomsFound', { count: rooms.length })}
           </h2>
 
           <div className="flex items-center gap-2">
-            {/* Nút toggle List / Map */}
-            <div className="flex items-center rounded-xl border border-booking-border bg-white shadow-sm overflow-hidden">
-              <button
-                id="view-list-btn"
-                onClick={() => setViewMode('list')}
-                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-semibold transition-colors ${
-                  viewMode === 'list'
-                    ? 'bg-booking-primary text-white'
-                    : 'text-booking-muted hover:bg-booking-surface'
-                }`}
-                title="Xem dạng danh sách"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                </svg>
-                <span className="hidden sm:inline">Danh sách</span>
-              </button>
-              <button
-                id="view-map-btn"
-                onClick={() => setViewMode('map')}
-                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-semibold transition-colors ${
-                  viewMode === 'map'
-                    ? 'bg-booking-primary text-white'
-                    : 'text-booking-muted hover:bg-booking-surface'
-                }`}
-                title="Xem trên bản đồ"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-                <span className="hidden sm:inline">Bản đồ</span>
-              </button>
-            </div>
-
             <span className="rounded-full border border-booking-border bg-white px-3 py-1 text-sm text-booking-muted hidden sm:block">
-              Sắp xếp: Đề xuất
+              {t('rooms.sortByRecommend')}
             </span>
           </div>
         </div>
@@ -297,11 +256,8 @@ function RoomsPageContent() {
           </div>
         ) : rooms.length === 0 ? (
           <div className="rounded-xl border border-dashed border-booking-border bg-white p-12 text-center text-booking-muted font-medium">
-            Không tìm thấy phòng nào phù hợp với điều kiện lọc của bạn.
+            {t('rooms.noRoomsFound')}
           </div>
-        ) : viewMode === 'map' ? (
-          /* ---- Bản đồ ---- */
-          <RoomMap rooms={rooms} height={580} searchCenter={searchCenter} />
         ) : (
           <div className="space-y-8">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -323,7 +279,7 @@ function RoomsPageContent() {
                   disabled={currentPage === 1}
                   className="px-3 py-2 rounded-xl border border-booking-border bg-white text-sm font-semibold text-booking-text hover:bg-booking-surface disabled:opacity-50 transition-colors"
                 >
-                  Trước
+                  {t('rooms.prev')}
                 </button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                   <button
@@ -343,7 +299,7 @@ function RoomsPageContent() {
                   disabled={currentPage === totalPages}
                   className="px-3 py-2 rounded-xl border border-booking-border bg-white text-sm font-semibold text-booking-text hover:bg-booking-surface disabled:opacity-50 transition-colors"
                 >
-                  Sau
+                  {t('rooms.next')}
                 </button>
               </div>
             )}

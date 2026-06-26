@@ -11,6 +11,7 @@ import SearchBento from '@/components/booking/SearchBento';
 import { roomService, mapBackendRoomToBookingRoom } from '@/services/roomService';
 import { favoriteService } from '@/services/favoriteService';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from '@/context/LanguageContext';
 import type { BookingRoom } from '@/data/bookingRooms';
 
 export default function GuestDashboard() {
@@ -21,6 +22,7 @@ export default function GuestDashboard() {
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [favoritesLoading, setFavoritesLoading] = useState(false);
   const isTenant = user?.role?.trim().toUpperCase() === 'TENANT';
+  const { t } = useTranslation();
 
   const fetchFavorites = useCallback(async () => {
     // The favorites API is tenant-only. Do not issue the request just because a
@@ -155,10 +157,10 @@ export default function GuestDashboard() {
 
           <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center px-4 pt-14 text-center sm:px-6">
             <h1 className="text-3xl font-extrabold italic leading-tight tracking-normal text-booking-text sm:text-4xl">
-              Tìm Phòng Ưng Ý, Định Cư Lâu Dài
+              {t('dashboard.homeTitle')}
             </h1>
             <p className="mt-4 max-w-2xl text-base italic leading-7 text-booking-muted sm:text-lg">
-              Hàng ngàn phòng trọ, căn hộ dịch vụ và chỗ ở ghép xác thực, đầy đủ tiện nghi.
+              {t('dashboard.homeSubtitle')}
             </p>
             <div className="mt-12 w-full">
               <SearchBento />
@@ -170,11 +172,11 @@ export default function GuestDashboard() {
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-booking-text">Phòng Nổi Bật</h2>
-              <p className="mt-1 text-sm text-booking-muted">Những không gian được yêu thích và đánh giá cao nhất.</p>
+              <h2 className="text-2xl font-bold text-booking-text">{t('dashboard.featuredRooms')}</h2>
+              <p className="mt-1 text-sm text-booking-muted">{t('dashboard.featuredDesc')}</p>
             </div>
             <Link href="/rooms" className="shrink-0 text-sm font-bold text-booking-primary transition hover:text-booking-primaryDark sm:text-base">
-              Xem tất cả
+              {t('dashboard.viewAll')}
             </Link>
           </div>
 
@@ -192,7 +194,7 @@ export default function GuestDashboard() {
             </div>
           ) : rooms.length === 0 ? (
             <div className="rounded-xl border border-dashed border-booking-border bg-white p-12 text-center text-booking-muted font-medium">
-              Chưa có phòng nổi bật nào trong hệ thống.
+              {t('dashboard.noFeatured')}
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2">
@@ -214,11 +216,11 @@ export default function GuestDashboard() {
           <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
             <div className="mb-6 flex items-end justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-booking-text">Phòng yêu thích</h2>
-                <p className="mt-1 text-sm text-booking-muted">Những phòng bạn đã lưu lại để theo dõi.</p>
+                <h2 className="text-2xl font-bold text-booking-text">{t('dashboard.favoriteRooms')}</h2>
+                <p className="mt-1 text-sm text-booking-muted">{t('dashboard.favoriteDesc')}</p>
               </div>
               <Link href="/rooms/favorites" className="shrink-0 text-sm font-bold text-booking-primary transition hover:text-booking-primaryDark sm:text-base">
-                Xem tất cả
+                {t('dashboard.viewAll')}
               </Link>
             </div>
 
@@ -236,7 +238,7 @@ export default function GuestDashboard() {
               </div>
             ) : favoriteRooms.length === 0 ? (
               <div className="rounded-xl border border-dashed border-booking-border bg-white p-12 text-center text-booking-muted font-medium">
-                Chưa có phòng yêu thích nào.
+                {t('dashboard.noFavorite')}
               </div>
             ) : (
               <div className="grid gap-6 md:grid-cols-2">

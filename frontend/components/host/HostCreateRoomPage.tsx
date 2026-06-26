@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -10,9 +10,10 @@ import { hostRoomService } from '@/services/hostRoomService';
 import {
   MAX_ROOM_IMAGES,
   MIN_REQUIRED_IMAGES,
-  amenityOptions,
-  roomTypeOptions,
+  getAmenityOptions,
+  getRoomTypeOptions,
 } from '@/data/hostCreateRoom';
+import { useTranslation } from '@/context/LanguageContext';
 
 interface SectionCardProps {
   number: number;
@@ -63,6 +64,10 @@ export default function HostCreateRoomPage() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { t } = useTranslation();
+
+  const roomTypeOptions = getRoomTypeOptions(t);
+  const amenityOptions = getAmenityOptions(t);
 
   const [title, setTitle] = useState('');
   const [roomType, setRoomType] = useState(roomTypeOptions[0].value);
@@ -163,12 +168,12 @@ export default function HostCreateRoomPage() {
     setError(null);
 
     // Client-side validation mirroring the backend rules.
-    if (!title.trim()) return setError('Vui lòng nhập tên phòng.');
-    if (!address.trim()) return setError('Vui lòng nhập địa chỉ chi tiết.');
-    if (!monthlyRent || Number(monthlyRent) <= 0) return setError('Giá thuê hàng tháng phải lớn hơn 0.');
-    if (depositAmount === '' || Number(depositAmount) < 0) return setError('Tiền đặt cọc không hợp lệ.');
-    if (!capacity || Number(capacity) <= 0) return setError('Sức chứa phải lớn hơn 0.');
-    if (images.length < MIN_REQUIRED_IMAGES) return setError(`Cần tối thiểu ${MIN_REQUIRED_IMAGES} hình ảnh.`);
+    if (!title.trim()) return setError(t('host.createRoom.errorNameRequired'));
+    if (!address.trim()) return setError(t('host.createRoom.errorAddressRequired'));
+    if (!monthlyRent || Number(monthlyRent) <= 0) return setError(t('host.createRoom.errorRentInvalid'));
+    if (depositAmount === '' || Number(depositAmount) < 0) return setError(t('host.createRoom.errorDepositInvalid'));
+    if (!capacity || Number(capacity) <= 0) return setError(t('host.createRoom.errorCapacityInvalid'));
+    if (images.length < MIN_REQUIRED_IMAGES) return setError(`${t('host.createRoom.errorMinImages')} ${MIN_REQUIRED_IMAGES} ${t('host.createRoom.errorMinImagesSuffix')}`);
 
     const roomTypeLabel = roomTypeOptions.find((o) => o.value === roomType)?.label ?? roomType;
     const composedAddress = [address.trim(), wardName, districtName, provinceName, 'Việt Nam'].filter(Boolean).join(', ');
@@ -199,7 +204,7 @@ export default function HostCreateRoomPage() {
       await hostRoomService.createRoom(formData);
       router.push('/host/listings');
     } catch (err: any) {
-      setError(err?.message || 'Tạo phòng thất bại. Vui lòng thử lại.');
+      setError(err?.message || t('host.createRoom.createError'));
       setSubmitting(false);
     }
   };
@@ -245,20 +250,20 @@ export default function HostCreateRoomPage() {
             <div className="min-w-0">
               <nav className="flex flex-wrap items-center gap-1 text-xs font-bold leading-3 tracking-[0.6px]" aria-label="Breadcrumb">
                 <Link href="/host" className="text-[#434655] hover:text-[#004AC6]">
-                  Dashboard
+                  {t('host.createRoom.breadcrumbDashboard')}
                 </Link>
                 <span className="text-[#434655]">/</span>
                 <Link href="/host/listings" className="text-[#434655] hover:text-[#004AC6]">
-                  My Listings
+                  {t('host.createRoom.breadcrumbListings')}
                 </Link>
                 <span className="text-[#434655]">/</span>
-                <span className="text-[#191B23]">Create New Room</span>
+                <span className="text-[#191B23]">{t('host.createRoom.breadcrumbCreate')}</span>
               </nav>
               <h1 className="mt-2 text-[32px] font-bold leading-[38px] text-[#191B23]">
-                Tạo mới phòng của bạn
+                {t('host.createRoom.title')}
               </h1>
               <p className="mt-1 text-base leading-6 text-[#434655]">
-                Hoàn thành các thông tin dưới đây để đăng phòng. Phòng sẽ chờ quản trị viên duyệt.
+                {t('host.createRoom.subtitle')}
               </p>
             </div>
 
@@ -268,7 +273,7 @@ export default function HostCreateRoomPage() {
                 onClick={handleCancel}
                 className="flex h-[58px] min-w-[81px] items-center justify-center rounded-lg border border-[#737686] bg-transparent px-6 text-base leading-6 text-[#191B23] transition hover:bg-white"
               >
-                Hủy
+                {t('host.createRoom.cancel')}
               </button>
               <button
                 type="submit"
@@ -279,7 +284,7 @@ export default function HostCreateRoomPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 5h12l2 2v12H5V5z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 5v5h8V5M8 19v-5h8v5" />
                 </svg>
-                {submitting ? 'Đang lưu...' : 'Đăng phòng'}
+                {submitting ? t('host.createRoom.saving') : t('host.createRoom.publish')}
               </button>
             </div>
           </div>
@@ -290,24 +295,24 @@ export default function HostCreateRoomPage() {
             </div>
           )}
 
-          <SectionCard number={1} title="Thông Tin Cơ Bản">
+          <SectionCard number={1} title={t('host.createRoom.basicInfo')}>
             <div className="grid gap-5 md:grid-cols-2">
               <div className="relative z-[60] md:col-span-2">
                 <div className="flex flex-col gap-[4.5px]">
-                  <FieldLabel htmlFor="room-title">Tên Phòng / Tiêu đề niêm yết</FieldLabel>
+                  <FieldLabel htmlFor="room-title">{t('host.createRoom.roomTitle')}</FieldLabel>
                   <input
                     id="room-title"
                     type="text"
                     value={title}
                     onChange={(event) => setTitle(event.target.value)}
-                    placeholder="VD: Căn hộ Studio hiện đại view sông Sài Gòn"
+                    placeholder={t('host.createRoom.roomTitlePlaceholder')}
                     className={priceInputClass}
                   />
                 </div>
               </div>
 
               <div className="flex flex-col gap-[4.5px]">
-                <FieldLabel htmlFor="room-type">Loại hình</FieldLabel>
+                <FieldLabel htmlFor="room-type">{t('host.createRoom.roomType')}</FieldLabel>
                 <div className="relative">
                   <select
                     id="room-type"
@@ -328,7 +333,7 @@ export default function HostCreateRoomPage() {
               </div>
 
               <div className="flex flex-col gap-[4.5px]">
-                <FieldLabel htmlFor="capacity">Sức chứa (Người)</FieldLabel>
+                <FieldLabel htmlFor="capacity">{t('host.createRoom.capacity')}</FieldLabel>
                 <input
                   id="capacity"
                   type="number"
@@ -341,13 +346,13 @@ export default function HostCreateRoomPage() {
 
               <div className="md:col-span-2">
                 <div className="flex flex-col gap-[4.5px]">
-                  <FieldLabel htmlFor="description">Mô tả phòng</FieldLabel>
+                  <FieldLabel htmlFor="description">{t('host.createRoom.description')}</FieldLabel>
                   <textarea
                     id="description"
                     value={description}
                     onChange={(event) => setDescription(event.target.value)}
                     rows={4}
-                    placeholder="Mô tả chi tiết về phòng, tiện nghi, khu vực xung quanh..."
+                    placeholder={t('host.createRoom.descriptionPlaceholder')}
                     className="rounded-lg border border-[#C3C6D7] bg-white px-4 py-3 text-base text-[#191B23] outline-none placeholder:text-[#6B7280] focus:ring-2 focus:ring-[#004AC6]/20"
                   />
                 </div>
@@ -356,11 +361,11 @@ export default function HostCreateRoomPage() {
           </SectionCard>
 
           <div className="relative z-30">
-            <SectionCard number={2} title="Không Gian & Vị Trí">
+            <SectionCard number={2} title={t('host.createRoom.spaceLocation')}>
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="md:col-span-2">
                   <div className="flex flex-col gap-[4.5px]">
-                    <FieldLabel htmlFor="address">Địa chỉ chi tiết</FieldLabel>
+                    <FieldLabel htmlFor="address">{t('host.createRoom.address')}</FieldLabel>
                     <div className="relative">
                       {/* Icon GPS dạng tâm ngắm tọa độ đặt đằng trước input địa chỉ */}
                       <svg
@@ -383,7 +388,7 @@ export default function HostCreateRoomPage() {
                           setLongitude('');
                         }}
                         onPlaceSelected={handlePlaceSelected}
-                        placeholder="Số nhà, tên đường, phường/xã, quận/huyện..."
+                        placeholder={t('host.createRoom.addressPlaceholder')}
                         inputClassName="h-[58px] w-full rounded-lg border border-[#C3C6D7] bg-white pl-10 pr-12 text-base text-[#191B23] outline-none placeholder:text-[#6B7280] focus:ring-2 focus:ring-[#004AC6]/20"
                       />
                     </div>
@@ -391,7 +396,7 @@ export default function HostCreateRoomPage() {
                 </div>
 
                 <div className="flex flex-col gap-[4.5px]">
-                  <FieldLabel htmlFor="area">Diện tích (m2)</FieldLabel>
+                  <FieldLabel htmlFor="area">{t('host.createRoom.area')}</FieldLabel>
                   <div className="relative">
                     <input
                       id="area"
@@ -411,10 +416,10 @@ export default function HostCreateRoomPage() {
           </div>
 
           <div className="relative z-10">
-            <SectionCard number={3} title="Giá & Chi Phí">
+            <SectionCard number={3} title={t('host.createRoom.priceCosts')}>
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="flex flex-col gap-[4.5px]">
-                  <FieldLabel htmlFor="monthly-rent">Giá thuê hàng tháng (đ)</FieldLabel>
+                  <FieldLabel htmlFor="monthly-rent">{t('host.createRoom.monthlyRent')}</FieldLabel>
                   <input
                     id="monthly-rent"
                     type="number"
@@ -426,7 +431,7 @@ export default function HostCreateRoomPage() {
                   />
                 </div>
                 <div className="flex flex-col gap-[4.5px]">
-                  <FieldLabel htmlFor="deposit-amount">Tiền đặt cọc (đ)</FieldLabel>
+                  <FieldLabel htmlFor="deposit-amount">{t('host.createRoom.deposit')}</FieldLabel>
                   <input
                     id="deposit-amount"
                     type="number"
@@ -438,7 +443,7 @@ export default function HostCreateRoomPage() {
                   />
                 </div>
                 <div className="flex flex-col gap-[4.5px]">
-                  <FieldLabel htmlFor="electricity-cost">Phí điện (đ)</FieldLabel>
+                  <FieldLabel htmlFor="electricity-cost">{t('host.createRoom.electricityCost')}</FieldLabel>
                   <input
                     id="electricity-cost"
                     type="number"
@@ -450,7 +455,7 @@ export default function HostCreateRoomPage() {
                   />
                 </div>
                 <div className="flex flex-col gap-[4.5px]">
-                  <FieldLabel htmlFor="water-cost">Phí nước (đ)</FieldLabel>
+                  <FieldLabel htmlFor="water-cost">{t('host.createRoom.waterCost')}</FieldLabel>
                   <input
                     id="water-cost"
                     type="number"
@@ -462,7 +467,7 @@ export default function HostCreateRoomPage() {
                   />
                 </div>
                 <div className="flex flex-col gap-[4.5px]">
-                  <FieldLabel htmlFor="internet-cost">Phí internet (đ)</FieldLabel>
+                  <FieldLabel htmlFor="internet-cost">{t('host.createRoom.internetCost')}</FieldLabel>
                   <input
                     id="internet-cost"
                     type="number"
@@ -474,7 +479,7 @@ export default function HostCreateRoomPage() {
                   />
                 </div>
                 <div className="flex flex-col gap-[4.5px]">
-                  <FieldLabel htmlFor="service-fee">Phí dịch vụ (đ)</FieldLabel>
+                  <FieldLabel htmlFor="service-fee">{t('host.createRoom.serviceFee')}</FieldLabel>
                   <input
                     id="service-fee"
                     type="number"
@@ -489,7 +494,7 @@ export default function HostCreateRoomPage() {
             </SectionCard>
           </div>
 
-          <SectionCard number={4} title="Tiện Ích & Dịch Vụ">
+          <SectionCard number={4} title={t('host.createRoom.amenities')}>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {amenityOptions.map((amenity) => {
                 const checked = amenities.includes(amenity.key);
@@ -511,7 +516,7 @@ export default function HostCreateRoomPage() {
             </div>
           </SectionCard>
 
-          <SectionCard number={5} title="Hình Ảnh (Multimedia)">
+          <SectionCard number={5} title={t('host.createRoom.images')}>
             <input
               ref={fileInputRef}
               type="file"
@@ -531,19 +536,19 @@ export default function HostCreateRoomPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 12v8m0-8l-3 3m3-3l3 3" />
               </svg>
               <span className="mt-4 text-base font-bold leading-6 text-[#191B23]">
-                Tải hình ảnh lên
+                {t('host.createRoom.uploadImages')}
               </span>
               <span className="text-sm leading-[21px] text-[#434655]">
-                Nhấn để chọn (Tối thiểu {MIN_REQUIRED_IMAGES} hình, tối đa {MAX_ROOM_IMAGES})
+                {t('host.createRoom.uploadInstruction')} {MIN_REQUIRED_IMAGES} {t('host.createRoom.uploadInstructionMax')} {MAX_ROOM_IMAGES})
               </span>
             </button>
 
             <div className="mt-4 flex items-center justify-between text-xs font-bold leading-3 tracking-[0.6px]">
               <span className="text-[#434655]">
-                ĐÃ TẢI LÊN ({images.length}/{MAX_ROOM_IMAGES})
+                {t('host.createRoom.uploaded')} ({images.length}/{MAX_ROOM_IMAGES})
               </span>
               {missingImages > 0 && (
-                <span className="text-[#BA1A1A]">Cần thêm {missingImages} hình</span>
+                <span className="text-[#BA1A1A]">{t('host.createRoom.needMore')} {missingImages} {t('host.createRoom.needMoreSuffix')}</span>
               )}
             </div>
 
@@ -569,7 +574,7 @@ export default function HostCreateRoomPage() {
                       </button>
                     </div>
                     <figcaption className="absolute bottom-1 left-1 rounded bg-[#004AC6] px-2 py-1 text-[10px] font-bold leading-[15px] text-white">
-                      {idx === 0 ? 'ẢNH BÌA' : `ẢNH ${idx + 1}`}
+                      {idx === 0 ? t('host.createRoom.coverImage') : `${t('host.createRoom.imagePrefix')} ${idx + 1}`}
                     </figcaption>
                   </figure>
                 ))}

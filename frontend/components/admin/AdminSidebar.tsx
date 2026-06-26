@@ -15,25 +15,30 @@ import {
   Wallet
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from '@/context/LanguageContext';
 
-const navItems = [
-  { name: 'Tổng quan', href: '/admin/dashboard', icon: LayoutDashboard },
-  { name: 'Duyệt bài đăng', href: '/admin/listings', icon: FileCheck },
-  { name: 'Quản lý người dùng', href: '/admin/users', icon: Users },
-  { name: 'Giao dịch', href: '/admin/transactions', icon: CreditCard },
-  { name: 'Khiếu nại', href: '/admin/complaints', icon: AlertTriangle },
-  { name: 'Hỗ trợ', href: '/admin/support', icon: MessageSquare },
-  { name: 'Ví thu nhập', href: '/admin/incomes', icon: Wallet },
+const getNavItems = (t: any) => [
+  { name: t.admin.sidebar.overview, href: '/admin/dashboard', icon: LayoutDashboard },
+  { name: t.admin.sidebar.listings, href: '/admin/listings', icon: FileCheck },
+  { name: t.admin.sidebar.users, href: '/admin/users', icon: Users },
+  { name: t.admin.sidebar.transactions, href: '/admin/transactions', icon: CreditCard },
+  { name: t.admin.sidebar.complaints, href: '/admin/complaints', icon: AlertTriangle },
+  { name: t.admin.sidebar.support, href: '/admin/support', icon: MessageSquare },
+  { name: t.admin.sidebar.incomes, href: '/admin/incomes', icon: Wallet },
 ];
 
-const bottomNavItems = [
-  { name: 'Cài đặt', href: '/admin/settings', icon: Settings },
+const getBottomNavItems = (t: any) => [
+  { name: t.admin.sidebar.settings, href: '/admin/settings', icon: Settings },
 ];
 
 export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
+
+  const navItems = getNavItems(t);
+  const bottomNavItems = getBottomNavItems(t);
 
   const handleLogout = async () => {
     await logout();
@@ -47,10 +52,10 @@ export default function AdminSidebar() {
         <div className="flex items-center gap-3.5 w-full max-w-[14rem]">
           <img src="/booking_logo.png" alt="Booking System Logo" className="w-11 h-11 object-cover rounded-[14px] shadow-sm border border-slate-100" />
           <div className="overflow-hidden flex-1">
-            <h1 className="font-bold text-booking-primary leading-tight text-[1.1rem] truncate" title={user?.fullName || 'Hệ thống'}>
-              {user?.fullName || 'Hệ thống'}
+            <h1 className="font-bold text-booking-primary leading-tight text-[1.1rem] truncate" title={user?.fullName || t.admin.sidebar.system}>
+              {user?.fullName || t.admin.sidebar.system}
             </h1>
-            <p className="text-[13px] text-slate-500 truncate mt-0.5">Booking-Room Admin</p>
+            <p className="text-[13px] text-slate-500 truncate mt-0.5">{t.admin.sidebar.adminSubtitle}</p>
           </div>
         </div>
       </div>
@@ -105,7 +110,7 @@ export default function AdminSidebar() {
           className="w-full group flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 transition-all duration-300 font-medium border border-transparent hover:border-red-100"
         >
           <LogOut size={20} className="text-red-500 flex-shrink-0 transition-transform duration-300 group-hover:-translate-x-1" />
-          <span className="whitespace-nowrap">Đăng xuất</span>
+          <span className="whitespace-nowrap">{t.admin.sidebar.logout}</span>
         </button>
       </div>
     </aside>

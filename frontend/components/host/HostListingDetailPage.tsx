@@ -9,6 +9,7 @@ import RoomDetailView from '@/components/booking/RoomDetailView';
 import { hostRoomService, type HostRoom } from '@/services/hostRoomService';
 import { reviewService, type ReviewReply, type RoomReview } from '@/services/reviewService';
 import { mapBackendRoomToBookingRoom } from '@/services/roomService';
+import { useTranslation } from '@/context/LanguageContext';
 
 // ---------------------------------------------------------------------------
 // Small helpers
@@ -27,13 +28,13 @@ function StarRating({ value }: { value: number }) {
   );
 }
 
-function statusBadge(room: HostRoom): { label: string; className: string } {
-  if (room.status === 'HIDDEN') return { label: 'Đã ẩn', className: 'bg-[#E1E2ED] text-[#434655]' };
-  if (room.approval_status === 'PENDING') return { label: 'Chờ duyệt', className: 'bg-[#FFEDE6] text-[#BC4800]' };
-  if (room.approval_status === 'REJECTED') return { label: 'Bị từ chối', className: 'bg-[#FFDAD6] text-[#BA1A1A]' };
-  if (room.status === 'RENTED') return { label: 'Đã cho thuê', className: 'bg-[#E1E2ED] text-[#434655]' };
-  if (room.status === 'LOCKED') return { label: 'Đang giữ chỗ', className: 'bg-[#FFEDE6] text-[#943700]' };
-  return { label: 'Đang hoạt động', className: 'bg-[#86F2E4] text-[#006F66]' };
+function statusBadge(room: HostRoom, t: any): { label: string; className: string } {
+  if (room.status === 'HIDDEN') return { label: t('host.listingDetail.statusHidden'), className: 'bg-[#E1E2ED] text-[#434655]' };
+  if (room.approval_status === 'PENDING') return { label: t('host.listingDetail.statusPending'), className: 'bg-[#FFEDE6] text-[#BC4800]' };
+  if (room.approval_status === 'REJECTED') return { label: t('host.listingDetail.statusRejected'), className: 'bg-[#FFDAD6] text-[#BA1A1A]' };
+  if (room.status === 'RENTED') return { label: t('host.listingDetail.statusRented'), className: 'bg-[#E1E2ED] text-[#434655]' };
+  if (room.status === 'LOCKED') return { label: t('host.listingDetail.statusLocked'), className: 'bg-[#FFEDE6] text-[#943700]' };
+  return { label: t('host.listingDetail.statusActive'), className: 'bg-[#86F2E4] text-[#006F66]' };
 }
 
 function HostIconBar() {
@@ -96,7 +97,8 @@ function HostReviewItem({
   onEditReplyContentChange,
   onSubmitEditReply,
   onCancelEditReply,
-}: HostReviewItemProps) {
+  t,
+}: HostReviewItemProps & { t: any }) {
   const [collapsed, setCollapsed] = useState(false);
   const isReplying = activeReplyBoxId === rv.review_id;
   const isSubmitting = submittingReplyId === rv.review_id;
@@ -124,7 +126,7 @@ function HostReviewItem({
                 <span className="text-xs font-extrabold text-booking-text">{rep.authorName}</span>
                 {rep.isHost && (
                   <span className="text-[9px] font-extrabold bg-slate-800 text-white px-1.5 py-0.5 rounded uppercase tracking-wider">
-                    Chủ phòng
+                    {t('host.listingDetail.host')}
                   </span>
                 )}
               </div>
@@ -143,7 +145,7 @@ function HostReviewItem({
                   <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
                   </svg>
-                  {isEditingThis ? 'Hủy chỉnh sửa' : 'Chỉnh sửa'}
+                  {isEditingThis ? t('host.listingDetail.cancelEdit') : t('host.listingDetail.edit')}
                 </button>
               )}
 
@@ -156,7 +158,7 @@ function HostReviewItem({
                   <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6 6-6" />
                   </svg>
-                  {isReplyingThis ? 'Hủy phản hồi' : 'Phản hồi'}
+                  {isReplyingThis ? t('host.listingDetail.cancelReply') : t('host.listingDetail.reply')}
                 </button>
               )}
             </div>
@@ -170,7 +172,7 @@ function HostReviewItem({
               rows={2}
               value={editReplyContent}
               onChange={(e) => onEditReplyContentChange(e.target.value)}
-              placeholder="Nhập nội dung phản hồi mới..."
+              placeholder={t('host.listingDetail.enterNewReply')}
               className="w-full rounded-lg border border-slate-200 bg-white p-2 text-xs font-medium outline-none focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]/10 resize-none transition"
             />
             <div className="flex items-center justify-end gap-2">
@@ -179,7 +181,7 @@ function HostReviewItem({
                 onClick={onCancelEditReply}
                 className="text-[11px] font-bold text-slate-400 hover:text-slate-600 transition px-2 py-1"
               >
-                Hủy
+                {t('host.listingDetail.cancel')}
               </button>
               <button
                 type="button"
@@ -193,7 +195,7 @@ function HostReviewItem({
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
                 )}
-                Lưu
+                {t('host.listingDetail.save')}
               </button>
             </div>
           </div>
@@ -206,7 +208,7 @@ function HostReviewItem({
               rows={2}
               value={replyContent}
               onChange={(e) => onReplyContentChange(e.target.value)}
-              placeholder="Nhập phản hồi..."
+              placeholder={t('host.listingDetail.enterReply')}
               className="w-full rounded-lg border border-slate-200 bg-white p-2 text-xs font-medium outline-none focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]/10 resize-none transition"
             />
             <div className="flex items-center justify-end gap-2">
@@ -215,7 +217,7 @@ function HostReviewItem({
                 onClick={onCancelReply}
                 className="text-[11px] font-bold text-slate-400 hover:text-slate-600 transition px-2 py-1"
               >
-                Hủy
+                {t('host.listingDetail.cancel')}
               </button>
               <button
                 type="button"
@@ -229,7 +231,7 @@ function HostReviewItem({
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
                 )}
-                Gửi
+                {t('host.listingDetail.send')}
               </button>
             </div>
           </div>
@@ -262,7 +264,7 @@ function HostReviewItem({
             <div className="flex items-center gap-2">
               <span className="font-extrabold text-sm text-booking-text">{rv.reviewer_name}</span>
               <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-[#137333] bg-[#e6f4ea] px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-                ✓ Đã xác thực thuê
+                {t('host.listingDetail.verifiedRenter')}
               </span>
             </div>
             <span className="text-[11px] font-bold text-booking-muted">
@@ -273,7 +275,7 @@ function HostReviewItem({
           <StarRating value={rv.rating} />
 
           <p className={`text-sm leading-relaxed ${rv.comment ? 'text-booking-text font-medium' : 'text-slate-400 italic text-xs'}`}>
-            {rv.comment || 'Khách thuê chỉ đánh giá số sao.'}
+            {rv.comment || t('host.listingDetail.ratingOnly')}
           </p>
 
           {/* Action row */}
@@ -286,7 +288,7 @@ function HostReviewItem({
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6 6-6" />
               </svg>
-              {isReplying ? 'Hủy phản hồi' : 'Phản hồi'}
+              {isReplying ? t('host.listingDetail.cancelReply') : t('host.listingDetail.reply')}
             </button>
 
             {replies.length > 0 && (
@@ -298,7 +300,7 @@ function HostReviewItem({
                 <svg className={`h-3.5 w-3.5 transition-transform duration-200 ${collapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="m19 9-7 7-7-7" />
                 </svg>
-                {collapsed ? `Hiện ${replies.length} phản hồi` : 'Ẩn phản hồi'}
+                {collapsed ? `${t('host.listingDetail.showReplies')} ${replies.length} ${t('host.listingDetail.repliesText')}` : t('host.listingDetail.hideReplies')}
               </button>
             )}
           </div>
@@ -319,21 +321,21 @@ function HostReviewItem({
             rows={2}
             value={replyContent}
             onChange={(e) => onReplyContentChange(e.target.value)}
-            placeholder="Nhập nội dung phản hồi với tư cách chủ phòng..."
+            placeholder={t('host.listingDetail.enterHostReply')}
             className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs font-medium outline-none focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]/10 resize-none transition"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onSubmitReply(rv.review_id);
             }}
           />
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-slate-400">Ctrl + Enter để gửi</span>
+            <span className="text-[10px] text-slate-400">{t('host.listingDetail.ctrlEnterToSend')}</span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={onCancelReply}
                 className="text-xs font-bold text-slate-400 hover:text-slate-600 transition px-3 py-1.5 rounded-lg hover:bg-slate-100"
               >
-                Hủy
+                {t('host.listingDetail.cancel')}
               </button>
               <button
                 type="button"
@@ -351,7 +353,7 @@ function HostReviewItem({
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12zm0 0h7.5" />
                   </svg>
                 )}
-                {isSubmitting ? 'Đang gửi...' : 'Gửi phản hồi'}
+                {isSubmitting ? t('host.listingDetail.sending') : t('host.listingDetail.sendReply')}
               </button>
             </div>
           </div>
@@ -368,6 +370,7 @@ function HostReviewItem({
 export default function HostListingDetailPage({ listingId }: { listingId: string }) {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [room, setRoom] = useState<HostRoom | null>(null);
   const [loading, setLoading] = useState(true);
@@ -416,12 +419,12 @@ export default function HostListingDetailPage({ listingId }: { listingId: string
         const found = await hostRoomService.getMyRoomById(listingId);
         if (cancelled) return;
         if (!found) {
-          setError('Không tìm thấy tin đăng này.');
+          setError(t('host.listingDetail.listingNotFound'));
         } else {
           setRoom(found);
         }
       } catch (err: any) {
-        if (!cancelled) setError(err?.message || 'Không tải được tin đăng.');
+        if (!cancelled) setError(err?.message || t('host.listingDetail.loadFailed'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -469,9 +472,9 @@ export default function HostListingDetailPage({ listingId }: { listingId: string
       setEditingReplyId(null);
       setEditReplyContent('');
       await fetchReviews();
-      showToast('Cập nhật phản hồi thành công!');
+      showToast(t('host.listingDetail.updateReplySuccess'));
     } catch (err: any) {
-      alert(err.response?.data?.message || err.message || 'Có lỗi khi cập nhật phản hồi.');
+      alert(err.response?.data?.message || err.message || t('host.listingDetail.updateReplyError'));
     } finally {
       setSubmittingReplyEditId(null);
     }
@@ -486,9 +489,9 @@ export default function HostListingDetailPage({ listingId }: { listingId: string
       setReplyContent('');
       setActiveReplyId(null);
       await fetchReviews();
-      showToast('Đã gửi phản hồi thành công!');
+      showToast(t('host.listingDetail.sendReplySuccess'));
     } catch (err: any) {
-      alert(err.response?.data?.message || err.message || 'Có lỗi khi gửi phản hồi.');
+      alert(err.response?.data?.message || err.message || t('host.listingDetail.sendReplyError'));
     } finally {
       setSubmittingReplyId(null);
     }
@@ -511,7 +514,7 @@ export default function HostListingDetailPage({ listingId }: { listingId: string
     return mapped;
   }, [room, user]);
 
-  const badge = room ? statusBadge(room) : null;
+  const badge = room ? statusBadge(room, t) : null;
   const rating = Number(room?.average_rating) || 0;
 
   const getInitial = (name: string) => {
@@ -535,26 +538,26 @@ export default function HostListingDetailPage({ listingId }: { listingId: string
 
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 sm:p-6">
           <nav className="text-base leading-6" aria-label="Breadcrumb">
-            <Link href="/host/listings" className="text-[#434655] hover:text-[#004AC6]">Tin đăng của tôi</Link>
+            <Link href="/host/listings" className="text-[#434655] hover:text-[#004AC6]">{t('host.listingDetail.myListings')}</Link>
             <span className="px-1 text-[#434655]">›</span>
-            <span className="text-[#004AC6]">Chi tiết tin đăng</span>
+            <span className="text-[#004AC6]">{t('host.listingDetail.listingDetailTitle')}</span>
           </nav>
 
           {loading ? (
             <div className="rounded-2xl border border-[#C3C6D7] bg-white px-6 py-16 text-center shadow-sm">
-              <p className="text-base font-semibold text-[#191B23]">Đang tải tin đăng...</p>
+              <p className="text-base font-semibold text-[#191B23]">{t('host.listingDetail.loadingListing')}</p>
             </div>
           ) : error || !room || !bookingRoom ? (
             <div className="rounded-2xl border border-[#FFDAD6] bg-[#FFF8F7] px-6 py-16 text-center shadow-sm">
-              <p className="text-base font-semibold text-[#BA1A1A]">{error || 'Không tìm thấy tin đăng này.'}</p>
+              <p className="text-base font-semibold text-[#BA1A1A]">{error || t('host.listingDetail.listingNotFound')}</p>
               <Link href="/host/listings" className="mt-4 inline-block text-sm font-semibold text-[#004AC6] hover:underline">
-                ← Quay lại danh sách
+                {t('host.listingDetail.backToListArrow')}
               </Link>
             </div>
           ) : (
             <RoomDetailView
               room={bookingRoom}
-              backLink={{ href: '/host/listings', label: 'Quay lại danh sách' }}
+              backLink={{ href: '/host/listings', label: t('host.listingDetail.backToList') }}
               bottomSlot={
                 <div className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm space-y-6">
                   {/* Header */}
@@ -563,7 +566,7 @@ export default function HostListingDetailPage({ listingId }: { listingId: string
                       <svg className="h-5 w-5 text-[#f5a623]" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2.5l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.8 6.2 20.9l1.1-6.5L2.6 9.8l6.5-.9L12 2.5z" />
                       </svg>
-                      Đánh giá từ khách thuê ({reviewsTotal})
+                      {t('host.listingDetail.renterReviews')} ({reviewsTotal})
                     </h2>
                     {rating > 0 && (
                       <span className="inline-flex items-center gap-1.5 text-sm text-booking-muted">
@@ -576,7 +579,7 @@ export default function HostListingDetailPage({ listingId }: { listingId: string
                   {reviews.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-slate-200 rounded-2xl bg-slate-50">
                       <span className="text-3xl">📭</span>
-                      <p className="mt-2 text-sm font-semibold text-booking-muted">Phòng này chưa có đánh giá nào.</p>
+                      <p className="mt-2 text-sm font-semibold text-booking-muted">{t('host.listingDetail.noReviews')}</p>
                     </div>
                   ) : (
                     <ul className="space-y-0 divide-y divide-slate-100">
@@ -603,6 +606,7 @@ export default function HostListingDetailPage({ listingId }: { listingId: string
                             onEditReplyContentChange={setEditReplyContent}
                             onSubmitEditReply={handleSubmitEditReply}
                             onCancelEditReply={handleCancelEditReply}
+                            t={t}
                           />
                         );
                       })}
@@ -616,19 +620,19 @@ export default function HostListingDetailPage({ listingId }: { listingId: string
                     <span className="text-2xl md:text-3xl font-extrabold text-booking-text">
                       {Number(room.monthly_rent).toLocaleString('vi-VN')} đ
                     </span>
-                    <span className="text-sm font-semibold text-booking-muted"> / tháng</span>
+                    <span className="text-sm font-semibold text-booking-muted"> / {t('host.listingDetail.month')}</span>
                   </div>
 
                   <div className="border border-slate-100 rounded-xl overflow-hidden bg-[#faf8ff] p-4 flex flex-col gap-3">
                     <div>
-                      <p className="text-[11px] font-bold text-booking-muted uppercase tracking-[0.02em]">Tiền cọc</p>
+                      <p className="text-[11px] font-bold text-booking-muted uppercase tracking-[0.02em]">{t('host.listingDetail.deposit')}</p>
                       <p className="mt-1 text-sm font-bold text-booking-text">
-                        {Number(room.deposit_amount) > 0 ? `${Number(room.deposit_amount).toLocaleString('vi-VN')} đ` : 'Không yêu cầu'}
+                        {Number(room.deposit_amount) > 0 ? `${Number(room.deposit_amount).toLocaleString('vi-VN')} đ` : t('host.listingDetail.notRequired')}
                       </p>
                     </div>
                     <div className="border-t border-slate-200/50" />
                     <div>
-                      <p className="text-[11px] font-bold text-booking-muted uppercase tracking-[0.02em]">Trạng thái</p>
+                      <p className="text-[11px] font-bold text-booking-muted uppercase tracking-[0.02em]">{t('host.listingDetail.status')}</p>
                       {badge && (
                         <span className={`mt-1 inline-flex w-fit items-center gap-1 rounded-full px-2 py-1 text-xs font-bold leading-4 ${badge.className}`}>
                           {badge.label}
@@ -645,11 +649,11 @@ export default function HostListingDetailPage({ listingId }: { listingId: string
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.9 4.6l2.5 2.5M5 19l4.8-1 9.3-9.3a1.8 1.8 0 0 0-2.5-2.5l-9.3 9.3L5 19z" />
                     </svg>
-                    Chỉnh sửa
+                    {t('host.listingDetail.editListing')}
                   </Link>
 
                   <div className="flex items-center justify-center gap-1 text-[11px] text-booking-muted mt-1 font-medium">
-                    <span>Tin đăng của bạn trên Booking-Room</span>
+                    <span>{t('host.listingDetail.listingOnBookingRoom')}</span>
                   </div>
                 </aside>
               }

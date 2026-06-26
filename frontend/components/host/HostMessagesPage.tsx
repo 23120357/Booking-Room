@@ -10,6 +10,7 @@ import {
   type ConversationSummary,
   type ConversationMessage,
 } from '@/services/conversationService';
+import { useTranslation } from '@/context/LanguageContext';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -69,14 +70,16 @@ function Avatar({
 
 // ─── Conversation List Item ───────────────────────────────────────────────────
 
-function ConversationItem({
+function ConversationListItem({
   conv,
   isActive,
   onClick,
+  t,
 }: {
   conv: ConversationSummary;
   isActive: boolean;
   onClick: () => void;
+  t: any;
 }) {
   return (
     <button
@@ -93,11 +96,11 @@ function ConversationItem({
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
           <span className="truncate text-base font-bold leading-6 text-[#191B23]">
-            {conv.peer_name || 'Người dùng'}
+            {conv.peer_name || t('host.messages.defaultUser')}
           </span>
           <span className="shrink-0 text-[11px] leading-4 text-[#737686]">{formatTime(conv.last_message_at)}</span>
         </div>
-        <p className="mt-0.5 truncate text-sm leading-[21px] text-[#434655]">{conv.last_message || 'Chưa có tin nhắn'}</p>
+        <p className="mt-0.5 truncate text-sm leading-[21px] text-[#434655]">{conv.last_message || t('host.messages.noMessagesYet')}</p>
       </div>
 
       {conv.unread_count > 0 && (
@@ -111,9 +114,9 @@ function ConversationItem({
 
 // ─── Message Read/Sent Status ─────────────────────────────────────────────────
 
-function MessageStatusLabel({ status }: { status: ConversationMessage['status'] }) {
+function MessageStatusLabel({ status, t }: { status: ConversationMessage['status']; t: any }) {
   const isRead = status === 'READ';
-  const label = isRead ? 'ĐÃ XEM' : status === 'DELIVERED' ? 'ĐÃ CHUYỂN' : 'ĐÃ GỬI';
+  const label = isRead ? t('host.messages.statusRead') : status === 'DELIVERED' ? t('host.messages.statusDelivered') : t('host.messages.statusSent');
   return (
     <span className="flex items-center gap-1">
       <svg className={`h-3 w-3 ${isRead ? 'text-[#004AC6]' : 'text-[#737686]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -134,11 +137,13 @@ function MessageBubble({
   isMine,
   peerName,
   peerAvatar,
+  t,
 }: {
   msg: ConversationMessage;
   isMine: boolean;
   peerName: string | null;
   peerAvatar?: string | null;
+  t: any;
 }) {
   if (isMine) {
     return (
@@ -148,7 +153,7 @@ function MessageBubble({
         </div>
         <div className="mt-1 flex items-center gap-1 pr-1">
           <span className="text-[11px] leading-4 text-[#737686]">{formatTime(msg.sent_at)}</span>
-          <MessageStatusLabel status={msg.status} />
+          <MessageStatusLabel status={msg.status} t={t} />
         </div>
       </div>
     );
@@ -175,6 +180,7 @@ export default function HostMessagesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const peerParam = searchParams.get('peer');
+  const { t } = useTranslation();
 
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
@@ -225,7 +231,7 @@ export default function HostMessagesPage() {
         setConversations(list);
         if (list.length > 0) setActiveConvId((prev) => prev ?? list[0].conversation_id);
       } catch (err: any) {
-        if (!cancelled) setError(err?.message || 'Không tải được danh sách hội thoại.');
+        if (!cancelled) setError(err?.message || t('host.messages.loadConvsFailed'));
       } finally {
         if (!cancelled) setLoadingConvs(false);
       }
@@ -248,7 +254,7 @@ export default function HostMessagesPage() {
       conversationService.markAsRead(convId).catch(() => undefined);
       setConversations((prev) => prev.map((c) => (c.conversation_id === convId ? { ...c, unread_count: 0 } : c)));
     } catch (err: any) {
-      setError(err?.message || 'Không tải được tin nhắn.');
+      setError(err?.message || t('host.messages.loadMsgsFailed'));
     } finally {
       setLoadingMsgs(false);
     }
@@ -379,7 +385,7 @@ export default function HostMessagesPage() {
         );
       }
     } catch (err: any) {
-      setError(err?.message || 'Gửi tin nhắn thất bại.');
+      setError(err?.message || t('host.messages.sendFailed'));
       setInputText(content); // restore so the user doesn't lose their text
     } finally {
       setSending(false);
@@ -402,7 +408,7 @@ export default function HostMessagesPage() {
       window.dispatchEvent(
         new CustomEvent('show-toast', {
           detail: {
-            message: 'Đã xóa cuộc hội thoại thành công.',
+            message: t('host.messages.deleteSuccess'),
             type: 'success',
           },
         })
@@ -424,7 +430,7 @@ export default function HostMessagesPage() {
       window.dispatchEvent(
         new CustomEvent('show-toast', {
           detail: {
-            message: err?.message || 'Không thể xóa cuộc hội thoại.',
+            message: err?.message || t('host.messages.deleteFailed'),
             type: 'error',
           },
         })
@@ -454,7 +460,7 @@ export default function HostMessagesPage() {
           {/* ── Conversation List (Left Panel) ────────────────────── */}
           <aside className="flex w-96 shrink-0 flex-col border-r border-[rgba(195,198,215,0.3)] bg-[#FAF8FF]">
             <div className="flex flex-col gap-4 px-6 pb-6 pt-[23px]">
-              <h1 className="text-2xl font-semibold leading-8 text-[#191B23]">Tin nhắn</h1>
+              <h1 className="text-2xl font-semibold leading-8 text-[#191B23]">{t('host.messages.pageTitle')}</h1>
               <div className="relative">
                 <svg className="pointer-events-none absolute left-2 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#737686]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.2-5.2M10.8 18a7.2 7.2 0 1 1 0-14.4 7.2 7.2 0 0 1 0 14.4z" />
@@ -463,7 +469,7 @@ export default function HostMessagesPage() {
                   type="search"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Tìm kiếm hội thoại..."
+                  placeholder={t('host.messages.searchPlaceholder')}
                   className="h-[39px] w-full rounded-lg border border-[#C3C6D7] bg-[#F3F3FE] pl-9 pr-4 text-sm text-[#191B23] placeholder:text-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#004AC6]/20"
                 />
               </div>
@@ -471,19 +477,20 @@ export default function HostMessagesPage() {
 
             <div className="flex-1 overflow-y-auto px-2 pb-4">
               {loadingConvs ? (
-                <p className="px-4 py-6 text-sm text-[#737686]">Đang tải hội thoại...</p>
+                <p className="px-4 py-6 text-sm text-[#737686]">{t('host.messages.loadingConvs')}</p>
               ) : filteredConvs.length === 0 ? (
                 <p className="px-4 py-6 text-sm text-[#737686]">
-                  {conversations.length === 0 ? 'Bạn chưa có hội thoại nào.' : 'Không tìm thấy hội thoại phù hợp.'}
+                  {conversations.length === 0 ? t('host.messages.noConvs') : t('host.messages.noMatchingConvs')}
                 </p>
               ) : (
                 <div className="flex flex-col gap-1">
                   {filteredConvs.map((conv) => (
-                    <ConversationItem
+                    <ConversationListItem
                       key={conv.conversation_id}
                       conv={conv}
                       isActive={conv.conversation_id === activeConvId}
                       onClick={() => setActiveConvId(conv.conversation_id)}
+                      t={t}
                     />
                   ))}
                 </div>
@@ -500,7 +507,7 @@ export default function HostMessagesPage() {
                   <div className="flex items-center gap-4">
                     <Avatar name={activeConv.peer_name} avatarUrl={activeConv.peer_avatar} size="md" />
                     <div>
-                      <p className="text-base font-semibold leading-5 text-[#191B23]">{activeConv.peer_name || 'Người dùng'}</p>
+                      <p className="text-base font-semibold leading-5 text-[#191B23]">{activeConv.peer_name || t('host.messages.defaultUser')}</p>
                     </div>
                   </div>
 
@@ -508,21 +515,21 @@ export default function HostMessagesPage() {
                     type="button"
                     onClick={() => setShowDeleteConfirm(true)}
                     className="flex h-10 items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700"
-                    title="Xóa cuộc hội thoại"
+                    title={t('host.messages.deleteConvTitle')}
                   >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
-                    <span>Xóa hội thoại</span>
+                    <span>{t('host.messages.deleteConvBtn')}</span>
                   </button>
                 </div>
 
                 {/* Messages scrollable area */}
                 <div className="absolute inset-x-0 bottom-[88px] top-[73px] overflow-y-auto px-6 py-6">
                   {loadingMsgs ? (
-                    <p className="text-center text-sm text-[#737686]">Đang tải tin nhắn...</p>
+                    <p className="text-center text-sm text-[#737686]">{t('host.messages.loadingMsgs')}</p>
                   ) : messages.length === 0 ? (
-                    <p className="text-center text-sm text-[#737686]">Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện.</p>
+                    <p className="text-center text-sm text-[#737686]">{t('host.messages.startChatPrompt')}</p>
                   ) : (
                     <>
                       <div className="mb-6 flex justify-center">
@@ -538,6 +545,7 @@ export default function HostMessagesPage() {
                             isMine={msg.sender_id === myUserId}
                             peerName={activeConv.peer_name}
                             peerAvatar={activeConv.peer_avatar}
+                            t={t}
                           />
                         ))}
                       </div>
@@ -554,7 +562,7 @@ export default function HostMessagesPage() {
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Nhập tin nhắn..."
+                        placeholder={t('host.messages.typeMessage')}
                         rows={1}
                         className="flex-1 resize-none bg-transparent px-3 py-2 text-base leading-6 text-[#191B23] placeholder:text-[#6B7280] focus:outline-none"
                         style={{ maxHeight: '128px' }}
@@ -565,7 +573,7 @@ export default function HostMessagesPage() {
                       type="button"
                       onClick={handleSend}
                       disabled={sending || !inputText.trim()}
-                      aria-label="Gửi"
+                      aria-label={t('host.messages.sendBtnAria')}
                       className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#004AC6] shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1),0_4px_6px_-4px_rgba(0,0,0,0.1)] transition hover:bg-[#003fa3] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <svg className="h-4 w-[19px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -579,7 +587,7 @@ export default function HostMessagesPage() {
             ) : (
               <div className="flex flex-1 items-center justify-center px-6 text-center">
                 <p className="text-sm text-[#737686]">
-                  {loadingConvs ? 'Đang tải...' : 'Chọn một hội thoại để bắt đầu nhắn tin.'}
+                  {loadingConvs ? t('host.messages.loading') : t('host.messages.selectConvPrompt')}
                 </p>
               </div>
             )}
@@ -591,9 +599,9 @@ export default function HostMessagesPage() {
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl transition-all">
-            <h3 className="text-lg font-bold text-gray-900">Xác nhận xóa cuộc hội thoại?</h3>
+            <h3 className="text-lg font-bold text-gray-900">{t('host.messages.deleteConfirmTitle')}</h3>
             <p className="mt-2 text-sm text-gray-500">
-              Lịch sử cuộc hội thoại này sẽ bị ẩn đi khỏi hộp thư của bạn. Bạn vẫn có thể nhắn tin lại hoặc nhận tin nhắn mới từ người này bất kỳ lúc nào.
+              {t('host.messages.deleteConfirmDesc')}
             </p>
             <div className="mt-6 flex justify-end gap-3">
               <button
@@ -602,7 +610,7 @@ export default function HostMessagesPage() {
                 disabled={deleting}
                 className="rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
               >
-                Hủy
+                {t('host.messages.cancelBtn')}
               </button>
               <button
                 type="button"
@@ -616,10 +624,10 @@ export default function HostMessagesPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    <span>Đang xóa...</span>
+                    <span>{t('host.messages.deleting')}</span>
                   </>
                 ) : (
-                  <span>Xóa</span>
+                  <span>{t('host.messages.deleteBtn')}</span>
                 )}
               </button>
             </div>

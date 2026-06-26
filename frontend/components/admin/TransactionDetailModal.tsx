@@ -4,6 +4,7 @@ import React from 'react';
 import { X, CheckCircle, XCircle, Clock, FileText, CreditCard, Calendar, User, MapPin } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { getRoomFallbackImage } from '@/utils/imageFallback';
+import { useTranslation } from '@/context/LanguageContext';
 
 interface TransactionDetailModalProps {
   transaction: any;
@@ -14,6 +15,7 @@ interface TransactionDetailModalProps {
 }
 
 export default function TransactionDetailModal({ transaction, isOpen, onClose, onDisburse, isDisbursing }: TransactionDetailModalProps) {
+  const { t } = useTranslation();
   if (!isOpen || !transaction) return null;
 
   return (
@@ -25,8 +27,8 @@ export default function TransactionDetailModal({ transaction, isOpen, onClose, o
         {/* Header */}
         <div className="px-8 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 sticky top-0 z-10">
           <div>
-            <h2 className="text-xl font-bold text-slate-800">Chi tiết giao dịch</h2>
-            <p className="text-sm text-slate-500 mt-1">Mã: #{transaction.transaction_id}</p>
+            <h2 className="text-xl font-bold text-slate-800">{t.admin.transactionDetailModal.title}</h2>
+            <p className="text-sm text-slate-500 mt-1">{t.admin.transactionDetailModal.txCode.replace('{{id}}', transaction.transaction_id)}</p>
           </div>
           <button 
             onClick={onClose}
@@ -49,19 +51,19 @@ export default function TransactionDetailModal({ transaction, isOpen, onClose, o
              <XCircle size={24} />}
             <div>
               <p className="font-bold flex items-center gap-2">
-                {transaction.status === 'SUCCESS' ? 'Giao dịch thành công' :
-                 transaction.status === 'PENDING' ? 'Giao dịch đang xử lý' :
-                 'Giao dịch thất bại'}
+                {transaction.status === 'SUCCESS' ? t.admin.transactionDetailModal.successTitle :
+                 transaction.status === 'PENDING' ? t.admin.transactionDetailModal.pendingTitle :
+                 t.admin.transactionDetailModal.failedTitle}
                 
                 {transaction.status === 'SUCCESS' && transaction.is_disbursed && (
-                  <span className="bg-emerald-100 text-emerald-800 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold">Đã giải ngân</span>
+                  <span className="bg-emerald-100 text-emerald-800 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold">{t.admin.transactionDetailModal.disbursedBadge}</span>
                 )}
                 {transaction.status === 'SUCCESS' && !transaction.is_disbursed && (
-                  <span className="bg-orange-100 text-orange-800 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold">Chờ giải ngân</span>
+                  <span className="bg-orange-100 text-orange-800 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold">{t.admin.transactionDetailModal.pendingDisburseBadge}</span>
                 )}
               </p>
               <p className="text-sm opacity-80 mt-0.5">
-                Vào lúc {new Date(transaction.created_at).toLocaleString('vi-VN')}
+                {t.admin.transactionDetailModal.atTime.replace('{{time}}', new Date(transaction.created_at).toLocaleString('vi-VN'))}
               </p>
             </div>
           </div>
@@ -70,10 +72,10 @@ export default function TransactionDetailModal({ transaction, isOpen, onClose, o
             {/* Amount & Method */}
             <div className="space-y-6">
               <div>
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Thông tin thanh toán</h3>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">{t.admin.transactionDetailModal.paymentInfo}</h3>
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-500 flex items-center gap-2"><CreditCard size={16} /> Phương thức</span>
+                    <span className="text-slate-500 flex items-center gap-2"><CreditCard size={16} /> {t.admin.transactionDetailModal.method}</span>
                     <span className="font-semibold text-slate-800">
                       {transaction.payment_method === 'VNPAY' ? 'VNPay' : 
                        transaction.payment_method === 'MOMO' ? 'MoMo' : 
@@ -82,13 +84,13 @@ export default function TransactionDetailModal({ transaction, isOpen, onClose, o
                     </span>
                   </div>
                   <div className="flex justify-between items-center pt-3 border-t border-slate-200 border-dashed">
-                    <span className="text-slate-500 flex items-center gap-2"><FileText size={16} /> Loại giao dịch</span>
+                    <span className="text-slate-500 flex items-center gap-2"><FileText size={16} /> {t.admin.transactionDetailModal.txType}</span>
                     <span className="font-semibold text-slate-800">
-                      {transaction.transaction_type === 'DEPOSIT' ? 'Đặt cọc phòng' : transaction.transaction_type || 'Thanh toán'}
+                      {transaction.transaction_type === 'DEPOSIT' ? t.admin.transactionDetailModal.typeDeposit : transaction.transaction_type || t.admin.transactionDetailModal.typePayment}
                     </span>
                   </div>
                   <div className="flex justify-between items-center pt-3 border-t border-slate-200 border-dashed">
-                    <span className="text-slate-500 flex items-center gap-2"><Calendar size={16} /> Số tiền</span>
+                    <span className="text-slate-500 flex items-center gap-2"><Calendar size={16} /> {t.admin.transactionDetailModal.amount}</span>
                     <span className="text-xl font-bold text-booking-primary">
                       {formatCurrency(transaction.amount)}
                     </span>
@@ -97,7 +99,7 @@ export default function TransactionDetailModal({ transaction, isOpen, onClose, o
               </div>
 
               <div>
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Người dùng (Tenant)</h3>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">{t.admin.transactionDetailModal.tenantTitle}</h3>
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
@@ -114,7 +116,7 @@ export default function TransactionDetailModal({ transaction, isOpen, onClose, o
 
             {/* Room Info */}
             <div>
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Phòng / Dịch vụ</h3>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">{t.admin.transactionDetailModal.roomTitle}</h3>
               <div className="bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden">
                 <div className="h-32 w-full bg-slate-200 relative">
                   <img
@@ -125,12 +127,12 @@ export default function TransactionDetailModal({ transaction, isOpen, onClose, o
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                   <div className="absolute bottom-3 left-4 right-4">
                     <p className="text-white font-bold line-clamp-1">{transaction.room_title || 'N/A'}</p>
-                    <p className="text-white/80 text-xs mt-1 flex items-center gap-1"><MapPin size={12} /> ID: {transaction.room_id || 'N/A'}</p>
+                    <p className="text-white/80 text-xs mt-1 flex items-center gap-1"><MapPin size={12} /> {t.admin.transactionDetailModal.roomId.replace('{{id}}', transaction.room_id || 'N/A')}</p>
                   </div>
                 </div>
                 <div className="p-4 bg-white">
                   <p className="text-sm text-slate-600 leading-relaxed">
-                    Khách hàng đã thanh toán tiền cọc cho phòng này. Giao dịch được ghi nhận tự động vào hệ thống.
+                    {t.admin.transactionDetailModal.roomNote}
                   </p>
                 </div>
               </div>
@@ -144,7 +146,7 @@ export default function TransactionDetailModal({ transaction, isOpen, onClose, o
             onClick={onClose}
             className="px-5 py-2.5 rounded-xl font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors"
           >
-            Đóng
+            {t.admin.transactionDetailModal.closeBtn}
           </button>
           
           {transaction.status === 'SUCCESS' && !transaction.is_disbursed && (
@@ -156,10 +158,10 @@ export default function TransactionDetailModal({ transaction, isOpen, onClose, o
               {isDisbursing ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Đang xử lý...
+                  {t.admin.transactionDetailModal.processing}
                 </>
               ) : (
-                'Giải ngân cho chủ phòng'
+                t.admin.transactionDetailModal.disburseBtn
               )}
             </button>
           )}

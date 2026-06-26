@@ -7,6 +7,7 @@ import { Check, X, Building, Search, Filter, AlertCircle, CheckCircle, Eye } fro
 import { formatCurrency } from '@/utils/formatCurrency';
 import { getRoomFallbackImage } from '@/utils/imageFallback';
 import RoomDetailModal from '@/components/admin/RoomDetailModal';
+import { useTranslation } from '@/context/LanguageContext';
 
 // Custom toast helper
 const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -30,6 +31,7 @@ export default function ListingApprovalPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
+  const { t } = useTranslation();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -54,7 +56,7 @@ export default function ListingApprovalPage() {
       setPagination({ total: res.pagination?.total || 0, totalPages: res.pagination?.totalPages || Math.ceil((res.pagination?.total || 0) / limit) || 1 });
       setError(null);
     } catch (err: any) {
-      setError(err.message || 'Lỗi khi tải danh sách phòng chờ duyệt');
+      setError(err.message || t.admin.listingsPage.loadError);
     } finally {
       setLoading(false);
     }
@@ -75,11 +77,11 @@ export default function ListingApprovalPage() {
     try {
       setActionLoading(roomId);
       await adminService.approveRoom(roomId);
-      showToast('Đã phê duyệt bài đăng thành công', 'success');
+      showToast(t.admin.listingsPage.approveSuccess, 'success');
       setApprovingRoomId(null);
       fetchRooms();
     } catch (err: any) {
-      showToast(err.message || 'Lỗi khi phê duyệt bài đăng', 'error');
+      showToast(err.message || t.admin.listingsPage.approveError, 'error');
     } finally {
       setActionLoading(null);
     }
@@ -87,19 +89,19 @@ export default function ListingApprovalPage() {
 
   const handleReject = async (roomId: string) => {
     if (!rejectReason.trim()) {
-      showToast('Vui lòng nhập lý do từ chối', 'error');
+      showToast(t.admin.listingsPage.rejectReasonRequired, 'error');
       return;
     }
 
     try {
       setActionLoading(roomId);
       await adminService.rejectRoom(roomId, rejectReason);
-      showToast('Đã từ chối bài đăng', 'success');
+      showToast(t.admin.listingsPage.rejectSuccess, 'success');
       setRejectingRoomId(null);
       setRejectReason('');
       fetchRooms();
     } catch (err: any) {
-      showToast(err.message || 'Lỗi khi từ chối bài đăng', 'error');
+      showToast(err.message || t.admin.listingsPage.rejectError, 'error');
     } finally {
       setActionLoading(null);
     }
@@ -108,8 +110,8 @@ export default function ListingApprovalPage() {
   return (
     <div className="flex flex-col h-full bg-slate-50">
       <AdminHeader
-        title="Duyệt bài đăng"
-        description="Kiểm tra và phê duyệt các bài đăng phòng mới từ chủ nhà."
+        title={t.admin.listingsPage.title}
+        description={t.admin.listingsPage.description}
       />
 
       <div className="flex-1 p-8 overflow-y-auto">
@@ -127,7 +129,7 @@ export default function ListingApprovalPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm kiếm bài đăng..."
+              placeholder={t.admin.listingsPage.searchPlaceholder}
               className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-booking-primary/20 focus:border-booking-primary transition-all text-sm"
             />
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -144,13 +146,13 @@ export default function ListingApprovalPage() {
                 onClick={() => setFilterStatus('PENDING')}
                 className={`px-4 py-1 font-medium rounded-lg text-sm transition-colors ${filterStatus === 'PENDING' ? 'bg-slate-100 text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                Chờ duyệt
+                {t.admin.listingsPage.filterPending}
               </button>
               <button
                 onClick={() => setFilterStatus('APPROVED')}
                 className={`px-4 py-1 font-medium rounded-lg text-sm transition-colors ${filterStatus === 'APPROVED' ? 'bg-slate-100 text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
               >
-                Đã duyệt
+                {t.admin.listingsPage.filterApproved}
               </button>
             </div>
           </div>
@@ -162,11 +164,11 @@ export default function ListingApprovalPage() {
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
                 <tr className="border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
-                  <th className="px-6 py-4 font-semibold">Bài đăng</th>
-                  <th className="px-6 py-4 font-semibold">Thông tin</th>
-                  <th className="px-6 py-4 font-semibold">Người đăng (Host)</th>
-                  <th className="px-6 py-4 font-semibold">Ngày gửi</th>
-                  <th className="px-6 py-4 font-semibold text-right">Hành động</th>
+                  <th className="px-6 py-4 font-semibold">{t.admin.listingsPage.thListing}</th>
+                  <th className="px-6 py-4 font-semibold">{t.admin.listingsPage.thInfo}</th>
+                  <th className="px-6 py-4 font-semibold">{t.admin.listingsPage.thHost}</th>
+                  <th className="px-6 py-4 font-semibold">{t.admin.listingsPage.thSubmitDate}</th>
+                  <th className="px-6 py-4 font-semibold text-right">{t.admin.listingsPage.thActions}</th>
                 </tr>
               </thead>
               <tbody className={`divide-y divide-slate-100 transition-opacity duration-200 ${loading && pendingRooms.length > 0 ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -175,7 +177,7 @@ export default function ListingApprovalPage() {
                   <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
                     <div className="flex flex-col items-center justify-center">
                       <span className="w-6 h-6 border-2 border-booking-teal border-t-transparent rounded-full animate-spin mb-2"></span>
-                      Đang tải danh sách...
+                      {t.admin.listingsPage.loadingList}
                     </div>
                   </td>
                 </tr>
@@ -186,7 +188,7 @@ export default function ListingApprovalPage() {
                       <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                         <CheckCircle className="text-slate-400" size={32} />
                       </div>
-                      <p className="text-slate-500 font-medium">Không tìm thấy bài đăng nào</p>
+                      <p className="text-slate-500 font-medium">{t.admin.listingsPage.noListingsFound}</p>
                     </div>
                   </td>
                 </tr>
@@ -213,15 +215,15 @@ export default function ListingApprovalPage() {
                               <h4 className="font-semibold text-slate-900 line-clamp-1 mb-1 text-base">{room.title}</h4>
                               <p className="text-slate-500 line-clamp-1 text-sm">{room.detailedAddress}</p>
                               <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">
-                                {room.roomType === 'APARTMENT' ? 'Căn hộ' : room.roomType === 'ROOM' ? 'Phòng trọ' : 'Nhà nguyên căn'}
+                                {room.roomType === 'APARTMENT' ? t.admin.listingsPage.apartment : room.roomType === 'ROOM' ? t.admin.listingsPage.room : t.admin.listingsPage.house}
                               </div>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="space-y-1">
-                            <p className="font-semibold text-booking-primary">{formatCurrency(room.monthlyRent)}<span className="text-xs font-normal text-slate-500">/tháng</span></p>
-                            <p className="text-slate-500">Cọc: {formatCurrency(room.depositAmount)}</p>
+                            <p className="font-semibold text-booking-primary">{formatCurrency(room.monthlyRent)}<span className="text-xs font-normal text-slate-500">{t.admin.listingsPage.perMonth}</span></p>
+                            <p className="text-slate-500">{t.admin.listingsPage.depositPrefix.replace('{{amount}}', formatCurrency(room.depositAmount))}</p>
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -231,7 +233,7 @@ export default function ListingApprovalPage() {
                             </div>
                             <div>
                               <p className="font-medium text-slate-900">{room.host?.fullName || 'N/A'}</p>
-                              <p className="text-xs text-slate-500">{room.host?.phoneNumber || 'Không có sđt'}</p>
+                              <p className="text-xs text-slate-500">{room.host?.phoneNumber || t.admin.listingsPage.noPhone}</p>
                             </div>
                           </div>
                         </td>
@@ -250,7 +252,7 @@ export default function ListingApprovalPage() {
                                   }}
                                   disabled={actionLoading === room.roomId}
                                   className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 ${approvingRoomId === room.roomId ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}
-                                  title="Phê duyệt"
+                                  title={t.admin.listingsPage.approveTooltip}
                                 >
                                   <Check size={18} />
                                 </button>
@@ -262,7 +264,7 @@ export default function ListingApprovalPage() {
                                   }}
                                   disabled={actionLoading === room.roomId}
                                   className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 ${rejectingRoomId === room.roomId ? 'bg-red-600 text-white' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
-                                  title="Từ chối"
+                                  title={t.admin.listingsPage.rejectTooltip}
                                 >
                                   <X size={18} />
                                 </button>
@@ -271,7 +273,7 @@ export default function ListingApprovalPage() {
                               <button
                                 onClick={(e) => { e.stopPropagation(); setViewingRoomId(room.roomId); }}
                                 className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition-colors"
-                                title="Xem chi tiết"
+                                title={t.admin.listingsPage.viewTooltip}
                               >
                                 <Eye size={18} />
                               </button>
@@ -284,24 +286,24 @@ export default function ListingApprovalPage() {
                         <tr>
                           <td colSpan={5} className="bg-emerald-50/50 p-6 border-b border-emerald-100">
                             <div className="flex flex-col gap-3 animate-in slide-in-from-top-2 duration-200">
-                              <label className="text-sm font-semibold text-emerald-900">Xác nhận phê duyệt bài đăng "{room.title}":</label>
+                              <label className="text-sm font-semibold text-emerald-900">{t.admin.listingsPage.confirmApproveLabel.replace('{{title}}', room.title)}</label>
                               <div className="flex gap-3 items-stretch">
                                 <div className="flex-1 px-4 py-2 bg-white border border-emerald-200 rounded-xl text-sm text-emerald-700 flex items-center gap-2">
                                   <CheckCircle size={16} className="text-emerald-500 flex-shrink-0" />
-                                  <span>Bài đăng sẽ ngay lập tức được hiển thị công khai trên hệ thống cho khách thuê tìm kiếm và đặt chỗ.</span>
+                                  <span>{t.admin.listingsPage.confirmApproveDesc}</span>
                                 </div>
                                 <button
                                   onClick={() => handleApprove()}
                                   disabled={actionLoading === room.roomId}
                                   className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-colors text-sm disabled:opacity-70 min-w-[150px] flex justify-center items-center"
                                 >
-                                  {actionLoading === room.roomId ? 'Đang xử lý...' : 'Xác nhận duyệt'}
+                                  {actionLoading === room.roomId ? t.admin.listingsPage.processing : t.admin.listingsPage.confirmApproveBtn}
                                 </button>
                                 <button
                                   onClick={() => setApprovingRoomId(null)}
                                   className="px-6 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium rounded-xl transition-colors text-sm"
                                 >
-                                  Hủy bỏ
+                                  {t.admin.listingsPage.cancelBtn}
                                 </button>
                               </div>
                             </div>
@@ -313,13 +315,13 @@ export default function ListingApprovalPage() {
                         <tr>
                           <td colSpan={5} className="bg-red-50/50 p-6 border-b border-red-100">
                             <div className="flex flex-col gap-3">
-                              <label className="text-sm font-semibold text-slate-900">Lý do từ chối bài đăng "{room.title}":</label>
+                              <label className="text-sm font-semibold text-slate-900">{t.admin.listingsPage.rejectLabel.replace('{{title}}', room.title)}</label>
                               <div className="flex gap-3">
                                 <input
                                   type="text"
                                   value={rejectReason}
                                   onChange={(e) => setRejectReason(e.target.value)}
-                                  placeholder="Nhập lý do cụ thể để Host biết (VD: Hình ảnh không rõ ràng, giá thuê không hợp lý...)"
+                                  placeholder={t.admin.listingsPage.rejectPlaceholder}
                                   className="flex-1 px-4 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-sm"
                                   autoFocus
                                 />
@@ -328,13 +330,13 @@ export default function ListingApprovalPage() {
                                   disabled={actionLoading === room.roomId}
                                   className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors text-sm disabled:opacity-70"
                                 >
-                                  {actionLoading === room.roomId ? 'Đang xử lý...' : 'Xác nhận từ chối'}
+                                  {actionLoading === room.roomId ? t.admin.listingsPage.processing : t.admin.listingsPage.confirmRejectBtn}
                                 </button>
                                 <button
                                   onClick={() => { setRejectingRoomId(null); setRejectReason(''); }}
                                   className="px-6 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium rounded-xl transition-colors text-sm"
                                 >
-                                  Hủy bỏ
+                                  {t.admin.listingsPage.cancelBtn}
                                 </button>
                               </div>
                             </div>
@@ -351,24 +353,24 @@ export default function ListingApprovalPage() {
           {/* Pagination */}
           {!loading && pendingRooms.length > 0 && (
             <div className="px-6 py-4 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between text-sm">
-              <span className="text-slate-500">Hiển thị {pendingRooms.length} trên tổng <span className="font-medium text-slate-900">{pagination.total}</span> bài đăng</span>
+              <span className="text-slate-500">{t.admin.listingsPage.showingCount.replace('{{count}}', pendingRooms.length.toString()).replace('{{total}}', pagination.total.toString())}</span>
               <div className="flex gap-1 items-center">
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   className="px-3 py-1 border border-slate-200 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                 >
-                  Trước
+                  {t.admin.listingsPage.prevPage}
                 </button>
                 <span className="px-2 font-medium text-slate-900">
-                  Trang {page} / {pagination.totalPages}
+                  {t.admin.listingsPage.pageText.replace('{{page}}', page.toString()).replace('{{totalPages}}', pagination.totalPages.toString())}
                 </span>
                 <button
                   disabled={page >= pagination.totalPages}
                   onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
                   className="px-3 py-1 border border-slate-200 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                 >
-                  Sau
+                  {t.admin.listingsPage.nextPage}
                 </button>
               </div>
             </div>
@@ -395,3 +397,4 @@ export default function ListingApprovalPage() {
     </div>
   );
 }
+

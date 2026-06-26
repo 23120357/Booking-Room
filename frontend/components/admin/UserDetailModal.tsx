@@ -5,6 +5,7 @@ import { X, Mail, Phone, Calendar, Shield, MapPin, Building, Lock, Unlock, Check
 import { adminService } from '@/services/adminService';
 import StatusBadge from './StatusBadge';
 import Avatar from './Avatar';
+import { useTranslation } from '@/context/LanguageContext';
 
 interface UserDetailModalProps {
   userId: string;
@@ -21,6 +22,7 @@ export default function UserDetailModal({ userId, isOpen, onClose, onStatusChang
   const [isApprovingHost, setIsApprovingHost] = useState(false);
   const [isRejectingHost, setIsRejectingHost] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (isOpen && userId) {
@@ -35,7 +37,7 @@ export default function UserDetailModal({ userId, isOpen, onClose, onStatusChang
       const data = await adminService.getUserDetail(userId);
       setUser(data);
     } catch (err: any) {
-      setError(err.message || 'Lỗi khi tải thông tin người dùng');
+      setError(err.message || t.admin.userDetailModal.errorDefault);
     } finally {
       setLoading(false);
     }
@@ -52,7 +54,7 @@ export default function UserDetailModal({ userId, isOpen, onClose, onStatusChang
       await fetchUserDetail();
       onStatusChange();
     } catch (err: any) {
-      alert(err.message || 'Lỗi khi thay đổi trạng thái');
+      alert(err.message || t.admin.userDetailModal.toggleLockError);
     } finally {
       setActionLoading(false);
     }
@@ -66,7 +68,7 @@ export default function UserDetailModal({ userId, isOpen, onClose, onStatusChang
       setIsApprovingHost(false);
       onStatusChange();
     } catch (err: any) {
-      alert(err.message || 'Lỗi khi duyệt chủ nhà');
+      alert(err.message || t.admin.userDetailModal.approveHostError);
     } finally {
       setActionLoading(false);
     }
@@ -74,7 +76,7 @@ export default function UserDetailModal({ userId, isOpen, onClose, onStatusChang
 
   const handleRejectHost = async () => {
     if (!rejectReason.trim()) {
-      alert('Vui lòng nhập lý do từ chối');
+      alert(t.admin.userDetailModal.rejectReasonRequired);
       return;
     }
     try {
@@ -85,7 +87,7 @@ export default function UserDetailModal({ userId, isOpen, onClose, onStatusChang
       setRejectReason('');
       onStatusChange();
     } catch (err: any) {
-      alert(err.message || 'Lỗi khi từ chối chủ nhà');
+      alert(err.message || t.admin.userDetailModal.rejectHostError);
     } finally {
       setActionLoading(false);
     }
@@ -99,7 +101,7 @@ export default function UserDetailModal({ userId, isOpen, onClose, onStatusChang
         
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-white z-10">
-          <h2 className="text-xl font-bold text-slate-900">Chi tiết người dùng</h2>
+          <h2 className="text-xl font-bold text-slate-900">{t.admin.userDetailModal.title}</h2>
           <button 
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-500 transition-colors"
@@ -113,12 +115,12 @@ export default function UserDetailModal({ userId, isOpen, onClose, onStatusChang
           {loading ? (
             <div className="flex flex-col items-center justify-center h-48 text-slate-500">
               <div className="w-8 h-8 border-4 border-booking-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-              <p>Đang tải thông tin...</p>
+              <p>{t.admin.userDetailModal.loading}</p>
             </div>
           ) : error ? (
             <div className="p-4 bg-red-50 text-red-600 rounded-xl text-center">
               <p className="font-medium">{error}</p>
-              <button onClick={fetchUserDetail} className="mt-3 px-4 py-2 bg-white rounded-lg border border-red-200 shadow-sm font-medium">Thử lại</button>
+              <button onClick={fetchUserDetail} className="mt-3 px-4 py-2 bg-white rounded-lg border border-red-200 shadow-sm font-medium">{t.admin.userDetailModal.retry}</button>
             </div>
           ) : user ? (
             <div className="space-y-8">
@@ -156,7 +158,7 @@ export default function UserDetailModal({ userId, isOpen, onClose, onStatusChang
               {/* Info Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-wider">Thông tin liên hệ</h4>
+                  <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-wider">{t.admin.userDetailModal.contactInfo}</h4>
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 text-slate-600">
                       <Mail size={18} className="text-slate-400" />
@@ -164,26 +166,26 @@ export default function UserDetailModal({ userId, isOpen, onClose, onStatusChang
                     </div>
                     <div className="flex items-center gap-3 text-slate-600">
                       <Phone size={18} className="text-slate-400" />
-                      <span>{user.phoneNumber || 'Chưa cung cấp'}</span>
+                      <span>{user.phoneNumber || t.admin.userDetailModal.noPhone}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-wider">Hệ thống</h4>
+                  <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-wider">{t.admin.userDetailModal.systemInfo}</h4>
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 text-slate-600">
                       <Calendar size={18} className="text-slate-400" />
-                      <span>Tham gia: {user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'N/A'}</span>
+                      <span>{t.admin.userDetailModal.joined.replace('{{date}}', user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'N/A')}</span>
                     </div>
                     <div className="flex items-center gap-3 text-slate-600">
                       <Shield size={18} className="text-slate-400" />
                       <span>
-                        Trạng thái hoạt động: {
+                        {t.admin.userDetailModal.statusLabel} {
                           user.status === 'ACTIVE'
-                            ? (user?.landlord?.approvalStatus === 'PENDING' || user?.approvalStatus === 'PENDING' ? 'Chờ xác thực' : 'Đã kích hoạt')
-                            : user.status === 'BANNED' ? 'Bị khóa'
-                            : user.status === 'INACTIVE' ? 'Chưa xác thực OTP' : 'Bị khóa'
+                            ? (user?.landlord?.approvalStatus === 'PENDING' || user?.approvalStatus === 'PENDING' ? t.admin.status.pendingAuth : t.admin.userDetailModal.statusActive)
+                            : user.status === 'BANNED' ? t.admin.status.locked
+                            : user.status === 'INACTIVE' ? t.admin.status.unverifiedOtp : t.admin.status.locked
                         }
                       </span>
                     </div>
@@ -195,11 +197,11 @@ export default function UserDetailModal({ userId, isOpen, onClose, onStatusChang
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                   <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
                     <Building size={16} className="text-booking-primary" />
-                    Thông tin Chủ nhà
+                    {t.admin.userDetailModal.hostInfoTitle}
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-slate-500 mb-1">Trạng thái duyệt</p>
+                      <p className="text-slate-500 mb-1">{t.admin.userDetailModal.approvalStatus}</p>
                       <StatusBadge
                         status={
                           user.landlord.approvalStatus === 'APPROVED' ? 'Hoạt động' :
@@ -214,20 +216,20 @@ export default function UserDetailModal({ userId, isOpen, onClose, onStatusChang
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                       {user.landlord.idCardFrontUrl && (
                         <div>
-                          <p className="text-slate-500 mb-2 text-xs font-semibold uppercase tracking-wider">CCCD Mặt trước</p>
+                          <p className="text-slate-500 mb-2 text-xs font-semibold uppercase tracking-wider">{t.admin.userDetailModal.idFront}</p>
                           <img 
                             src={user.landlord.idCardFrontUrl} 
-                            alt="CCCD Mặt trước" 
+                            alt={t.admin.userDetailModal.idFront} 
                             className="w-full h-auto rounded-lg border border-slate-200 object-cover aspect-video bg-slate-100" 
                           />
                         </div>
                       )}
                       {user.landlord.idCardBackUrl && (
                         <div>
-                          <p className="text-slate-500 mb-2 text-xs font-semibold uppercase tracking-wider">CCCD Mặt sau</p>
+                          <p className="text-slate-500 mb-2 text-xs font-semibold uppercase tracking-wider">{t.admin.userDetailModal.idBack}</p>
                           <img 
                             src={user.landlord.idCardBackUrl} 
-                            alt="CCCD Mặt sau" 
+                            alt={t.admin.userDetailModal.idBack} 
                             className="w-full h-auto rounded-lg border border-slate-200 object-cover aspect-video bg-slate-100" 
                           />
                         </div>
@@ -236,38 +238,38 @@ export default function UserDetailModal({ userId, isOpen, onClose, onStatusChang
                   )}
                   {user.landlord.rejectionReason && (
                     <div className="mt-3 bg-red-50 text-red-600 p-2 rounded text-sm">
-                      Lý do từ chối: {user.landlord.rejectionReason}
+                      {t.admin.userDetailModal.rejectReason.replace('{{reason}}', user.landlord.rejectionReason)}
                     </div>
                   )}
                   {user.landlord.approvalStatus === 'PENDING' && (
                     <div className="mt-4 flex flex-col gap-3">
                       {isApprovingHost ? (
                         <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                          <p className="text-sm text-emerald-800 font-medium">Bạn có chắc chắn muốn duyệt Chủ nhà này? Họ sẽ được cấp quyền đăng bài ngay lập tức.</p>
+                          <p className="text-sm text-emerald-800 font-medium">{t.admin.userDetailModal.confirmApprovePrompt}</p>
                           <div className="flex gap-2">
                             <button
                               onClick={handleApproveHost}
                               disabled={actionLoading}
                               className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                             >
-                              {actionLoading ? 'Đang xử lý...' : 'Xác nhận duyệt'}
+                              {actionLoading ? t.admin.userDetailModal.processing : t.admin.userDetailModal.confirmApproveBtn}
                             </button>
                             <button
                               onClick={() => setIsApprovingHost(false)}
                               disabled={actionLoading}
                               className="flex-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 py-2 rounded-lg text-sm font-medium transition-colors"
                             >
-                              Hủy bỏ
+                              {t.admin.userDetailModal.cancelBtn}
                             </button>
                           </div>
                         </div>
                       ) : isRejectingHost ? (
                         <div className="bg-red-50 p-4 rounded-xl border border-red-100 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                          <label className="text-sm text-red-800 font-medium">Lý do từ chối hồ sơ:</label>
+                          <label className="text-sm text-red-800 font-medium">{t.admin.userDetailModal.rejectPromptLabel}</label>
                           <textarea
                             value={rejectReason}
                             onChange={(e) => setRejectReason(e.target.value)}
-                            placeholder="Nhập lý do cụ thể (VD: Hình CCCD mờ...)"
+                            placeholder={t.admin.userDetailModal.rejectPlaceholder}
                             className="w-full p-2 text-sm rounded-lg border border-red-200 focus:outline-none focus:ring-1 focus:ring-red-500 bg-white resize-none"
                             rows={2}
                           />
@@ -277,14 +279,14 @@ export default function UserDetailModal({ userId, isOpen, onClose, onStatusChang
                               disabled={actionLoading}
                               className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                             >
-                              {actionLoading ? 'Đang xử lý...' : 'Xác nhận từ chối'}
+                              {actionLoading ? t.admin.userDetailModal.processing : t.admin.userDetailModal.confirmRejectBtn}
                             </button>
                             <button
                               onClick={() => { setIsRejectingHost(false); setRejectReason(''); }}
                               disabled={actionLoading}
                               className="flex-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 py-2 rounded-lg text-sm font-medium transition-colors"
                             >
-                              Hủy bỏ
+                              {t.admin.userDetailModal.cancelBtn}
                             </button>
                           </div>
                         </div>
@@ -295,14 +297,14 @@ export default function UserDetailModal({ userId, isOpen, onClose, onStatusChang
                             disabled={actionLoading || !user.landlord.idCardFrontUrl || !user.landlord.idCardBackUrl}
                             className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
                           >
-                            <Check size={16} /> Duyệt hồ sơ
+                            <Check size={16} /> {t.admin.userDetailModal.approveProfileBtn}
                           </button>
                           <button
                             onClick={() => setIsRejectingHost(true)}
                             disabled={actionLoading}
                             className="flex-1 bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-600 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-red-200"
                           >
-                            <XCircle size={16} /> Từ chối
+                            <XCircle size={16} /> {t.admin.userDetailModal.rejectProfileBtn}
                           </button>
                         </div>
                       )}
@@ -331,12 +333,12 @@ export default function UserDetailModal({ userId, isOpen, onClose, onStatusChang
               ) : user.status === 'BANNED' ? (
                 <>
                   <Unlock size={18} />
-                  <span>Mở khóa tài khoản</span>
+                  <span>{t.admin.userDetailModal.unlockAccountBtn}</span>
                 </>
               ) : (
                 <>
                   <Lock size={18} />
-                  <span>Khóa tài khoản</span>
+                  <span>{t.admin.userDetailModal.lockAccountBtn}</span>
                 </>
               )}
             </button>

@@ -6,6 +6,7 @@ import { adminService } from '@/services/adminService';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { getRoomFallbackImage } from '@/utils/imageFallback';
 import { AlertCircle, FileText, Wallet, ArrowDownLeft, ArrowUpRight, MapPin } from 'lucide-react';
+import { useTranslation } from '@/context/LanguageContext';
 
 export default function IncomesPage() {
   const [incomes, setIncomes] = useState<any[]>([]);
@@ -16,6 +17,7 @@ export default function IncomesPage() {
   const [limit] = useState(10);
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
   const [totals, setTotals] = useState({ totalReceived: 0, totalAdminIncome: 0 });
+  const { t } = useTranslation();
 
   const fetchIncomes = async () => {
     try {
@@ -31,7 +33,7 @@ export default function IncomesPage() {
       setPagination({ total: res.pagination?.total || 0, totalPages: res.pagination?.totalPages || Math.ceil((res.pagination?.total || 0) / limit) || 1 });
       setError(null);
     } catch (err: any) {
-      setError(err.message || 'Lỗi khi tải danh sách thu nhập');
+      setError(err.message || t.admin.incomesPage.loadError);
     } finally {
       setLoading(false);
     }
@@ -44,8 +46,8 @@ export default function IncomesPage() {
   return (
     <div className="flex flex-col h-full bg-slate-50">
       <AdminHeader
-        title="Ví thu nhập"
-        description="Theo dõi doanh thu và trạng thái giải ngân của nền tảng."
+        title={t.admin.incomesPage.title}
+        description={t.admin.incomesPage.description}
       />
 
       <div className="flex-1 p-8 overflow-y-auto">
@@ -63,7 +65,7 @@ export default function IncomesPage() {
               <ArrowDownLeft size={28} />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">Số tiền đã nhận</p>
+              <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">{t.admin.incomesPage.receivedAmountCard}</p>
               <h3 className="text-2xl font-bold text-slate-800">{formatCurrency(totals.totalReceived)}</h3>
             </div>
           </div>
@@ -72,7 +74,7 @@ export default function IncomesPage() {
               <ArrowUpRight size={28} />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">Số tiền thực nhận (Lợi nhuận)</p>
+              <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">{t.admin.incomesPage.profitCard}</p>
               <h3 className="text-2xl font-bold text-emerald-600">{formatCurrency(totals.totalAdminIncome)}</h3>
             </div>
           </div>
@@ -85,19 +87,19 @@ export default function IncomesPage() {
               onClick={() => setFilterStatus('ALL')}
               className={`px-4 py-1.5 font-medium rounded-md text-sm transition-colors ${filterStatus === 'ALL' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
             >
-              Tất cả
+              {t.admin.incomesPage.filterAll}
             </button>
             <button
               onClick={() => setFilterStatus('PENDING_DISBURSEMENT')}
               className={`px-4 py-1.5 font-medium rounded-md text-sm transition-colors ${filterStatus === 'PENDING_DISBURSEMENT' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
             >
-              Chờ giải ngân
+              {t.admin.incomesPage.filterPending}
             </button>
             <button
               onClick={() => setFilterStatus('DISBURSED')}
               className={`px-4 py-1.5 font-medium rounded-md text-sm transition-colors ${filterStatus === 'DISBURSED' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}
             >
-              Đã giải ngân
+              {t.admin.incomesPage.filterDisbursed}
             </button>
           </div>
         </div>
@@ -108,12 +110,12 @@ export default function IncomesPage() {
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
                 <tr className="border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
-                  <th className="px-6 py-4 font-semibold">Mã Thu Nhập</th>
-                  <th className="px-6 py-4 font-semibold">Mã Giao Dịch</th>
-                  <th className="px-6 py-4 font-semibold">Phòng</th>
-                  <th className="px-6 py-4 font-semibold text-right">Doanh thu Admin</th>
-                  <th className="px-6 py-4 font-semibold">Thời gian tạo</th>
-                  <th className="px-6 py-4 font-semibold text-center">Trạng thái</th>
+                  <th className="px-6 py-4 font-semibold">{t.admin.incomesPage.thIncomeCode}</th>
+                  <th className="px-6 py-4 font-semibold">{t.admin.incomesPage.thTxCode}</th>
+                  <th className="px-6 py-4 font-semibold">{t.admin.incomesPage.thRoom}</th>
+                  <th className="px-6 py-4 font-semibold text-right">{t.admin.incomesPage.thAdminIncome}</th>
+                  <th className="px-6 py-4 font-semibold">{t.admin.incomesPage.thCreateTime}</th>
+                  <th className="px-6 py-4 font-semibold text-center">{t.admin.incomesPage.thStatus}</th>
                 </tr>
               </thead>
               <tbody className={`divide-y divide-slate-100 text-sm transition-opacity duration-200 ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -121,13 +123,13 @@ export default function IncomesPage() {
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
                       <div className="flex justify-center mb-2"><div className="w-6 h-6 border-2 border-booking-primary border-t-transparent rounded-full animate-spin"></div></div>
-                      Đang tải dữ liệu...
+                      {t.admin.incomesPage.loadingData}
                     </td>
                   </tr>
                 ) : !loading && incomes.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                      Không tìm thấy dữ liệu thu nhập nào.
+                      {t.admin.incomesPage.noIncomesFound}
                     </td>
                   </tr>
                 ) : (
@@ -172,7 +174,7 @@ export default function IncomesPage() {
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] uppercase tracking-wider font-bold ${inc.status === 'DISBURSED' ? 'bg-emerald-100 text-emerald-800' : 'bg-orange-100 text-orange-800'}`}>
-                          {inc.status === 'DISBURSED' ? 'Đã giải ngân' : 'Chờ giải ngân'}
+                          {inc.status === 'DISBURSED' ? t.admin.incomesPage.disbursed : t.admin.incomesPage.pendingDisbursement}
                         </span>
                       </td>
                     </tr>
@@ -185,24 +187,24 @@ export default function IncomesPage() {
           {/* Pagination */}
           {!loading && incomes.length > 0 && (
             <div className="px-6 py-4 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between text-sm">
-              <span className="text-slate-500">Hiển thị {incomes.length} trên tổng <span className="font-medium text-slate-900">{pagination.total}</span></span>
+              <span className="text-slate-500">{t.admin.incomesPage.showingCount.replace('{{count}}', incomes.length.toString()).replace('{{total}}', pagination.total.toString())}</span>
               <div className="flex gap-1 items-center">
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   className="px-3 py-1 border border-slate-200 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
                 >
-                  Trước
+                  {t.admin.incomesPage.prevPage}
                 </button>
                 <span className="px-3 font-medium text-slate-900">
-                  Trang {page} / {pagination.totalPages}
+                  {t.admin.incomesPage.pageText.replace('{{page}}', page.toString()).replace('{{totalPages}}', pagination.totalPages.toString())}
                 </span>
                 <button
                   disabled={page >= pagination.totalPages}
                   onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
                   className="px-3 py-1 border border-slate-200 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors"
                 >
-                  Sau
+                  {t.admin.incomesPage.nextPage}
                 </button>
               </div>
             </div>
@@ -212,3 +214,4 @@ export default function IncomesPage() {
     </div>
   );
 }
+
