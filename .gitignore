@@ -29,6 +29,10 @@ lerna-debug.log*
 frontend/.env*
 backend/.env*
 
+# Allow example files to be tracked by Git
+!frontend/.env*.example
+!backend/.env*.example
+
 # IDEs and Editors
 .idea/
 .vscode/
