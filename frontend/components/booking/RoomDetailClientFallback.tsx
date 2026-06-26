@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { roomService, mapBackendRoomToBookingRoom } from '@/services/roomService';
 import RoomDetailContent from './RoomDetailContent';
-import { useTranslation } from '@/context/LanguageContext';
 
 interface RoomDetailClientFallbackProps {
   roomId: string;
@@ -12,7 +11,6 @@ interface RoomDetailClientFallbackProps {
 
 export default function RoomDetailClientFallback({ roomId }: RoomDetailClientFallbackProps) {
   const router = useRouter();
-  const { t } = useTranslation();
   const [room, setRoom] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -26,14 +24,14 @@ export default function RoomDetailClientFallback({ roomId }: RoomDetailClientFal
         if (res && res.data) {
           setRoom(mapBackendRoomToBookingRoom(res.data));
         } else {
-          setErrorMsg(t('roomDetail.notFound'));
+          setErrorMsg('Không tìm thấy thông tin phòng.');
         }
       } catch (err: any) {
         if (!active) return;
         if (err.code !== 'ROOM_RENTED' && err.code !== 'ROOM_NOT_AVAILABLE') {
           console.error('Client fallback room fetch failed:', err);
         }
-        const msg = err.response?.data?.message || err.message || t('roomDetail.loadError');
+        const msg = err.response?.data?.message || err.message || 'Lỗi tải thông tin phòng';
         setErrorMsg(msg);
       } finally {
         if (active) {
@@ -46,7 +44,7 @@ export default function RoomDetailClientFallback({ roomId }: RoomDetailClientFal
     return () => {
       active = false;
     };
-  }, [roomId, t]);
+  }, [roomId]);
 
   useEffect(() => {
     if (errorMsg) {
@@ -65,7 +63,7 @@ export default function RoomDetailClientFallback({ roomId }: RoomDetailClientFal
           <div className="absolute w-8 h-8 bg-white rounded-full"></div>
         </div>
         <p className="mt-4 text-sm font-semibold text-booking-muted animate-pulse">
-          {t('roomDetail.loading')}
+          Đang tải thông tin phòng...
         </p>
       </div>
     );
@@ -73,4 +71,3 @@ export default function RoomDetailClientFallback({ roomId }: RoomDetailClientFal
 
   return <RoomDetailContent room={room} />;
 }
-

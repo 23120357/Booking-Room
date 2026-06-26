@@ -9,18 +9,22 @@ import {
   TrendingUp,
   MessageSquare,
   Plus,
+  Settings,
   LogOut,
   User as UserIcon,
   KeyRound,
   LifeBuoy,
+  AlertTriangle,
   ChevronDown,
   type LucideIcon,
 } from 'lucide-react';
 import type { User } from '@/types/user';
-import { useTranslation } from '@/context/LanguageContext';
 import UserProfileModal from '@/components/common/UserProfileModal';
 import ChangePasswordModal from '@/components/common/ChangePasswordModal';
 import SupportTicketModal from '@/components/common/SupportTicketModal';
+import ViolationReportModal from '@/components/common/ViolationReportModal';
+import { useTranslation } from '@/context/LanguageContext';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -70,6 +74,7 @@ export default function HostSidebar({
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
+  const [isViolationOpen, setIsViolationOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close the dropdown when clicking outside of it.
@@ -84,13 +89,14 @@ export default function HostSidebar({
   }, []);
 
   const menuItems = [
-    { label: 'Xem hồ sơ cá nhân', icon: UserIcon, onClick: () => setIsProfileOpen(true) },
-    { label: 'Đổi mật khẩu', icon: KeyRound, onClick: () => setIsChangePasswordOpen(true) },
-    { label: 'Đơn hỗ trợ', icon: LifeBuoy, onClick: () => setIsSupportOpen(true) },
+    { label: t('header.profile'), icon: UserIcon, onClick: () => setIsProfileOpen(true) },
+    { label: t('header.changePassword'), icon: KeyRound, onClick: () => setIsChangePasswordOpen(true) },
+    { label: t('modals.support.title'), icon: LifeBuoy, onClick: () => setIsSupportOpen(true) },
+    { label: t('modals.violation.title'), icon: AlertTriangle, onClick: () => setIsViolationOpen(true) },
   ];
 
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r border-slate-200 bg-white shadow-sm lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex">
+    <aside className="hidden w-64 shrink-0 flex-col border-r border-slate-200 bg-white shadow-sm lg:fixed lg:inset-y-0 lg:left-0 lg:z-10 lg:flex">
       {/* Profile area (click avatar to open the account menu) */}
       <div className="relative border-b border-slate-200" ref={menuRef}>
         <button
@@ -164,10 +170,11 @@ export default function HostSidebar({
             <Link
               key={item.key}
               href={item.href}
-              className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${isActive
-                ? 'bg-booking-teal/20 font-semibold text-booking-teal'
-                : 'font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`}
+              className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${
+                isActive
+                  ? 'bg-booking-teal/20 font-semibold text-booking-teal'
+                  : 'font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              }`}
             >
               <Icon size={20} className={isActive ? 'text-booking-teal' : 'text-slate-500'} />
               <span>{item.label}</span>
@@ -177,6 +184,17 @@ export default function HostSidebar({
       </nav>
 
       <div className="space-y-1 border-t border-slate-200 p-4">
+        <div className="px-4 py-2 flex items-center justify-between border-b border-slate-100 mb-2 pb-3">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('header.selectLanguage')}</span>
+          <LanguageSwitcher dropdownPlacement="top" />
+        </div>
+        <Link
+          href="/host/settings"
+          className="flex items-center gap-3 rounded-xl px-4 py-3 font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+        >
+          <Settings size={20} className="text-slate-500" />
+          <span>{t('host.sidebar.settings')}</span>
+        </Link>
         <button
           type="button"
           onClick={onLogout}
@@ -191,6 +209,7 @@ export default function HostSidebar({
       <UserProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
       <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} />
       <SupportTicketModal isOpen={isSupportOpen} onClose={() => setIsSupportOpen(false)} />
+      <ViolationReportModal isOpen={isViolationOpen} onClose={() => setIsViolationOpen(false)} />
     </aside>
   );
 }

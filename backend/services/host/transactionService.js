@@ -8,18 +8,17 @@ const DEPOSIT_TO_UI = {
   PROCESSING: 'processing',
   CONFIRMED: 'pending',
   ACCEPTED: 'completed',
-  REJECTED: 'rejected',
+  REJECTED: 'cancelled',
   CANCELLED: 'cancelled',
   EXPIRED: 'cancelled',
 };
 
 const STATUS_LABEL = {
   completed: 'Đã hoàn tất',
-  awaiting: 'Chờ giải ngân',
-  pending: 'Chờ xác nhận',
-  processing: 'Đang thanh toán',
-  rejected: 'Đã từ chối',
-  cancelled: 'Đã hủy',
+  awaiting: 'Đang phê duyệt',
+  pending: 'Chờ duyệt',
+  processing: 'Đang xử lý',
+  cancelled: 'Đã từ chối',
 };
 
 const PAYMENT_METHOD_LABEL = {
@@ -34,18 +33,14 @@ function uiStatus(depositStatus) {
 
 /**
  * Trạng thái hiển thị ở danh sách giao dịch, kết hợp vòng đời đơn cọc + giải ngân:
- *  - ACCEPTED + đã giải ngân   → 'completed'  (Đã hoàn tất)
- *  - ACCEPTED + chưa giải ngân  → 'awaiting'   (Chờ giải ngân — chờ admin)
- *  - CONFIRMED (đã cọc, chủ phòng chưa đồng ý) → 'pending' (Chờ xác nhận)
- *  - REJECTED (chủ phòng từ chối)            → 'rejected'  (Đã từ chối)
- *  - CANCELLED/EXPIRED (khách hủy / hết hạn)  → 'cancelled' (Đã hủy)
- *  - còn lại (PROCESSING)       → 'processing' (Đang xử lý)
+ *  - ACCEPTED + đã giải ngân  → 'completed'  (Đã hoàn tất)
+ *  - ACCEPTED + chưa giải ngân → 'awaiting'  (Đang phê duyệt — chờ admin)
+ *  - REJECTED/CANCELLED/EXPIRED → 'cancelled' (Đã từ chối)
+ *  - còn lại (PROCESSING/CONFIRMED) → 'processing' (Đang xử lý)
  */
 function deriveStatus(row) {
-  if (row.status === 'REJECTED') return 'rejected';
-  if (['CANCELLED', 'EXPIRED'].includes(row.status)) return 'cancelled';
+  if (['CANCELLED', 'REJECTED', 'EXPIRED'].includes(row.status)) return 'cancelled';
   if (row.status === 'ACCEPTED') return row.is_disbursed ? 'completed' : 'awaiting';
-  if (row.status === 'CONFIRMED') return 'pending';
   return 'processing';
 }
 
@@ -162,9 +157,8 @@ function buildTimeline(row) {
     });
   }
   if (row.cancelled_at) {
-    // Khách tự hủy đơn cọc (đơn hết hạn được phản ánh qua trạng thái EXPIRED).
     timeline.push({
-      title: 'Khách chủ động hủy thanh toán',
+      title: 'Đơn bị hủy',
       time: formatDateTime(row.cancelled_at),
       note: row.cancellation_reason || undefined,
     });

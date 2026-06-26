@@ -4,7 +4,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import HostSidebar from '@/components/host/HostSidebar';
-import HostPendingRequests from '@/components/host/HostPendingRequests';
 import {
   statusConfig,
   statusFilterOptions,
@@ -34,7 +33,7 @@ function dateFromForRange(key: string): string | undefined {
 
 function StatusBadge({ status, t }: { status: TransactionStatus; t: any }) {
   const cfg = statusConfig[status];
-
+  
   // Use translations
   let label = cfg.label;
   if (status === 'completed') label = t('host.transactions.statusCompleted');
@@ -69,8 +68,6 @@ export default function HostTransactionsPage() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
-  // Bumped after a deposit approve/reject to refetch the list.
-  const [reloadKey, setReloadKey] = useState(0);
 
   const [exporting, setExporting] = useState(false);
 
@@ -136,7 +133,7 @@ export default function HostTransactionsPage() {
       cancelled = true;
       clearTimeout(handle);
     };
-  }, [search, statusFilter, selectedMonth, currentPage, reloadKey]);
+  }, [search, statusFilter, selectedMonth, currentPage]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -234,8 +231,62 @@ export default function HostTransactionsPage() {
             </div>
           </div>
 
-          {/* ── Pending Requests (đồng ý / từ chối đơn đặt cọc) ───────── */}
-          <HostPendingRequests onDecision={() => setReloadKey((k) => k + 1)} />
+          {/* ── Summary Cards ─────────────────────────────────────────── */}
+          <div className="flex gap-6">
+            <SummaryCard
+              label={t('host.transactions.totalTx')}
+              value={formatVND(summary?.totalRevenue ?? 0)}
+              sub={
+                <>
+                  <svg className="h-3 w-3 text-[#006A61]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                  </svg>
+                  <span className="text-[#006A61]">
+                    {(summary?.totalRevenueChange ?? 0) >= 0 ? '+' : ''}{summary?.totalRevenueChange ?? 0}% {t('host.transactions.comparedToLastMonth')}
+                  </span>
+                </>
+              }
+              iconBg="rgba(0,74,198,0.1)"
+              icon={
+                <svg className="h-6 w-6 text-[#004AC6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="5" width="20" height="14" rx="2" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2 10h20" />
+                </svg>
+              }
+            />
+            <SummaryCard
+              label={t('host.transactions.pendingProcessing')}
+              value={formatVND(summary?.processingAmount ?? 0)}
+              sub={
+                <span className="text-[#434655]">
+                  {String(summary?.processingCount ?? 0).padStart(2, '0')} {t('host.transactions.txPendingApproval')}
+                </span>
+              }
+              iconBg="rgba(148,55,0,0.1)"
+              icon={
+                <svg className="h-6 w-6 text-[#943700]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+                  <rect x="9" y="3" width="6" height="4" rx="1" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6M9 16h4" />
+                </svg>
+              }
+            />
+            <SummaryCard
+              label={t('host.transactions.successTx')}
+              value={formatVND(summary?.completedAmount ?? 0)}
+              sub={
+                <span className="text-[#006A61]">
+                  {summary?.completionRate ?? 0}% {t('host.transactions.completionRate')}
+                </span>
+              }
+              iconBg="rgba(0,106,97,0.1)"
+              icon={
+                <svg className="h-6 w-6 text-[#006A61]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+                </svg>
+              }
+            />
+          </div>
 
           {/* ── Filter Bar ────────────────────────────────────────────── */}
           <div className="flex items-center gap-4 rounded-xl border border-[#C3C6D7] bg-white px-4 py-[18px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
@@ -279,11 +330,10 @@ export default function HostTransactionsPage() {
                   className="appearance-none rounded-full border border-[#C3C6D7] bg-white py-1 pl-3 pr-7 text-sm text-[#191B23] focus:outline-none"
                 >
                   <option value="all">{t('host.transactions.filterStatusAll')}</option>
-                  <option value="processing">{t('host.transactions.filterStatusProcessing')}</option>
-                  <option value="awaiting">{t('host.transactions.filterStatusAwaiting')}</option>
                   <option value="completed">{t('host.transactions.filterStatusCompleted')}</option>
-                  <option value="rejected">{t('host.transactions.filterStatusRejected')}</option>
+                  <option value="pending">{t('host.transactions.filterStatusPending')}</option>
                   <option value="cancelled">{t('host.transactions.filterStatusCancelled')}</option>
+                  <option value="processing">{t('host.transactions.filterStatusProcessing')}</option>
                 </select>
                 <svg className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -331,8 +381,9 @@ export default function HostTransactionsPage() {
                     <tr
                       key={txn.id}
                       onClick={() => router.push(`/host/transactions/${txn.id}`)}
-                      className={`cursor-pointer border-b border-[#C3C6D7] transition hover:bg-[#F3F3FE] ${idx === paginated.length - 1 ? 'border-b-0' : ''
-                        }`}
+                      className={`cursor-pointer border-b border-[#C3C6D7] transition hover:bg-[#F3F3FE] ${
+                        idx === paginated.length - 1 ? 'border-b-0' : ''
+                      }`}
                     >
                       {/* Tenant */}
                       <td className="px-4 py-6">
@@ -385,9 +436,9 @@ export default function HostTransactionsPage() {
                 {total === 0
                   ? t('host.revenue.noTx')
                   : t('host.revenue.showingTx')
-                    .replace('{start}', String((currentPage - 1) * ITEMS_PER_PAGE + 1))
-                    .replace('{end}', String(Math.min(currentPage * ITEMS_PER_PAGE, total)))
-                    .replace('{total}', String(total))}
+                      .replace('{start}', String((currentPage - 1) * ITEMS_PER_PAGE + 1))
+                      .replace('{end}', String(Math.min(currentPage * ITEMS_PER_PAGE, total)))
+                      .replace('{total}', String(total))}
               </p>
 
               <div className="flex items-center gap-1">
@@ -410,10 +461,11 @@ export default function HostTransactionsPage() {
                     key={page}
                     type="button"
                     onClick={() => setCurrentPage(page)}
-                    className={`flex h-8 w-8 items-center justify-center rounded text-sm font-semibold transition ${currentPage === page
+                    className={`flex h-8 w-8 items-center justify-center rounded text-sm font-semibold transition ${
+                      currentPage === page
                         ? 'bg-[#004AC6] text-white'
                         : 'text-[#191B23] hover:bg-[#F3F3FE]'
-                      }`}
+                    }`}
                   >
                     {page}
                   </button>

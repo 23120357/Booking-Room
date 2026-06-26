@@ -23,7 +23,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>('vi');
 
   useEffect(() => {
-    console.log("LanguageContext loaded, forcing dictionary reload");
     // Load language from localStorage or cookie on initial load
     const savedLang = localStorage.getItem('app_language') as Language;
     if (savedLang && (savedLang === 'vi' || savedLang === 'en')) {
@@ -38,37 +37,34 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     document.cookie = `NEXT_LOCALE=${lang}; path=/; max-age=31536000`;
   };
 
-  const t = React.useMemo(() => {
-    const tFunc = (key: string, params?: Record<string, string | number>): string => {
-      const keys = key.split('.');
-      let value: any = dictionaries[language];
+  const tFunc = (key: string, params?: Record<string, string | number>): string => {
+    const keys = key.split('.');
+    let value: any = dictionaries[language];
 
-      for (const k of keys) {
-        if (value === undefined || value === null) break;
-        value = value[k as keyof typeof value];
-      }
+    for (const k of keys) {
+      if (value === undefined || value === null) break;
+      value = value[k as keyof typeof value];
+    }
 
-      if (typeof value !== 'string') {
-        console.warn(`Translation key not found: ${key}`);
-        return key; // Fallback to key if not found
-      }
+    if (typeof value !== 'string') {
+      console.warn(`Translation key not found: ${key}`);
+      return key; // Fallback to key if not found
+    }
 
-      let text = value;
-      if (params) {
-        Object.entries(params).forEach(([k, v]) => {
-          text = text.replace(new RegExp(`{{${k}}}`, 'g'), String(v));
-        });
-      }
+    let text = value;
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        text = text.replace(new RegExp(`{{${k}}}`, 'g'), String(v));
+      });
+    }
 
-      return text;
-    };
-    return Object.assign(tFunc, dictionaries[language]);
-  }, [language]);
+    return text;
+  };
 
-  const contextValue = React.useMemo(() => ({ language, setLanguage, t }), [language, t]);
+  const t = Object.assign(tFunc, dictionaries[language]);
 
   return (
-    <LanguageContext.Provider value={contextValue}>
+    <LanguageContext.Provider value={{ language, setLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );
