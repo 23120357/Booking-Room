@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import BookingManageCard from '@/components/host/BookingManageCard';
 import HostSidebar from '@/components/host/HostSidebar';
+import HostTopbar from '@/components/host/HostTopbar';
 import { hostRoomService, mapToHostListing } from '@/services/hostRoomService';
 import { getListingVisibilityMeta } from '@/services/hostRoomService';
 import type { HostListing, HostListingStatus } from '@/data/hostListings';
@@ -121,48 +122,7 @@ export default function HostListingsPage() {
       <HostSidebar user={user} onLogout={handleLogout} activePage="listings" />
 
       <section className="lg:pl-64">
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-booking-border/30 bg-booking-surface px-4 shadow-[0_1px_1px_rgba(0,0,0,0.05)] sm:px-6 lg:justify-end lg:px-12">
-          <div className="flex min-w-0 items-center gap-3 lg:hidden">
-            <img
-              src={user?.avatarUrl || '/images/booking/host/host-avatar.jpg'}
-              alt={user?.fullName || 'DPVinhIT'}
-              className="h-9 w-9 rounded-full border border-booking-border object-cover"
-            />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-booking-teal">{user?.fullName || 'DPVinhIT'}</p>
-              <p className="truncate text-[10px] font-bold uppercase tracking-[0.5px] text-booking-muted">
-                {t('host.listings.hostRole')}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-booking-muted">
-            <button
-              type="button"
-              aria-label={t('host.listings.notifications')}
-              title={t('host.listings.notifications')}
-              className="relative flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-white"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 17a3 3 0 0 0 6 0" />
-              </svg>
-              <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-[#ba1a1a]" />
-            </button>
-            <button
-              type="button"
-              aria-label={t('host.listings.help')}
-              title={t('host.listings.help')}
-              className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-white"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.1 9a3 3 0 1 1 4.8 2.4c-.9.6-1.4 1.1-1.4 2.1v.3" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 17h.01" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
-              </svg>
-            </button>
-          </div>
-        </header>
+        <HostTopbar user={user} />
 
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-12 lg:py-12">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">

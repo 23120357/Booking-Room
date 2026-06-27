@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher';
+import HostNotificationBell from '@/components/host/HostNotificationBell';
 import HostSidebar from '@/components/host/HostSidebar';
 import { hostTransactionService, type HostTransactionDetail } from '@/services/hostTransactionService';
 import { useTranslation } from '@/context/LanguageContext';
@@ -72,19 +74,8 @@ export default function HostTransactionDetailPage({ transactionId }: { transacti
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('host.transactionDetail.searchPlaceholder')} className="h-[45px] w-full rounded-full bg-[#EDEDF9] pl-12 pr-4 text-sm outline-none placeholder:text-[#6B7280]" />
           </div>
           <div className="ml-6 flex items-center gap-4 text-[#434655]">
-            <button type="button" aria-label="Thông báo" title="Thông báo" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-white">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 17a3 3 0 0 0 6 0" />
-              </svg>
-            </button>
-            <button type="button" aria-label="Trợ giúp" title="Trợ giúp" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-white">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.1 9a3 3 0 1 1 4.8 2.4c-.9.6-1.4 1.1-1.4 2.1v.3" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 17h.01" />
-                <circle cx="12" cy="12" r="10" />
-              </svg>
-            </button>
+            <HostNotificationBell />
+            <LanguageSwitcher />
           </div>
         </header>
 

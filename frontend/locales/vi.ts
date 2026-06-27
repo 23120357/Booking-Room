@@ -167,36 +167,6 @@ export const vi = {
       formErrReason: "Vui lòng nhập lý do khiếu nại.",
       formSuccess: "Đã gửi đơn khiếu nại thành công! Chúng tôi sẽ xử lý nghiêm khắc.",
       viewHistoryLink: "Xem lịch sử →"
-    },
-    profile: {
-      title: "Thông tin cá nhân",
-      roleAdmin: "Quản trị viên",
-      roleHost: "Chủ nhà",
-      roleTenant: "Người thuê phòng",
-      removeAvatar: "Xóa ảnh đại diện",
-      fullName: "Họ và tên",
-      email: "Địa chỉ Email",
-      username: "Tên đăng nhập",
-      cannotEdit: "Không thể chỉnh sửa",
-      phone: "Số điện thoại",
-      gender: "Giới tính",
-      male: "Nam",
-      female: "Nữ",
-      other: "Khác",
-      dob: "Ngày sinh",
-      address: "Địa chỉ liên hệ",
-      cancel: "Hủy bỏ",
-      saveChanges: "Lưu thay đổi",
-      saving: "Đang lưu..."
-    },
-    changePassword: {
-      title: "Đổi mật khẩu",
-      currentPass: "Mật khẩu hiện tại",
-      newPass: "Mật khẩu mới",
-      confirmPass: "Xác nhận mật khẩu mới",
-      cancel: "Hủy bỏ",
-      saveChanges: "Lưu thay đổi",
-      saving: "Đang lưu..."
     }
   },
   rooms: {
@@ -250,6 +220,19 @@ export const vi = {
       addNewRoom: "Thêm phòng mới",
       settings: "Cài đặt",
       logout: "Đăng xuất"
+    },
+    notifications: {
+      title: "Thông báo",
+      unreadCount: "{{count}} thông báo chưa đọc",
+      markAllRead: "Đánh dấu đã đọc",
+      loading: "Đang tải thông báo...",
+      loadFailed: "Không thể tải thông báo.",
+      retry: "Thử lại",
+      empty: "Chưa có thông báo hỗ trợ hoặc khiếu nại.",
+      referenceCode: "Mã tham chiếu",
+      status: "Trạng thái",
+      reason: "Lý do",
+      adminResponse: "Phản hồi từ admin"
     },
     dashboard: {
       newBadge: "Mới",

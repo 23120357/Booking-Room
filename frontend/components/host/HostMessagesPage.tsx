@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher';
+import HostNotificationBell from '@/components/host/HostNotificationBell';
 import HostSidebar from '@/components/host/HostSidebar';
 import {
   conversationService,
@@ -447,12 +449,8 @@ export default function HostMessagesPage() {
       <div className="flex flex-1 flex-col lg:ml-64">
         {/* ── Top Nav Bar ────────────────────────────────────────────── */}
         <header className="flex h-16 items-center justify-end gap-4 border-b border-[rgba(195,198,215,0.3)] bg-[#FAF8FF] px-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-          <button type="button" aria-label="Thông báo" className="flex h-8 w-8 items-center justify-center rounded-full text-[#004AC6] hover:bg-[#EEF3FF]">
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 17a3 3 0 0 0 6 0" />
-            </svg>
-          </button>
+          <HostNotificationBell />
+          <LanguageSwitcher />
         </header>
 
         {/* ── Two-panel chat layout ─────────────────────────────────── */}

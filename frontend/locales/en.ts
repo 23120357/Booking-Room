@@ -167,36 +167,6 @@ export const en = {
       formErrReason: "Please enter a reason for reporting.",
       formSuccess: "Violation report submitted successfully! We will handle it strictly.",
       viewHistoryLink: "View history →"
-    },
-    profile: {
-      title: "Personal Information",
-      roleAdmin: "Administrator",
-      roleHost: "Host",
-      roleTenant: "Tenant",
-      removeAvatar: "Remove Avatar",
-      fullName: "Full Name",
-      email: "Email Address",
-      username: "Username",
-      cannotEdit: "Cannot be edited",
-      phone: "Phone Number",
-      gender: "Gender",
-      male: "Male",
-      female: "Female",
-      other: "Other",
-      dob: "Date of Birth",
-      address: "Address",
-      cancel: "Cancel",
-      saveChanges: "Save Changes",
-      saving: "Saving..."
-    },
-    changePassword: {
-      title: "Change Password",
-      currentPass: "Current Password",
-      newPass: "New Password",
-      confirmPass: "Confirm New Password",
-      cancel: "Cancel",
-      saveChanges: "Save Changes",
-      saving: "Saving..."
     }
   },
   rooms: {
@@ -250,6 +220,19 @@ export const en = {
       addNewRoom: "Add New Room",
       settings: "Settings",
       logout: "Logout"
+    },
+    notifications: {
+      title: "Notifications",
+      unreadCount: "{{count}} unread notifications",
+      markAllRead: "Mark all as read",
+      loading: "Loading notifications...",
+      loadFailed: "Unable to load notifications.",
+      retry: "Retry",
+      empty: "No support or complaint notifications yet.",
+      referenceCode: "Reference code",
+      status: "Status",
+      reason: "Reason",
+      adminResponse: "Admin response"
     },
     dashboard: {
       newBadge: "New",

@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher';
+import HostNotificationBell from '@/components/host/HostNotificationBell';
 import HostSidebar from '@/components/host/HostSidebar';
 import HostPendingRequests from '@/components/host/HostPendingRequests';
 import {
@@ -233,20 +235,8 @@ export default function HostTransactionsPage() {
 
           {/* Action buttons */}
           <div className="ml-6 flex items-center gap-6">
-            <button type="button" aria-label="Thông báo" className="flex h-8 w-8 items-center justify-center rounded-full text-[#434655] hover:bg-[#E1E2ED]">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 17a3 3 0 0 0 6 0" />
-              </svg>
-            </button>
-            <div className="h-8 w-px bg-[#C3C6D7]" />
-            <button type="button" aria-label="Trợ giúp" className="flex h-9 w-9 items-center justify-center rounded-full text-[#434655] hover:bg-[#E1E2ED]">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.1 9a3 3 0 1 1 4.8 2.4c-.9.6-1.4 1.1-1.4 2.1v.3" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 17h.01" />
-                <circle cx="12" cy="12" r="10" />
-              </svg>
-            </button>
+            <HostNotificationBell />
+            <LanguageSwitcher />
           </div>
         </header>
 

@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher';
+import HostNotificationBell from '@/components/host/HostNotificationBell';
 import HostSidebar from '@/components/host/HostSidebar';
 import GoogleAddressInput, { type SelectedPlace } from '@/components/host/GoogleAddressInput';
 import { hostRoomService } from '@/services/hostRoomService';
@@ -216,29 +218,8 @@ export default function HostCreateRoomPage() {
       <section className="flex min-h-screen flex-col lg:ml-64">
         <header className="sticky top-0 z-10 flex h-16 items-center justify-end border-b border-[#E1E2ED] bg-[#FAF8FF] px-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
           <div className="flex items-center gap-2 text-[#004AC6]">
-            <button
-              type="button"
-              aria-label="Thông báo"
-              title="Thông báo"
-              className="flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-white"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 17a3 3 0 0 0 6 0" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              aria-label="Trợ giúp"
-              title="Trợ giúp"
-              className="flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-white"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.1 9a3 3 0 1 1 4.8 2.4c-.9.6-1.4 1.1-1.4 2.1v.3" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 17h.01" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
-              </svg>
-            </button>
+            <HostNotificationBell />
+            <LanguageSwitcher />
           </div>
         </header>
 

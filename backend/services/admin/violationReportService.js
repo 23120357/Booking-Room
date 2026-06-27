@@ -1,6 +1,7 @@
 const db = require('../../config/db');
 const AppError = require('../../utils/AppError');
 const { writeSystemLog } = require('./systemLogService');
+const notificationService = require('../guest/notificationService');
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
@@ -173,8 +174,6 @@ async function updateReportStatus({ reportId, status, adminResponseTenant, admin
 
   // Only notify when the report is completely resolved or dismissed
   if (upperStatus === 'RESOLVED' || upperStatus === 'DISMISSED') {
-    const notificationRepository = require('../../repositories/guest/notificationRepository');
-    
     // 1. Notify the reporting tenant
     let tenantTitle = 'Kết quả giải quyết khiếu nại';
     let tenantContent = `Khiếu nại của bạn (Mã: ${reportId.split('-')[0]}) đã được xử lý. `;
@@ -187,13 +186,12 @@ async function updateReportStatus({ reportId, status, adminResponseTenant, admin
       tenantContent += ` Phản hồi từ quản trị viên: "${trimmedTenantResponse}"`;
     }
 
-    await notificationRepository.insertNotification({
-      user_id: existing.tenant_id,
-      title: tenantTitle,
-      content: tenantContent,
-      notification_type: 'VIOLATION',
-      status: 'UNREAD',
-    });
+    await notificationService.createNotification(
+      existing.tenant_id,
+      tenantTitle,
+      tenantContent,
+      'VIOLATION',
+    );
 
     // 2. Notify the reported landlord ONLY IF resolved (has guilt)
     if (existing.landlord_id && upperStatus === 'RESOLVED') {
@@ -210,37 +208,32 @@ async function updateReportStatus({ reportId, status, adminResponseTenant, admin
         landlordContent += ` Phản hồi từ quản trị viên: "${trimmedLandlordResponse}"`;
       }
 
-      await notificationRepository.insertNotification({
-        user_id: existing.landlord_id,
-        title: landlordTitle,
-        content: landlordContent,
-        notification_type: 'VIOLATION',
-        status: 'UNREAD',
-      });
+      await notificationService.createNotification(
+        existing.landlord_id,
+        landlordTitle,
+        landlordContent,
+        'VIOLATION',
+      );
     }
   } else {
     // For PROCESSING status, still send notification with admin response if provided
-    const notificationRepository = require('../../repositories/guest/notificationRepository');
-    
     if (trimmedTenantResponse) {
-      await notificationRepository.insertNotification({
-        user_id: existing.tenant_id,
-        title: 'Phản hồi từ quản trị viên về khiếu nại',
-        content: `Khiếu nại của bạn (Mã: ${reportId.split('-')[0]}) đã được tiếp nhận. Phản hồi từ quản trị viên: "${trimmedTenantResponse}"`,
-        notification_type: 'VIOLATION',
-        status: 'UNREAD',
-      });
+      await notificationService.createNotification(
+        existing.tenant_id,
+        'Phản hồi từ quản trị viên về khiếu nại',
+        `Khiếu nại của bạn (Mã: ${reportId.split('-')[0]}) đã được tiếp nhận. Phản hồi từ quản trị viên: "${trimmedTenantResponse}"`,
+        'VIOLATION',
+      );
     }
 
     if (existing.landlord_id && trimmedLandlordResponse) {
       const shortId = reportId.split('-')[0];
-      await notificationRepository.insertNotification({
-        user_id: existing.landlord_id,
-        title: 'Thông báo về yêu cầu làm rõ khiếu nại',
-        content: `Bạn nhận được thông báo liên quan đến khiếu nại (Mã: ${shortId}) về lý do: "${existing.reason}". Phản hồi từ quản trị viên: "${trimmedLandlordResponse}"`,
-        notification_type: 'VIOLATION',
-        status: 'UNREAD',
-      });
+      await notificationService.createNotification(
+        existing.landlord_id,
+        'Thông báo về yêu cầu làm rõ khiếu nại',
+        `Bạn nhận được thông báo liên quan đến khiếu nại (Mã: ${shortId}) về lý do: "${existing.reason}". Phản hồi từ quản trị viên: "${trimmedLandlordResponse}"`,
+        'VIOLATION',
+      );
     }
   }
 

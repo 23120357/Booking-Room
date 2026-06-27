@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import HostSidebar from '@/components/host/HostSidebar';
+import HostTopbar from '@/components/host/HostTopbar';
 import HostPendingRequests from '@/components/host/HostPendingRequests';
 import BookingManageCard from '@/components/host/BookingManageCard';
 import {
@@ -237,6 +238,8 @@ export default function HostDashboardPage() {
       <HostSidebar user={user} onLogout={handleLogout} activePage="overview" />
 
       <section className="flex-1 bg-slate-50 lg:ml-64">
+        <HostTopbar user={user} />
+
         <div className="mx-auto max-w-[1100px] px-8 pb-16 pt-8">
           <header className="mb-8">
             <h1 className="text-2xl font-bold text-slate-900">{t('host.dashboard.overviewTitle')}</h1>

@@ -1,5 +1,6 @@
 const notificationRepository = require('../../repositories/guest/notificationRepository');
 const AppError = require('../../utils/AppError');
+const { getIO } = require('../../config/socket');
 
 /**
  * Get paginated list of notifications.
@@ -36,12 +37,19 @@ async function readAllNotifications(userId) {
  * This is meant to be called by other internal services (e.g., when a new message is sent).
  */
 async function createNotification(userId, title, content, type) {
-  return await notificationRepository.insertNotification({
+  const notification = await notificationRepository.insertNotification({
     user_id: userId,
     title,
     content,
     notification_type: type
   });
+
+  const io = getIO();
+  if (io) {
+    io.to(String(userId)).emit('notification:new', notification);
+  }
+
+  return notification;
 }
 
 module.exports = {

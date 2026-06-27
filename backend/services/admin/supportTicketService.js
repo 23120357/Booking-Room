@@ -1,6 +1,7 @@
 const db = require('../../config/db');
 const AppError = require('../../utils/AppError');
 const { writeSystemLog } = require('./systemLogService');
+const notificationService = require('../guest/notificationService');
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
@@ -153,19 +154,17 @@ async function updateTicketStatus({ ticketId, status, adminResponse, actor }) {
   });
 
   // Notify the user
-  const notificationRepository = require('../../repositories/guest/notificationRepository');
   const statusLabels = { OPEN: 'Chờ xử lý', IN_PROGRESS: 'Đang xử lý', CLOSED: 'Đã giải quyết' };
   let notifContent = `Yêu cầu hỗ trợ của bạn (Mã: ${ticketId.split('-')[0]}) đã được chuyển sang trạng thái: ${statusLabels[upperStatus] || upperStatus}.`;
   if (trimmedResponse) {
     notifContent += ` Phản hồi từ quản trị viên: "${trimmedResponse}"`;
   }
-  await notificationRepository.insertNotification({
-    user_id: existing.user_id,
-    title: 'Cập nhật yêu cầu hỗ trợ',
-    content: notifContent,
-    notification_type: 'SUPPORT',
-    status: 'UNREAD',
-  });
+  await notificationService.createNotification(
+    existing.user_id,
+    'Cập nhật yêu cầu hỗ trợ',
+    notifContent,
+    'SUPPORT',
+  );
 
   return mapTicketRow(updated);
 }
