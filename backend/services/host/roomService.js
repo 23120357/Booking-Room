@@ -417,12 +417,12 @@ async function setRoomVisibility(landlordId, roomId, visible) {
     return { room_id: roomId, status: updated ? updated.status : 'AVAILABLE' };
   }
 
-  // Ẩn phòng: chỉ cho phép khi đang AVAILABLE.
+  // Ẩn phòng: cho phép khi đang AVAILABLE hoặc RENTED.
   if (current === 'HIDDEN') {
     return { room_id: roomId, status: current };
   }
-  if (current !== 'AVAILABLE') {
-    throw new AppError('CONFLICT', 'Không thể ẩn phòng đang có giao dịch hoặc đã cho thuê.', 409);
+  if (current !== 'AVAILABLE' && current !== 'RENTED') {
+    throw new AppError('CONFLICT', 'Không thể ẩn phòng đang có giao dịch chưa hoàn tất.', 409);
   }
   const updated = await roomRepository.update(roomId, { status: 'HIDDEN', updated_at: db.fn.now() });
   return { room_id: roomId, status: updated ? updated.status : 'HIDDEN' };

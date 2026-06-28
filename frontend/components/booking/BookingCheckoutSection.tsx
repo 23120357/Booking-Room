@@ -396,8 +396,8 @@ export default function BookingCheckoutSection({
           <div className="border-t border-slate-200/50" />
           <div>
             <p className="text-[11px] font-bold text-booking-muted uppercase tracking-[0.02em]">{t('roomDetail.statusLabel')}</p>
-            {activeDepositStatus === 'CONFIRMED' ? (
-              <p className="mt-1 text-sm font-extrabold text-[#004ac6]">{t('roomDetail.statusDeposited')}</p>
+            {(roomStatus === 'RENTED' || roomStatus === 'LOCKED' || activeDepositStatus === 'CONFIRMED') ? (
+              <p className="mt-1 text-sm font-extrabold text-red-500">{t('roomDetail.roomRented')}</p>
             ) : (
               <p className="mt-1 text-sm font-extrabold text-[#006a61]">{t('roomDetail.statusAvailable')}</p>
             )}
