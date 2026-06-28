@@ -35,10 +35,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
       }
     } catch (error: any) {
-      console.error('Failed to fetch user profile:', error);
-      // Chỉ kết thúc phiên khi backend xác nhận token không hợp lệ.
-      // Không xóa token vì lỗi mạng, backend cold start hoặc lỗi 5xx tạm thời.
-      if (error?.status === 401) {
+      // Don't log expected auth errors (401: Unauthorized/Expired, 404: Account deleted/not found)
+      if (error?.status !== 401 && error?.status !== 404) {
+        console.error('Failed to fetch user profile:', error);
+      }
+      // Clear stored credentials if the token is invalid (401) or the account no longer exists (404)
+      if (error?.status === 401 || error?.status === 404) {
         clearStoredCredentials();
         setUser(null);
       }
@@ -56,8 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await refreshProfile();
         }
       } catch (error: any) {
-        console.error('Failed to initialize auth:', error);
-        if (error?.status === 401) {
+        if (error?.status !== 401 && error?.status !== 404) {
+          console.error('Failed to initialize auth:', error);
+        }
+        if (error?.status === 401 || error?.status === 404) {
           clearStoredCredentials();
           setUser(null);
         }
